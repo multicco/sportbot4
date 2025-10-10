@@ -6,6 +6,9 @@ from bot import bot, dp
 from database import init_database, db_manager
 from handlers import register_all_handlers
 
+
+
+
 # Настройка логирования
 logging.basicConfig(
     level=logging.INFO,

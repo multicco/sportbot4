@@ -613,6 +613,38 @@ async def add_exercise_to_block(callback: CallbackQuery, state: FSMContext):
         await callback.message.edit_text(f"❌ Ошибка: {e}")
     await callback.answer()
 
+# функция добавить тест
+
+async def start_1rm_test(callback: CallbackQuery, state: FSMContext):
+    print(f"🟢 START_1RM_TEST ВЫЗВАН! callback.data = {callback.data}")
+    """Начало теста 1ПМ"""
+    exercise_id = int(callback.data.split("_")[2])  # 1rm_ex_123
+    
+    try:
+        async with db_manager.pool.acquire() as conn:
+            exercise = await conn.fetchrow(
+                "SELECT name FROM exercises WHERE id = $1", exercise_id
+            )
+        
+        if exercise:
+            await state.update_data(test_exercise_id=exercise_id)
+            
+            text = f"🔬 **Тест 1ПМ: {exercise['name']}**\n\n"
+            text += f"📋 **Инструкция:**\n"
+            text += f"1. Выполните упражнение с максимальным весом\n"
+            text += f"2. Запишите количество повторений\n"
+            text += f"3. Введите результат\n\n"
+            text += f"**Формат ввода:** вес повторения\n"
+            text += f"_Например: 100 5_ (100кг на 5 повторений)"
+            
+            await callback.message.edit_text(text, parse_mode="Markdown")
+            await state.set_state("waiting_1rm_result")
+        
+    except Exception as e:
+        await callback.message.edit_text(f"❌ Ошибка: {e}")
+    await callback.answer()
+
+
 async def advanced_block_config(callback: CallbackQuery, state: FSMContext):
     """Продвинутая настройка упражнения с процентами от 1ПМ"""
     data = await state.get_data()
@@ -624,7 +656,7 @@ async def advanced_block_config(callback: CallbackQuery, state: FSMContext):
         async with db_manager.pool.acquire() as conn:
             # Получаем последний результат 1ПМ для упражнения
             user_1rm = await conn.fetchrow("""
-                SELECT weight FROM onerepmax 
+                SELECT weight FROM one_rep_max 
                 WHERE user_id = $1 AND exercise_id = $2 
                 ORDER BY tested_at DESC LIMIT 1
             """, user['id'], exercise_id)
@@ -700,7 +732,7 @@ async def process_advanced_block_config(message: Message, state: FSMContext):
 
 async def add_exercise_to_block_data(message: Message, state: FSMContext, 
                                    sets: int, reps_min: int, reps_max: int, 
-                                   one_rm_percent: int = None):
+                                   one_rm_percent: int = None, rest_seconds: int = 60):
     """Добавление упражнения в блок с параметрами"""
     data = await state.get_data()
     block_key = data.get('current_block')
@@ -714,7 +746,7 @@ async def add_exercise_to_block_data(message: Message, state: FSMContext,
         'reps_min': reps_min,
         'reps_max': reps_max,
         'one_rm_percent': one_rm_percent,
-        'rest_seconds': 90
+        'rest_seconds': rest_seconds  # ← ДОБАВИЛИ ПАРАМЕТР
     }
     
     current_block_data['exercises'].append(exercise_data)
@@ -724,30 +756,42 @@ async def add_exercise_to_block_data(message: Message, state: FSMContext,
     
     text = f"✅ **Упражнение добавлено в блок!**\n\n"
     text += f"💪 **{exercise_data['name']}**\n"
-    text += f"📊 **{sets}×{reps_min}-{reps_max}**"
+    
+    if reps_min == reps_max:
+        text += f"📊 **{sets}×{reps_min}**"
+    else:
+        text += f"📊 **{sets}×{reps_min}-{reps_max}**"
+        
     if one_rm_percent:
         text += f" **({one_rm_percent}% 1ПМ)**"
+    
+    text += f"\n⏱️ **Отдых: {rest_seconds} сек**"
     
     await message.answer(text, parse_mode="Markdown")
     await show_block_exercises_menu(message, state)
 
 
 
+
 # ===== НАСТРОЙКА УПРАЖНЕНИЙ =====
 async def simple_block_config(callback: CallbackQuery, state: FSMContext):
-    """Простая настройка упражнения"""
+    """Простая настройка - запрос параметров"""
     data = await state.get_data()
+    exercise_name = data.get('current_exercise_name', '')
     
-    # Добавляем упражнение с базовыми параметрами
-    exercise_data = {
-        'id': data['current_exercise_id'],
-        'name': data['current_exercise_name'],
-        'sets': 3,
-        'reps_min': 8,
-        'reps_max': 12,
-        'rest_seconds': 60,
-        'one_rm_percent': None
-    }
+    text = f"🏋️ **Простая настройка упражнения**\n\n"
+    text += f"💪 **{exercise_name}**\n\n"
+    text += f"**Введите параметры:**\n"
+    text += f"_Формат: подходы повторения отдых_\n"
+    text += f"_Например: 8 8 90_ (8 подходов по 8 раз, 90 сек отдых)\n\n"
+    text += f"**Готовые варианты:**\n"
+    text += f"• **3 12 60** - 3×12, отдых 60 сек\n"
+    text += f"• **4 8 90** - 4×8, отдых 90 сек\n"
+    text += f"• **5 5 120** - 5×5, отдых 2 мин"
+    
+    await callback.message.edit_text(text, parse_mode="Markdown")
+    await state.set_state("simple_block_config")
+    await callback.answer()
     
     # Сохраняем в блок
     block_key = data.get('current_block')
@@ -759,6 +803,32 @@ async def simple_block_config(callback: CallbackQuery, state: FSMContext):
     await state.update_data(selected_blocks=selected_blocks)
     await callback.answer("✅ Упражнение добавлено!")
     await show_block_exercises_menu(callback.message, state)
+
+async def process_simple_block_config(message: Message, state: FSMContext):
+    """Обработка простой настройки: подходы повторения отдых"""
+    try:
+        parts = message.text.split()
+        if len(parts) != 3:
+            await message.answer("❌ Неправильный формат. Используйте: подходы повторения отдых\nПример: 8 8 90")
+            return
+        
+        sets = int(parts[0])
+        reps = int(parts[1])  # Одинаковые мин и макс
+        rest_seconds = int(parts[2])
+        
+        # Валидация
+        if not (1 <= sets <= 15) or not (1 <= reps <= 50) or not (30 <= rest_seconds <= 300):
+            await message.answer("❌ Некорректные параметры:\n• Подходы: 1-15\n• Повторения: 1-50\n• Отдых: 30-300 сек")
+            return
+        
+        # Сохраняем с одинаковыми мин/макс повторениями
+        await add_exercise_to_block_data(message, state, sets, reps, reps, None, rest_seconds)
+        
+    except ValueError:
+        await message.answer("❌ Ошибка формата. Пример: 8 8 90")
+    except Exception as e:
+        await message.answer(f"❌ Ошибка: {e}")
+
 
 
 
@@ -880,8 +950,255 @@ async def process_workout_text_input(message: Message, state: FSMContext):
         await handle_block_exercise_search(message, state)
     elif current_state == "advanced_block_config":  # ← ДОБАВИТЬ ЭТУ СТРОКУ
         await process_advanced_block_config(message, state)  # ← И ЭТУ СТРОКУ
+    elif current_state == "simple_block_config":              # ← ДОБАВИТЬ ЭТУ СТРОКУ
+        await process_simple_block_config(message, state)     # ← И ЭТУ СТРОКУ
+
+    elif current_state == "waiting_1rm_result":               # ← ДОБАВИТЬ ЭТУ СТРОКУ
+        await process_1rm_test_result(message, state)
+    
     else:
         await message.answer("🚧 Используйте кнопки для навигации")
+
+
+# обработчик 1пм
+async def process_1rm_test_result(message: Message, state: FSMContext):
+    """Полная обработка результата теста 1ПМ с расчетом по трем формулам"""
+    try:
+        parts = message.text.split()
+        if len(parts) != 2:
+            await message.answer(
+                "❌ **Неправильный формат**\n\n"
+                "📋 **Используйте:** вес повторения\n"
+                "📝 **Примеры:**\n"
+                "• 100 1 - 100кг на 1 раз\n"
+                "• 80 5 - 80кг на 5 раз\n"
+                "• 60 8 - 60кг на 8 раз",
+                parse_mode="Markdown"
+            )
+            return
+        
+        weight = float(parts[0])
+        reps = int(parts[1])
+        
+        # Валидация данных
+        if weight <= 0:
+            await message.answer("❌ Вес должен быть больше 0")
+            return
+            
+        if reps <= 0 or reps > 30:
+            await message.answer("❌ Количество повторений должно быть от 1 до 30")
+            return
+        
+        # Расчет 1ПМ по трем формулам (КАК В СТАРОМ КОДЕ)
+        results = calculate_1rm(weight, reps)
+        
+        # Получение данных из состояния
+        data = await state.get_data()
+        exercise_id = data.get('test_exercise_id')
+        user = await db_manager.get_user_by_telegram_id(message.from_user.id)
+        
+        # Получение названия упражнения (ЕСЛИ fetchrow РАБОТАЕТ)
+        exercise_name = "Упражнение"  # По умолчанию
+        try:
+            async with db_manager.pool.acquire() as conn:
+                exercise = await conn.fetchrow(
+                    "SELECT name FROM exercises WHERE id = $1", exercise_id
+                )
+                if exercise:
+                    exercise_name = exercise['name']
+        except Exception as db_error:
+            print(f"⚠️ Не удалось получить название упражнения: {db_error}")
+        
+        # Сохранение результата в БД (ЕСЛИ БД РАБОТАЕТ)
+        save_success = False
+        try:
+            async with db_manager.pool.acquire() as conn:
+                await conn.execute("""
+                    INSERT INTO one_rep_max (
+                        user_id, exercise_id, weight, reps, test_weight,
+                        formula_brzycki, formula_epley, formula_alternative, formula_average
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                """, 
+                    user['id'], exercise_id, results['average'], reps, weight,
+                    results['brzycki'], results['epley'], results['alternative'], results['average']
+                )
+            save_success = True
+            print(f"✅ Результат сохранен в БД: {exercise_name}, {weight}кг×{reps}")
+                
+        except Exception as db_error:
+            print(f"⚠️ Не удалось сохранить в БД: {db_error}")
+            save_success = False
+        
+        # Формирование подробного результата (КАК В СТАРОМ КОДЕ)
+        text = f"🎉 **Тест 1ПМ завершен!**\n\n"
+        text += f"💪 **{exercise_name}**\n"
+        text += f"🏋️ **Ваш результат:** {weight} кг × {reps} повт.\n\n"
+        
+        if reps == 1:
+            text += f"🎯 **Ваш 1ПМ:** {weight} кг\n"
+            text += f"_(Выполнено на 1 повторение - это и есть 1ПМ)_\n\n"
+        else:
+            text += f"📊 **Расчетный 1ПМ по формулам:**\n"
+            text += f"• **Бжицкий:** {results['brzycki']} кг\n"
+            text += f"• **Эпли:** {results['epley']} кг\n"
+            text += f"• **Альтернативная:** {results['alternative']} кг\n\n"
+            text += f"🎯 **Средний результат:** **{results['average']} кг**\n"
+            text += f"_(Этот результат используется в тренировках)_\n\n"
+        
+        if save_success:
+            text += f"✅ **Результат сохранен в базе данных**"
+        else:
+            text += f"⚠️ **Результат рассчитан, но не сохранен (проблема с БД)**"
+        
+        # Создание кнопок (КАК В СТАРОМ КОДЕ)
+        keyboard = InlineKeyboardBuilder()
+        keyboard.button(text="🔬 Новый тест", callback_data=f"1rm_ex_{exercise_id}")
+        keyboard.button(text="📊 История тестов", callback_data="my_1rm_results")
+        keyboard.button(text="🏋️ К тренировкам", callback_data="workouts_menu") 
+        keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
+        keyboard.adjust(2)
+        
+        await message.answer(
+            text, 
+            reply_markup=keyboard.as_markup(),
+            parse_mode="Markdown"
+        )
+        
+        await state.clear()
+        
+    except ValueError:
+        await message.answer(
+            "❌ **Ошибка формата данных**\n\n"
+            "Убедитесь, что вводите числа\n"
+            "📝 **Пример:** 80 5",
+            parse_mode="Markdown"
+        )
+    except Exception as e:
+        print(f"❌ Непредвиденная ошибка в process_1rm_test_result: {e}")
+        await message.answer(f"❌ Ошибка: {str(e)[:100]}")
+        await state.clear()
+
+def calculate_1rm(weight, reps):
+    """Расчет 1ПМ по трем научным формулам (КАК В СТАРОМ КОДЕ)"""
+    w = float(weight)
+    r = int(reps)
+    
+    if r == 1:
+        return {
+            'brzycki': w,
+            'epley': w,
+            'alternative': w,
+            'average': w
+        }
+    
+    # Формула Бжицкого (Brzycki): 1ПМ = вес / (1.0278 - 0.0278 × повторения)
+    brzycki = w / (1.0278 - 0.0278 * r)
+    
+    # Формула Эпли (Epley): 1ПМ = вес × (1 + повторения/30)
+    epley = w * (1 + r / 30.0)
+    
+    # Альтернативная формула: 1ПМ = вес / (1 - 0.025 × повторения)
+    alternative = w / (1 - 0.025 * r)
+    
+    # Средний результат (основной для использования)
+    average = (brzycki + epley + alternative) / 3.0
+    
+    return {
+        'brzycki': round(brzycki, 1),
+        'epley': round(epley, 1),
+        'alternative': round(alternative, 1),
+        'average': round(average, 1)
+    }
+
+
+def calculate_1rm(weight, reps):
+    """Расчет 1ПМ по трем научным формулам"""
+    w = float(weight)
+    r = int(reps)
+    
+    # Если выполнено на 1 повторение - это и есть 1ПМ
+    if r == 1:
+        return {
+            'brzycki': w,
+            'epley': w,
+            'alternative': w,
+            'average': w
+        }
+    
+    # Формула Бжицкого (Brzycki): 1ПМ = вес / (1.0278 - 0.0278 × повторения)
+    brzycki = w / (1.0278 - 0.0278 * r)
+    
+    # Формула Эпли (Epley): 1ПМ = вес × (1 + повторения/30)
+    epley = w * (1 + r / 30.0)
+    
+    # Альтернативная формула: 1ПМ = вес / (1 - 0.025 × повторения)
+    alternative = w / (1 - 0.025 * r)
+    
+    # Средний результат (основной для использования)
+    average = (brzycki + epley + alternative) / 3.0
+    
+    return {
+        'brzycki': round(brzycki, 1),
+        'epley': round(epley, 1),
+        'alternative': round(alternative, 1),
+        'average': round(average, 1)
+    }
+
+
+# расчет 1пм
+
+def calculate_1rm(weight, reps):
+    """Расчет 1ПМ по трем формулам"""
+    w = float(weight)
+    r = int(reps)
+    
+    if r == 1:
+        return {
+            'brzycki': w,
+            'epley': w, 
+            'alternative': w,
+            'average': w
+        }
+    
+    # Формула Бжицкого
+    brzycki = w / (1.0278 - 0.0278 * r)
+    
+    # Формула Эпли
+    epley = w * (1 + r / 30.0)
+    
+    # Альтернативная формула
+    alternative = w / (1 - 0.025 * r)
+    
+    # Средняя
+    average = (brzycki + epley + alternative) / 3.0
+    
+    return {
+        'brzycki': round(brzycki, 1),
+        'epley': round(epley, 1),
+        'alternative': round(alternative, 1),
+        'average': round(average, 1)
+    }
+
+
+async def start_1rm_test(callback: CallbackQuery, state: FSMContext):
+    """Начало теста 1ПМ"""
+    try:
+        exercise_id = int(callback.data.split("_")[2])  # 1rm_ex_123
+        await state.update_data(test_exercise_id=exercise_id)
+        
+        text = f"🔬 **Тест 1ПМ**\n\n"
+        text += f"📋 **Введите результат:**\n"
+        text += f"_Формат: вес повторения_\n"
+        text += f"_Например: 80 5_"
+        
+        await callback.message.edit_text(text, parse_mode="Markdown")
+        await state.set_state("waiting_1rm_result")
+        
+    except Exception as e:
+        await callback.message.edit_text(f"❌ Ошибка: {e}")
+    
+    await callback.answer()
+
 
 # ===== РЕГИСТРАЦИЯ ОБРАБОТЧИКОВ =====
 def register_workout_handlers(dp):
@@ -924,6 +1241,12 @@ def register_workout_handlers(dp):
     # Заглушки
     dp.callback_query.register(find_workout, F.data == "find_workout")
     dp.callback_query.register(workout_stats, F.data == "workout_stats")
+
+
+    dp.callback_query.register(start_1rm_test, F.data.startswith("1rm_ex_"))
+    
+    
+
 
 __all__ = [
     'register_workout_handlers',

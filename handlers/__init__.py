@@ -32,6 +32,7 @@ def register_all_handlers(dp):
     tests.register_test_handlers(dp)  # ← Индивидуальные тесты
     test_batteries.register_battery_handlers(dp)  # ← НОВЫЙ! Батареи тестов
     
+    
     # Если есть эти модули, то регистрируем
     if team_tests:
         team_tests.register_team_test_handlers(dp)
@@ -83,7 +84,8 @@ async def handle_all_text_messages(message: Message, state: FSMContext):
         CreateWorkoutStates.adding_block_description,
         "simple_block_config",
         "advanced_block_config",
-        "searching_exercise_for_block"
+        "searching_exercise_for_block",
+        "waiting_1rm_result"
     ]:
         await workouts.process_workout_text_input(message, state)
         return
