@@ -11,5 +11,6 @@ class CreateWorkoutStates(StatesGroup):
     configuring_exercise = State()
     selecting_exercises = State()        # ← ДОБАВЬТЕ
     configuring_exercise = State()
+    
 
 __all__ = ['CreateWorkoutStates']
