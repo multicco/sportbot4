@@ -10,6 +10,15 @@ from utils.validators import validate_test_data
 import secrets
 import string
 import asyncio
+from aiogram import F, Router
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.context import FSMContext
+from aiogram.types import Message, CallbackQuery
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from database import db_manager
+import logging
+
+logger = logging.getLogger(__name__)
 
 # ===== СОСТОЯНИЯ FSM =====
 from aiogram.fsm.state import State, StatesGroup
@@ -385,6 +394,231 @@ async def add_exercises_to_battery(callback: CallbackQuery, state: FSMContext):
     )
     await state.set_state(EditBatteryStates.adding_exercises)
     await callback.answer()
+
+
+
+
+async def process_1rm_test_input(message: Message, state: FSMContext):
+    '''ИСПРАВЛЕННАЯ обработка ввода данных для теста 1ПМ'''
+    try:
+        # Парсим ввод пользователя
+        parts = message.text.strip().split()
+
+        if len(parts) != 2:
+            await message.answer(
+                "❌ Неверный формат. Введите данные через пробел:\n"
+                "`вес повторения`\n\n"
+                "**Примеры:**\n"
+                "• `80 5` - 80 кг на 5 повторений\n"
+                "• `60 10` - 60 кг на 10 повторений",
+                parse_mode="Markdown"
+            )
+            return
+
+        # Конвертируем в числа
+        try:
+            weight = float(parts[0])
+            reps = int(parts[1])
+        except ValueError:
+            await message.answer(
+                "❌ Используйте только числа.\n"
+                "Пример: `80 5`",
+                parse_mode="Markdown"
+            )
+            return
+
+        # Валидация данных
+        if weight <= 0:
+            await message.answer("❌ Вес должен быть больше 0")
+            return
+
+        if reps <= 0 or reps > 30:
+            await message.answer("❌ Количество повторений должно быть от 1 до 30")
+            return
+
+        # Получаем данные из состояния FSM
+        state_data = await state.get_data()
+        exercise_name = state_data.get('exercise_name', 'Упражнение')
+        exercise_id = state_data.get('exercise_id')
+
+        if not exercise_id:
+            await message.answer("❌ Ошибка: не выбрано упражнение")
+            await state.clear()
+            return
+
+        # Расчет 1ПМ по трем формулам
+        def calculate_1rm(w, r):
+            '''Расчет 1ПМ по формулам Бжицкого, Эпли и альтернативной'''
+            w = float(w)
+            r = int(r)
+
+            # Если уже 1 повторение, то это и есть 1ПМ
+            if r == 1:
+                return {
+                    'brzycki': w,
+                    'epley': w,
+                    'alternative': w,
+                    'average': w
+                }
+
+            # Формула Бжицкого: 1ПМ = вес / (1.0278 - 0.0278 × повторения)
+            brzycki = w / (1.0278 - 0.0278 * r)
+
+            # Формула Эпли: 1ПМ = вес × (1 + повторения / 30)
+            epley = w * (1 + r / 30.0)
+
+            # Альтернативная формула: 1ПМ = вес × (1 + 0.025 × повторения)  
+            alternative = w * (1 + 0.025 * r)
+
+            # Среднее по трем формулам
+            average = (brzycki + epley + alternative) / 3.0
+
+            return {
+                'brzycki': round(brzycki, 1),
+                'epley': round(epley, 1),
+                'alternative': round(alternative, 1),
+                'average': round(average, 1)
+            }
+
+        # Выполняем расчет
+        results = calculate_1rm(weight, reps)
+
+        # Сохраняем результат в базу данных
+        user = await db_manager.get_user_by_telegram_id(message.from_user.id)
+
+        if not user:
+            await message.answer("❌ Пользователь не найден в базе данных")
+            return
+
+        async with db_manager.pool.acquire() as conn:
+            # Сохраняем результат теста
+            await conn.execute('''
+                INSERT INTO one_rep_max (
+                    user_id, exercise_id, weight, reps, test_weight,
+                    formula_brzycki, formula_epley, formula_alternative, formula_average
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            ''', 
+            user['id'], int(exercise_id), results['average'], 
+            reps, weight, results['brzycki'], results['epley'],
+            results['alternative'], results['average'])
+
+        # Формируем сообщение с результатами
+        text = f"🎉 **Результат теста 1ПМ**\n\n"
+        text += f"💪 **Упражнение:** {exercise_name}\n"
+        text += f"📊 **Ваши данные:** {weight} кг × {reps} {'повторение' if reps == 1 else 'повторения' if reps < 5 else 'повторений'}\n\n"
+
+        text += f"**📈 Расчет по формулам:**\n"
+        text += f"• Бжицкого: **{results['brzycki']} кг**\n"
+        text += f"• Эпли: **{results['epley']} кг**\n"
+        text += f"• Альтернативная: **{results['alternative']} кг**\n\n"
+
+        text += f"🎯 **Ваш 1ПМ: {results['average']} кг**\n"
+        text += f"_(среднее арифметическое по 3 формулам)_\n\n"
+
+        # Добавляем процентовки для тренировок
+        text += f"**💡 Рекомендации для тренировок:**\n"
+        text += f"• 50%: {round(results['average'] * 0.5, 1)} кг (разминка)\n"
+        text += f"• 70%: {round(results['average'] * 0.7, 1)} кг (выносливость)\n"
+        text += f"• 85%: {round(results['average'] * 0.85, 1)} кг (сила)\n"
+        text += f"• 95%: {round(results['average'] * 0.95, 1)} кг (максимальная сила)"
+
+        # Создаем клавиатуру
+        keyboard = InlineKeyboardBuilder()
+        keyboard.button(text="💪 Новый тест", callback_data="new_1rm_test")
+        keyboard.button(text="📊 Мои результаты", callback_data="my_1rm_results")
+        keyboard.button(text="🏋️ Создать тренировку", callback_data="create_workout")
+        keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
+        keyboard.adjust(2)
+
+        await message.answer(
+            text,
+            reply_markup=keyboard.as_markup(),
+            parse_mode="Markdown"
+        )
+
+        # Очищаем состояние FSM
+        await state.clear()
+
+        logger.info(f"Пользователь {message.from_user.id} прошел тест 1ПМ: {exercise_name}, результат: {results['average']} кг")
+
+    except Exception as e:
+        logger.error(f"Ошибка в process_1rm_test_input: {e}")
+        await message.answer(
+            f"❌ Произошла ошибка при обработке теста:\n{str(e)}\n\n"
+            f"Попробуйте еще раз или обратитесь к администратору."
+        )
+        await state.clear()
+
+async def process_test_text_input(message: Message, state: FSMContext):
+    '''Обработка других типов тестовых вводов'''
+    current_state = await state.get_state()
+
+    # Обрабатываем поиск упражнений для тестов
+    if current_state == "waiting_search_for_test":
+        await handle_test_exercise_search(message, state)
+        return
+
+    # Другие типы тестов можно добавить здесь
+    await message.answer(
+        f"⚠️ Обработка состояния '{current_state}' еще не реализована.\n"
+        f"Используйте меню для навигации.",
+        parse_mode="Markdown"
+    )
+    await state.clear()
+
+async def handle_test_exercise_search(message: Message, state: FSMContext):
+    '''Поиск упражнений для тестов'''
+    search_term = message.text.lower().strip()
+
+    try:
+        async with db_manager.pool.acquire() as conn:
+            # Ищем упражнения подходящие для тестов (обычно силовые)
+            exercises = await conn.fetch('''
+                SELECT id, name, category, muscle_group 
+                FROM exercises 
+                WHERE (LOWER(name) LIKE $1 OR LOWER(muscle_group) LIKE $1)
+                  AND category IN ('Силовые', 'Функциональные')
+                ORDER BY 
+                  CASE WHEN LOWER(name) LIKE $1 THEN 1 ELSE 2 END,
+                  name
+                LIMIT 10
+            ''', f"%{search_term}%")
+
+            if exercises:
+                text = f"🔍 **Найдено упражнений: {len(exercises)}**\n\n"
+                keyboard = InlineKeyboardBuilder()
+
+                for ex in exercises:
+                    keyboard.button(
+                        text=f"{ex['name']} ({ex['muscle_group']})",
+                        callback_data=f"test_exercise_{ex['id']}"
+                    )
+
+                keyboard.button(text="🔙 К тестам", callback_data="tests_menu")
+                keyboard.adjust(1)
+
+                await message.answer(
+                    text + "Выберите упражнение для теста:",
+                    reply_markup=keyboard.as_markup(),
+                    parse_mode="Markdown"
+                )
+            else:
+                keyboard = InlineKeyboardBuilder()
+                keyboard.button(text="🔄 Новый поиск", callback_data="search_exercise_for_test")
+                keyboard.button(text="🔙 К тестам", callback_data="tests_menu")
+
+                await message.answer(
+                    f"❌ Упражнения по запросу '{search_term}' не найдены.\n\n"
+                    f"Попробуйте другие ключевые слова.",
+                    reply_markup=keyboard.as_markup()
+                )
+
+        await state.clear()
+
+    except Exception as e:
+        logger.error(f"Ошибка поиска упражнений для тестов: {e}")
+        await message.answer("❌ Ошибка поиска. Попробуйте еще раз.")
+        await state.clear()
 
 async def search_exercises_for_battery(callback: CallbackQuery, state: FSMContext):
     """Поиск упражнений для батареи по названию"""

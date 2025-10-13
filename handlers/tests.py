@@ -1,12 +1,18 @@
 # ===== ИСПРАВЛЕННЫЙ handlers/tests.py БЕЗ КНОПКИ ТРЕНИРОВОК =====
 
-from aiogram import F
+import logging
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-
 from database import db_manager
-from utils.validators import validate_test_data
+import logging
+import re
+from typing import Dict, Any, Tuple, Optional
+
+logger = logging.getLogger(__name__)
+
+
 
 # ===== ГЛАВНОЕ МЕНЮ ТЕСТОВ =====
 async def tests_menu(callback: CallbackQuery):
@@ -51,6 +57,94 @@ async def tests_menu(callback: CallbackQuery):
         parse_mode="Markdown"
     )
     await callback.answer()
+
+
+def validate_test_data(test_data, test_type):
+    # ✅ ИСПРАВЛЕНИЕ: Проверяем тип данных
+    if isinstance(test_data, str):
+        return {
+            'valid': False,
+            'errors': [f"Получена строка вместо словаря: '{test_data}'"],
+            'data': {}
+        }
+    
+    if not isinstance(test_data, dict):
+        return {
+            'valid': False,
+            'errors': [f"Неверный тип данных: {type(test_data)}"],
+            'data': {}
+        }
+    
+    result = {'valid': True, 'errors': [], 'data': test_data.copy()}
+    
+    if test_type == 'strength':
+        try:
+            weight = float(test_data.get('weight', 0))
+            reps = int(test_data.get('reps', 0))
+            
+            if weight <= 0 or weight > 1000:
+                result['errors'].append("Вес должен быть от 0.1 до 1000 кг")
+                result['valid'] = False
+            
+            if reps <= 0 or reps > 50:
+                result['errors'].append("Повторения должны быть от 1 до 50")
+                result['valid'] = False
+                
+            result['data']['weight'] = weight
+            result['data']['reps'] = reps
+            
+        except (ValueError, TypeError):
+            result['errors'].append("Неверный формат чисел")
+            result['valid'] = False
+    
+    return result
+
+
+def parse_strength_test_input(text: str) -> Dict[str, Any]:
+    """
+    ИСПРАВЛЕННЫЙ парсинг ввода пользователя
+    """
+    try:
+        original_text = text
+        text = text.strip().lower()
+
+        # Убираем единицы измерения
+        text = re.sub(r'(кг|kg)', ' ', text)
+        text = re.sub(r'(раз|повт)', ' ', text)
+        text = re.sub(r'\s+', ' ', text).strip()
+
+        # Ищем числа
+        numbers = re.findall(r'\d+\.?\d*', text)
+
+        if len(numbers) >= 2:
+            return {
+                'weight': float(numbers[0]),
+                'reps': int(float(numbers[1])),
+                'original_text': original_text,
+                'parsed_successfully': True
+            }
+        elif len(numbers) == 1:
+            return {
+                'error': 'found_one_number',
+                'number': float(numbers[0]),
+                'original_text': original_text,
+                'parsed_successfully': False
+            }
+        else:
+            return {
+                'error': 'no_numbers_found',
+                'original_text': original_text,
+                'parsed_successfully': False
+            }
+
+    except Exception as e:
+        return {
+            'error': 'parse_error',
+            'message': str(e),
+            'original_text': text,
+            'parsed_successfully': False
+        }
+
 
 # ===== БАТАРЕИ ТЕСТОВ - ПЕРЕНАПРАВЛЕНИЯ НА НОВЫЙ МОДУЛЬ =====
 async def coach_batteries_menu(callback: CallbackQuery):
@@ -433,60 +527,127 @@ async def start_exercise_test(callback: CallbackQuery, state: FSMContext):
 
 # ===== ОБРАБОТКА РЕЗУЛЬТАТОВ ТЕСТОВ =====
 async def process_strength_test_data(message: Message, state: FSMContext):
-    """Обработка данных силового теста с расчетом 1ПМ по формулам"""
-    test_data = message.text.strip()
-    data = await state.get_data()
-    exercise = data['exercise']
-    user = await db_manager.get_user_by_telegram_id(message.from_user.id)
-    
-    validation = validate_test_data(test_data, 'strength')
-    if not validation['valid']:
-        await message.answer(validation['error'])
-        return
-    
-    # Рассчитываем 1ПМ по трем формулам
-    weight = validation['weight']
-    reps = validation['reps']
-    
-    # Формулы расчета 1ПМ
-    brzycki = weight * (36 / (37 - reps)) if reps < 37 else weight
-    epley = weight * (1 + reps / 30)
-    lander = weight * (100 / (101.3 - 2.67123 * reps)) if reps < 37 else weight
-    
-    # Средний 1ПМ
-    avg_1rm = (brzycki + epley + lander) / 3
-    
+    """ИСПРАВЛЕННАЯ логика обработки силового теста"""
     try:
+        # Получаем данные из состояния
+        statedata = await state.get_data()
+        exercise_data = statedata.get('exercise', {})
+        exercise_name = exercise_data.get('name', 'Упражнение')  # ✅
+        exercise_id = statedata.get('exercise_id')  # ✅
+
+        if not exercise_id:
+            await message.answer("❌ Ошибка: упражнение не выбрано")
+            await state.clear()
+            return
+
+        # ✅ ШАГ 1: Сначала ПАРСИМ строку в словарь
+        parsed_result = parse_strength_test_input(message.text)
+
+        # ✅ ШАГ 2: Проверяем успешность парсинга
+        if not parsed_result.get('parsed_successfully', False):
+            # Обработка ошибок парсинга
+            error_type = parsed_result.get('error', 'unknown')
+
+            if error_type == 'found_one_number':
+                await message.answer(
+                    f"❌ Найдено только одно число\n\n"
+                    f"Введите **вес и повторения**:\n"
+                    f"Например: `80 10`",
+                    parse_mode="Markdown"
+                )
+            else:
+                await message.answer(
+                    f"❌ Неверный формат\n\n"
+                    f"Введите: `вес повторения`\n"
+                    f"Например: `80 10`",
+                    parse_mode="Markdown"
+                )
+            return
+
+        # ✅ ШАГ 3: Создаем СЛОВАРЬ с данными
+        test_data = {
+            'weight': parsed_result['weight'],
+            'reps': parsed_result['reps'],
+            'exercise_id': exercise_id,
+            'exercise_name': exercise_name
+        }
+
+        # ✅ ШАГ 4: Теперь валидируем СЛОВАРЬ (а не строку!)
+        validation = validate_test_data(test_data, 'strength')
+
+        if not validation['valid']:
+            error_text = "❌ **Ошибки в данных:**\n\n"
+            for error in validation['errors']:
+                error_text += f"• {error}\n"
+
+            await message.answer(error_text, parse_mode="Markdown")
+            return
+
+        # ✅ ШАГ 5: Получаем валидные данные и делаем расчет
+        valid_data = validation['data']
+        weight = valid_data['weight']
+        reps = valid_data['reps']
+
+        # Расчет 1ПМ
+        def calculate_1rm(w: float, r: int):
+            if r == 1:
+                return {'brzycki': w, 'epley': w, 'lander': w, 'average': w}
+
+            brzycki = w / (1.0278 - 0.0278 * r)
+            epley = w * (1 + r / 30.0)
+            lander = (100 * w) / (101.3 - 2.67123 * r)
+            average = (brzycki + epley + lander) / 3.0
+
+            return {
+                'brzycki': round(brzycki, 1),
+                'epley': round(epley, 1),
+                'lander': round(lander, 1),
+                'average': round(average, 1)
+            }
+
+        results = calculate_1rm(weight, reps)
+
+        # Сохранение в БД
+        from database import db_manager
+        user = await db_manager.get_user_by_telegram_id(message.from_user.id)
+
         async with db_manager.pool.acquire() as conn:
             await conn.execute("""
-                INSERT INTO test_results 
-                (user_id, exercise_id, test_type, result_value, result_unit, test_weight, test_reps)
-                VALUES ($1, $2, $3, $4, $5, $6, $7)
-            """, user['id'], data['exercise_id'], 'strength', 
-                 round(avg_1rm, 1), 'кг', weight, reps)
-        
-        text = f"✅ **Силовой тест завершен!**\n\n"
-        text += f"🏋️ **Упражнение:** {exercise['name']}\n"
-        text += f"💪 **Ваш результат:** {weight}кг × {reps} раз\n\n"
-        text += f"📊 **Расчетный 1ПМ по формулам:**\n"
-        text += f"• Brzycki: {brzycki:.1f}кг\n"
-        text += f"• Epley: {epley:.1f}кг\n"
-        text += f"• Lander: {lander:.1f}кг\n\n"
-        text += f"🎯 **Средний 1ПМ: {avg_1rm:.1f}кг**\n"
-        text += f"📅 **Дата:** {message.date.strftime('%d.%m.%Y %H:%M')}\n\n"
-        text += f"✅ **Тест сохранен в вашу историю!**"
-        
+                INSERT INTO one_rep_max (
+                    user_id, exercise_id, weight, reps, test_weight,
+                    formula_brzycki, formula_epley, formula_alternative, formula_average
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            """, 
+            user['id'], int(exercise_id), results['average'], 
+            reps, weight, results['brzycki'], results['epley'],
+            results['lander'], results['average'])
+
+        # Показ результата
+        text = f"🎉 **Результат силового теста**\n\n"
+        text += f"💪 **Упражнение:** {exercise_name}\n"
+        text += f"📊 **Результат:** {weight} кг × {reps} повт.\n\n"
+
+        text += f"**📈 1ПМ по формулам:**\n"
+        text += f"• **Brzycki:** {results['brzycki']} кг\n"
+        text += f"• **Epley:** {results['epley']} кг\n"
+        text += f"• **Lander:** {results['lander']} кг\n\n"
+
+        text += f"🎯 **Ваш 1ПМ: {results['average']} кг**\n"
+        text += f"_(среднее по 3 формулам)_"
+
+        from aiogram.utils.keyboard import InlineKeyboardBuilder
         keyboard = InlineKeyboardBuilder()
-        keyboard.button(text="🔬 Новый тест", callback_data="new_test_menu")
-        keyboard.button(text="📊 Мои тесты", callback_data="my_tests")
+        keyboard.button(text="💪 Новый тест", callback_data="new_strength_test")
         keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
-        keyboard.adjust(1)
-        
+        keyboard.adjust(2)
+
         await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
         await state.clear()
-        
+
     except Exception as e:
-        await message.answer(f"❌ Ошибка сохранения: {e}")
+        logger.error(f"Ошибка в process_strength_test_data: {e}")
+        await message.answer("❌ Произошла ошибка при обработке теста")
+        await state.clear()
 
 async def process_endurance_test_data(message: Message, state: FSMContext):
     """Обработка данных теста выносливости"""
@@ -497,7 +658,7 @@ async def process_endurance_test_data(message: Message, state: FSMContext):
     
     validation = validate_test_data(test_data, 'endurance')
     if not validation['valid']:
-        await message.answer(validation['error'])
+        await message.answer(f"❌ Ошибки: {', '.join(validation['errors'])}")
         return
     
     try:
@@ -536,7 +697,7 @@ async def process_speed_test_data(message: Message, state: FSMContext):
     
     validation = validate_test_data(test_data, 'speed')
     if not validation['valid']:
-        await message.answer(validation['error'])
+        await message.answer(f"❌ Ошибки: {', '.join(validation['errors'])}")
         return
     
     try:
@@ -575,7 +736,7 @@ async def process_quantity_test_data(message: Message, state: FSMContext):
     
     validation = validate_test_data(test_data, 'quantity')
     if not validation['valid']:
-        await message.answer(validation['error'])
+        await message.answer(f"❌ Ошибки: {', '.join(validation['errors'])}")
         return
     
     try:
