@@ -85,7 +85,8 @@ async def handle_all_text_messages(message: Message, state: FSMContext):
         "simple_block_config",
         "advanced_block_config",
         "searching_exercise_for_block",
-        "waiting_1rm_result"
+        "waiting_1rm_result",
+        "waiting_1rm_data"
     ]:
         await workouts.process_workout_text_input(message, state)
         return

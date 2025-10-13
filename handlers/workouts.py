@@ -638,7 +638,7 @@ async def start_1rm_test(callback: CallbackQuery, state: FSMContext):
             text += f"_Например: 100 5_ (100кг на 5 повторений)"
             
             await callback.message.edit_text(text, parse_mode="Markdown")
-            await state.set_state("waiting_1rm_result")
+            await state.set_state("waiting_1rm_data")
         
     except Exception as e:
         await callback.message.edit_text(f"❌ Ошибка: {e}")
@@ -1245,7 +1245,16 @@ def register_workout_handlers(dp):
 
     dp.callback_query.register(start_1rm_test, F.data.startswith("1rm_ex_"))
     
+    # ДОБАВЬТЕ ЭТУ ДИАГНОСТИКУ В КОНЕЦ:
+    print("🔥 REGISTER_WORKOUT_HANDLERS: Регистрирую start_1rm_test")
     
+    try:
+        dp.callback_query.register(start_1rm_test, F.data.startswith("1rm_ex_"))
+        print("✅ start_1rm_test ЗАРЕГИСТРИРОВАН УСПЕШНО")
+    except Exception as e:
+        print(f"❌ ОШИБКА регистрации start_1rm_test: {e}")
+    
+    print("🔥 REGISTER_WORKOUT_HANDLERS: КОНЕЦ. Регистрация завершена успешно.")
 
 
 __all__ = [
