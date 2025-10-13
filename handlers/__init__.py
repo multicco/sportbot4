@@ -98,7 +98,8 @@ async def handle_all_text_messages(message: Message, state: FSMContext):
         "waiting_endurance_test_data", 
         "waiting_speed_test_data",
         "waiting_quantity_test_data",
-        "waiting_1rm_data"  # Совместимость со старым кодом
+        "waiting_1rm_data",  # Совместимость со старым кодом
+        "waiting_search_for_test"
     ]:
         await tests.process_test_text_input(message, state)
         return
