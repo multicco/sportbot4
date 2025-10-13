@@ -668,14 +668,15 @@ async def advanced_block_config(callback: CallbackQuery, state: FSMContext):
             current_1rm = float(user_1rm['weight'])
             text += f"🏆 **Ваш текущий 1ПМ:** {current_1rm} кг\n\n"
             text += f"📋 **Готовые варианты:**\n"
-            text += f"• `4 6 8 80` - 4×6-8 с 80% ({round(current_1rm * 0.8, 1)} кг), отдых 60с\n"
-            text += f"• `3 8 12 70 90` - 3×8-12 с 70% ({round(current_1rm * 0.7, 1)} кг), отдых 90с\n"
-            text += f"• `5 3 5 85 120` - 5×3-5 с 85% ({round(current_1rm * 0.85, 1)} кг), отдых 2м\n\n"
+            text += f"• `4 8 80` - 4×8 с 80% ({round(current_1rm * 0.8, 1)} кг), отдых 60с\n"
+            text += f"• `3 12 70 90` - 3×12 с 70% ({round(current_1rm * 0.7, 1)} кг), отдых 90с\n"
+            text += f"• `5 5 85 120` - 5×5 с 85% ({round(current_1rm * 0.85, 1)} кг), отдых 2м\n\n"
             text += f"🔧 **Формат ввода:**\n"
-            text += f"`подходы повт_мин повт_макс процент [отдых]`\n\n"
+            text += f"`подходы повторения процент [отдых]`\n\n"
             text += f"📝 **Примеры:**\n"
-            text += f"• `4 6 8 75 90` - 4×6-8 с 75%, отдых 90 сек\n"
-            text += f"• `3 10 12 70` - 3×10-12 с 70%, отдых 60 сек (по умолчанию)"
+            text += f"• `4 8 75 90` - 4×8 с 75%, отдых 90 сек\n"
+            text += f"• `3 12 70` - 3×12 с 70%, отдых 60 сек (по умолчанию)\n"
+            text += f"• `5 5 85 120` - 5×5 с 85%, отдых 2 мин"
         else:
             text += f"❌ **У вас нет результатов 1ПМ для этого упражнения**\n\n"
             text += f"**Что делать:**\n"
@@ -730,11 +731,7 @@ async def add_exercise_to_block_data(message: Message, state: FSMContext,
     # Формируем сообщение о успешном добавлении
     text = f"✅ **Упражнение добавлено в блок!**\n\n"
     text += f"💪 **{exercise_data['name']}**\n"
-    
-    if reps_min == reps_max:
-        text += f"📊 **{sets}×{reps_min}**"
-    else:
-        text += f"📊 **{sets}×{reps_min}-{reps_max}**"
+    text += f"📊 **{sets}×{reps_min}**"
     
     if one_rm_percent:
         text += f" **({one_rm_percent}% от 1ПМ)**"
@@ -754,47 +751,6 @@ async def add_exercise_to_block_data(message: Message, state: FSMContext,
     
     await message.answer(text, parse_mode="Markdown")
     await show_block_exercises_menu(message, state)
-
-async def add_exercise_to_block_data(message: Message, state: FSMContext, 
-                                   sets: int, reps_min: int, reps_max: int, 
-                                   one_rm_percent: int = None, rest_seconds: int = 60):
-    """Добавление упражнения в блок с параметрами"""
-    data = await state.get_data()
-    block_key = data.get('current_block')
-    selected_blocks = data.get('selected_blocks', {})
-    current_block_data = selected_blocks.get(block_key, {'exercises': [], 'description': ''})
-    
-    exercise_data = {
-        'id': data['current_exercise_id'],
-        'name': data['current_exercise_name'],
-        'sets': sets,
-        'reps_min': reps_min,
-        'reps_max': reps_max,
-        'one_rm_percent': one_rm_percent,
-        'rest_seconds': rest_seconds  # ← ДОБАВИЛИ ПАРАМЕТР
-    }
-    
-    current_block_data['exercises'].append(exercise_data)
-    selected_blocks[block_key] = current_block_data
-    
-    await state.update_data(selected_blocks=selected_blocks)
-    
-    text = f"✅ **Упражнение добавлено в блок!**\n\n"
-    text += f"💪 **{exercise_data['name']}**\n"
-    
-    if reps_min == reps_max:
-        text += f"📊 **{sets}×{reps_min}**"
-    else:
-        text += f"📊 **{sets}×{reps_min}-{reps_max}**"
-        
-    if one_rm_percent:
-        text += f" **({one_rm_percent}% 1ПМ)**"
-    
-    text += f"\n⏱️ **Отдых: {rest_seconds} сек**"
-    
-    await message.answer(text, parse_mode="Markdown")
-    await show_block_exercises_menu(message, state)
-
 
 
 
@@ -854,7 +810,129 @@ async def process_simple_block_config(message: Message, state: FSMContext):
     except Exception as e:
         await message.answer(f"❌ Ошибка: {e}")
 
+async def process_advanced_block_config(message: Message, state: FSMContext):
+    """Обработка ввода продвинутой настройки: подходы повторения процент отдых"""
+    try:
+        parts = message.text.split()
+        
+        # Проверяем формат ввода
+        if len(parts) not in [3, 4]:
+            await message.answer(
+                "❌ **Неправильный формат**\n\n"
+                "📋 **Используйте один из форматов:**\n"
+                "• `4 8 75` - подходы повторения процент (отдых 60с)\n"
+                "• `4 8 75 90` - подходы повторения процент отдых\n\n"
+                "📝 **Примеры:**\n"
+                "• `4 8 75` - 4×8 с 75% от 1ПМ, отдых 60 сек\n"
+                "• `4 8 75 90` - 4×8 с 75% от 1ПМ, отдых 90 сек\n"
+                "• `5 5 85 120` - 5×5 с 85% от 1ПМ, отдых 2 мин",
+                parse_mode="Markdown"
+            )
+            return
+        
+        # Парсим параметры
+        sets = int(parts[0])           # подходы
+        reps = int(parts[1])           # повторения (одинаковые)
+        one_rm_percent = int(parts[2]) # процент от 1ПМ
+        
+        # Время отдыха - опциональный параметр
+        if len(parts) == 4:
+            rest_seconds = int(parts[3])
+        else:
+            rest_seconds = 60  # по умолчанию 60 секунд
+        
+        # Валидация параметров
+        if not (1 <= sets <= 15):
+            await message.answer("❌ Количество подходов должно быть от 1 до 15")
+            return
+            
+        if not (1 <= reps <= 50):
+            await message.answer("❌ Количество повторений должно быть от 1 до 50")
+            return
+            
+        if not (30 <= one_rm_percent <= 120):
+            await message.answer("❌ Процент от 1ПМ должен быть от 30 до 120%")
+            return
+            
+        if not (30 <= rest_seconds <= 600):
+            await message.answer("❌ Время отдыха должно быть от 30 секунд до 10 минут (600 сек)")
+            return
+        
+        # Сохраняем упражнение в блок (reps_min = reps_max = reps)
+        await add_exercise_to_block_data(
+            message, state, sets, reps, reps, one_rm_percent, rest_seconds
+        )
+        
+    except ValueError:
+        await message.answer(
+            "❌ **Ошибка формата данных**\n\n"
+            "Убедитесь, что вводите только числа\n"
+            "📝 **Пример:** `4 8 75 90`",
+            parse_mode="Markdown"
+        )
+    except Exception as e:
+        print(f"❌ Ошибка в process_advanced_block_config: {e}")
+        await message.answer(f"❌ Произошла ошибка: {str(e)[:100]}")
 
+# Также обновите функцию advanced_block_config для правильных инструкций:
+async def advanced_block_config(callback: CallbackQuery, state: FSMContext):
+    """Продвинутая настройка упражнения с процентами от 1ПМ"""
+    data = await state.get_data()
+    exercise_name = data.get('current_exercise_name', '')
+    exercise_id = data.get('current_exercise_id')
+    user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
+    
+    try:
+        async with db_manager.pool.acquire() as conn:
+            # Получаем последний результат 1ПМ для упражнения
+            user_1rm = await conn.fetchrow("""
+                SELECT weight FROM one_rep_max 
+                WHERE user_id = $1 AND exercise_id = $2 
+                ORDER BY tested_at DESC LIMIT 1
+            """, user['id'], exercise_id)
+            
+        text = f"📊 **Настройка с процентами от 1ПМ**\n\n"
+        text += f"💪 **{exercise_name}**\n\n"
+        
+        if user_1rm:
+            current_1rm = float(user_1rm['weight'])
+            text += f"🏆 **Ваш текущий 1ПМ:** {current_1rm} кг\n\n"
+            text += f"📋 **Готовые варианты:**\n"
+            text += f"• `4 8 80` - 4×8 с 80% ({round(current_1rm * 0.8, 1)} кг), отдых 60с\n"
+            text += f"• `3 12 70 90` - 3×12 с 70% ({round(current_1rm * 0.7, 1)} кг), отдых 90с\n"
+            text += f"• `5 5 85 120` - 5×5 с 85% ({round(current_1rm * 0.85, 1)} кг), отдых 2м\n\n"
+            text += f"🔧 **Формат ввода:**\n"
+            text += f"`подходы повторения процент [отдых]`\n\n"
+            text += f"📝 **Примеры:**\n"
+            text += f"• `4 8 75 90` - 4×8 с 75%, отдых 90 сек\n"
+            text += f"• `3 12 70` - 3×12 с 70%, отдых 60 сек (по умолчанию)\n"
+            text += f"• `5 5 85 120` - 5×5 с 85%, отдых 2 мин"
+        else:
+            text += f"❌ **У вас нет результатов 1ПМ для этого упражнения**\n\n"
+            text += f"**Что делать:**\n"
+            text += f"1. Пройдите тест 1ПМ для этого упражнения\n"
+            text += f"2. Используйте простую настройку\n\n"
+            
+            keyboard = InlineKeyboardBuilder()
+            keyboard.button(text="🔬 Пройти тест 1ПМ", callback_data=f"1rm_ex_{exercise_id}")
+            keyboard.button(text="🏋️ Простая настройка", callback_data="simple_block_config")
+            keyboard.button(text="🔙 Назад", callback_data="back_to_block_exercises")
+            
+            await callback.message.edit_text(
+                text, 
+                reply_markup=keyboard.as_markup(), 
+                parse_mode="Markdown"
+            )
+            await callback.answer()
+            return
+            
+        await callback.message.edit_text(text, parse_mode="Markdown")
+        await state.set_state("advanced_block_config")
+        
+    except Exception as e:
+        await callback.message.edit_text(f"❌ Ошибка: {e}")
+    
+    await callback.answer()
 
 
 # ===== ФИНАЛЬНОЕ СОХРАНЕНИЕ ТРЕНИРОВКИ =====
