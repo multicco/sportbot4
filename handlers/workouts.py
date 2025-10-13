@@ -70,6 +70,68 @@ async def workouts_menu(callback: CallbackQuery):
     
     await callback.answer()
 
+
+
+
+async def add_exercise_to_block_data(message: Message, state: FSMContext,   
+                                   sets: int, reps_min: int, reps_max: int,   
+                                   one_rm_percent: int = None, rest_seconds: int = 60):
+    """ИСПРАВЛЕННАЯ функция добавления упражнения в блок"""
+    
+    # Получаем данные из состояния
+    data = await state.get_data()
+    block_key = data.get('current_block')
+    selected_blocks = data.get('selected_blocks', {})
+    current_block_data = selected_blocks.get(block_key, {'exercises': [], 'description': ''})
+    
+    # ✅ ОБЯЗАТЕЛЬНО определяем exercise_data ЗДЕСЬ (до использования)
+    exercise_data = {
+        'id': data.get('current_exercise_id', 0),
+        'name': data.get('current_exercise_name', 'Неизвестное упражнение'),
+        'sets': sets,
+        'reps_min': reps_min,
+        'reps_max': reps_max,
+        'one_rm_percent': one_rm_percent,
+        'rest_seconds': rest_seconds
+    }
+    
+    # Теперь можно безопасно использовать exercise_data
+    current_block_data['exercises'].append(exercise_data)
+    selected_blocks[block_key] = current_block_data
+    
+    await state.update_data(selected_blocks=selected_blocks)
+    
+    # Формируем сообщение о успешном добавлении
+    text = f"✅ **Упражнение добавлено в блок!**\n\n"
+    text += f"💪 **{exercise_data['name']}**\n"
+    
+    # Показываем повторения (убираем дублирование если мин=макс)
+    if exercise_data['reps_min'] == exercise_data['reps_max']:
+        text += f"📊 **{sets}×{reps_min}**"
+    else:
+        text += f"📊 **{sets}×{reps_min}-{reps_max}**"
+    
+    if one_rm_percent:
+        text += f" **({one_rm_percent}% от 1ПМ)**"
+    
+    # Форматируем время отдыха красиво
+    if rest_seconds >= 60:
+        minutes = rest_seconds // 60
+        seconds = rest_seconds % 60
+        if seconds == 0:
+            time_str = f"{minutes} мин"
+        else:
+            time_str = f"{minutes}м {seconds}с"
+    else:
+        time_str = f"{rest_seconds} сек"
+        
+    text += f"\n⏱️ **Отдых: {time_str}**"
+    
+    await message.answer(text, parse_mode="Markdown")
+    
+    # Возвращаемся к меню упражнений блока
+    await show_block_exercises_menu(message, state)
+
 # ===== МОИ ТРЕНИРОВКИ =====
 async def my_workouts(callback: CallbackQuery):
     """Показать тренировки пользователя"""
@@ -387,13 +449,36 @@ async def show_block_exercises_menu(message: Message, state: FSMContext):
         text += f"📝 _{current_block_data['description']}_\n\n"
     
     if exercises:
-        text += f"**📋 Упражнения в блоке: {len(exercises)}**\n"
-        for i, ex in enumerate(exercises, 1):
-            text += f"{i}. {ex['name']} - {ex['sets']}×{ex['reps_min']}-{ex['reps_max']}"
-            if ex.get('one_rm_percent'):
-                text += f" ({ex['one_rm_percent']}% 1ПМ)"
-            text += "\n"
+     text += f"**📋 Упражнения в блоке: {len(exercises)}**\n"
+     for i, ex in enumerate(exercises, 1):
+        text += f"{i}. **{ex['name']}** - {ex['sets']}×"
+        
+        # Показываем повторения (убираем дублирование если мин=макс)
+        if ex['reps_min'] == ex['reps_max']:
+            text += f"{ex['reps_min']}"
+        else:
+            text += f"{ex['reps_min']}-{ex['reps_max']}"
+        
+        # Показываем процент от 1ПМ
+        if ex.get('one_rm_percent'):
+            text += f" ({ex['one_rm_percent']}% 1ПМ)"
+        
+        # ДОБАВЛЯЕМ ОТОБРАЖЕНИЕ ВРЕМЕНИ ОТДЫХА
+        if ex.get('rest_seconds'):
+            rest_time = ex['rest_seconds']
+            if rest_time >= 60:
+                minutes = rest_time // 60
+                seconds = rest_time % 60
+                if seconds == 0:
+                    time_str = f"{minutes}м"
+                else:
+                    time_str = f"{minutes}м{seconds}с"
+            else:
+                time_str = f"{rest_time}с"
+            text += f", отдых {time_str}"
+        
         text += "\n"
+     text += "\n"
     
     text += "➕ **Добавьте упражнения в блок:**"
     
@@ -704,53 +789,7 @@ async def advanced_block_config(callback: CallbackQuery, state: FSMContext):
     
     await callback.answer()
 
-async def add_exercise_to_block_data(message: Message, state: FSMContext,   
-                                   sets: int, reps_min: int, reps_max: int,   
-                                   one_rm_percent: int = None, rest_seconds: int = 60):
-    """Добавление упражнения в блок с полными параметрами"""
-    data = await state.get_data()
-    block_key = data.get('current_block')
-    selected_blocks = data.get('selected_blocks', {})
-    current_block_data = selected_blocks.get(block_key, {'exercises': [], 'description': ''})
-    
-    exercise_data = {
-        'id': data['current_exercise_id'],
-        'name': data['current_exercise_name'],
-        'sets': sets,
-        'reps_min': reps_min,
-        'reps_max': reps_max,
-        'one_rm_percent': one_rm_percent,
-        'rest_seconds': rest_seconds
-    }
-    
-    current_block_data['exercises'].append(exercise_data)
-    selected_blocks[block_key] = current_block_data
-    
-    await state.update_data(selected_blocks=selected_blocks)
-    
-    # Формируем сообщение о успешном добавлении
-    text = f"✅ **Упражнение добавлено в блок!**\n\n"
-    text += f"💪 **{exercise_data['name']}**\n"
-    text += f"📊 **{sets}×{reps_min}**"
-    
-    if one_rm_percent:
-        text += f" **({one_rm_percent}% от 1ПМ)**"
-    
-    # Форматируем время отдыха
-    if rest_seconds >= 60:
-        minutes = rest_seconds // 60
-        seconds = rest_seconds % 60
-        if seconds == 0:
-            time_str = f"{minutes} мин"
-        else:
-            time_str = f"{minutes}м {seconds}с"
-    else:
-        time_str = f"{rest_seconds} сек"
-        
-    text += f"\n⏱️ **Отдых: {time_str}**"
-    
-    await message.answer(text, parse_mode="Markdown")
-    await show_block_exercises_menu(message, state)
+
 
 
 
@@ -764,7 +803,7 @@ async def simple_block_config(callback: CallbackQuery, state: FSMContext):
     text += f"💪 **{exercise_name}**\n\n"
     text += f"**Введите параметры:**\n"
     text += f"_Формат: подходы повторения отдых_\n"
-    text += f"_Например: 8 8 90_ (8 подходов по 8 раз, 90 сек отдых)\n\n"
+    text += f"_Например: 4 8 90_ (4 подхода по 8 раз, 90 сек отдых)\n\n"
     text += f"**Готовые варианты:**\n"
     text += f"• **3 12 60** - 3×12, отдых 60 сек\n"
     text += f"• **4 8 90** - 4×8, отдых 90 сек\n"
@@ -773,17 +812,6 @@ async def simple_block_config(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(text, parse_mode="Markdown")
     await state.set_state("simple_block_config")
     await callback.answer()
-    
-    # Сохраняем в блок
-    block_key = data.get('current_block')
-    selected_blocks = data.get('selected_blocks', {})
-    current_block_data = selected_blocks.get(block_key, {'exercises': [], 'description': ''})
-    current_block_data['exercises'].append(exercise_data)
-    selected_blocks[block_key] = current_block_data
-    
-    await state.update_data(selected_blocks=selected_blocks)
-    await callback.answer("✅ Упражнение добавлено!")
-    await show_block_exercises_menu(callback.message, state)
 
 async def process_simple_block_config(message: Message, state: FSMContext):
     """Обработка простой настройки: подходы повторения отдых"""
@@ -1027,8 +1055,104 @@ async def workout_stats(callback: CallbackQuery):
     await callback.answer("🚧 В разработке - статистика тренировок")
 
 async def view_workout_details(callback: CallbackQuery):
-    """Просмотр деталей тренировки"""
-    await callback.answer("🚧 В разработке - просмотр тренировки")
+    """Просмотр деталей тренировки с возможностью редактирования"""
+    workout_id = int(callback.data.split("_"))  # view_workout_123
+    user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
+    
+    try:
+        async with db_manager.pool.acquire() as conn:
+            # Получаем основную информацию о тренировке
+            workout = await conn.fetchrow("""
+                SELECT * FROM workouts WHERE id = $1 AND created_by = $2
+            """, workout_id, user['id'])
+            
+            if not workout:
+                await callback.answer("❌ Тренировка не найдена или нет прав доступа")
+                return
+            
+            # Получаем упражнения по блокам
+            exercises = await conn.fetch("""
+                SELECT we.*, e.name, e.muscle_group, e.category
+                FROM workout_exercises we
+                JOIN exercises e ON we.exercise_id = e.id
+                WHERE we.workout_id = $1
+                ORDER BY we.phase, we.order_in_phase
+            """, workout_id)
+            
+        text = f"🏋️ **{workout['name']}**\n\n"
+        if workout['description']:
+            text += f"📝 _{workout['description']}_\n\n"
+        
+        text += f"📅 **Создана:** {workout['created_at'].strftime('%d.%m.%Y %H:%M')}\n"
+        text += f"🆔 **ID:** {workout_id}\n\n"
+        
+        if exercises:
+            # Группируем по блокам
+            blocks = {}
+            for ex in exercises:
+                phase = ex['phase']
+                if phase not in blocks:
+                    blocks[phase] = []
+                blocks[phase].append(ex)
+            
+            block_names = {
+                'warmup': '🔥 Разминка',
+                'nervous_prep': '⚡ Подготовка НС', 
+                'main': '💪 Основная часть',
+                'cooldown': '🧘 Заминка'
+            }
+            
+            for phase, block_exercises in blocks.items():
+                text += f"**{block_names.get(phase, phase)}:**\n"
+                for i, ex in enumerate(block_exercises, 1):
+                    text += f"{i}. **{ex['name']}** - {ex['sets']}×"
+                    
+                    if ex['reps_min'] == ex['reps_max']:
+                        text += f"{ex['reps_min']}"
+                    else:
+                        text += f"{ex['reps_min']}-{ex['reps_max']}"
+                    
+                    if ex['one_rm_percent']:
+                        text += f" ({ex['one_rm_percent']}% 1ПМ)"
+                    
+                    # Отображение времени отдыха
+                    if ex['rest_seconds']:
+                        rest_time = ex['rest_seconds']
+                        if rest_time >= 60:
+                            minutes = rest_time // 60
+                            seconds = rest_time % 60
+                            if seconds == 0:
+                                time_str = f"{minutes}м"
+                            else:
+                                time_str = f"{minutes}м{seconds}с"
+                        else:
+                            time_str = f"{rest_time}с"
+                        text += f", отдых {time_str}"
+                    
+                    text += f"\n   _{ex['muscle_group']} • {ex['category']}_\n"
+                text += "\n"
+        else:
+            text += "❌ В тренировке нет упражнений\n\n"
+        
+        keyboard = InlineKeyboardBuilder()
+        keyboard.button(text="✏️ Редактировать", callback_data=f"edit_workout_{workout_id}")
+        keyboard.button(text="🗑️ Удалить", callback_data=f"delete_workout_{workout_id}")
+        keyboard.button(text="📋 Копировать", callback_data=f"copy_workout_{workout_id}")
+        keyboard.button(text="🔄 Обновить", callback_data=f"view_workout_{workout_id}")
+        keyboard.button(text="🔙 К тренировкам", callback_data="my_workouts")
+        keyboard.adjust(2)
+        
+        await callback.message.edit_text(
+            text, 
+            reply_markup=keyboard.as_markup(), 
+            parse_mode="Markdown"
+        )
+        
+    except Exception as e:
+        await callback.message.edit_text(f"❌ Ошибка: {e}")
+    
+    await callback.answer()
+
 
 # ===== ОБРАБОТКА ТЕКСТОВЫХ СООБЩЕНИЙ =====
 async def process_workout_text_input(message: Message, state: FSMContext):
