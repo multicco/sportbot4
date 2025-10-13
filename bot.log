@@ -507,3 +507,38 @@ aiogram.exceptions.TelegramBadRequest: Telegram server says - Bad Request: query
 2025-10-13 22:49:46,354 - aiogram.event - INFO - Update id=645436251 is handled. Duration 219 ms by bot id=8236074997
 2025-10-13 22:49:47,927 - aiogram.event - INFO - Update id=645436252 is handled. Duration 203 ms by bot id=8236074997
 2025-10-13 22:49:49,344 - aiogram.event - INFO - Update id=645436253 is handled. Duration 188 ms by bot id=8236074997
+2025-10-14 00:26:35,801 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-10-14 00:26:35,801 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-10-14 00:26:36,120 - database - INFO - ✅ Подключение к базе данных установлено
+2025-10-14 00:26:36,155 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-10-14 00:26:36,155 - __main__ - INFO - 🔗 Регистрация обработчиков...
+2025-10-14 00:26:36,158 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-10-14 00:26:36,166 - handlers - INFO - ✅ Все обработчики зарегистрированы
+2025-10-14 00:26:36,617 - __main__ - INFO - ✅ Команды бота настроены
+2025-10-14 00:26:36,708 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-10-14 00:26:36,708 - __main__ - INFO - 🆔 ID: 8236074997
+2025-10-14 00:26:36,708 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-10-14 00:26:36,708 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-10-14 00:26:36,709 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-10-14 00:26:36,709 - aiogram.dispatcher - INFO - Start polling
+2025-10-14 00:26:36,796 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-10-14 00:26:53,058 - aiogram.event - INFO - Update id=645436255 is handled. Duration 469 ms by bot id=8236074997
+2025-10-14 00:26:55,336 - aiogram.event - INFO - Update id=645436256 is handled. Duration 483 ms by bot id=8236074997
+2025-10-14 00:26:59,827 - handlers.tests - ERROR - Ошибка публичных наборов: столбец tb.exercises_count не существует
+2025-10-14 00:27:00,022 - aiogram.event - INFO - Update id=645436257 is handled. Duration 234 ms by bot id=8236074997
+2025-10-14 00:27:07,511 - aiogram.event - INFO - Update id=645436258 is handled. Duration 188 ms by bot id=8236074997
+2025-10-14 00:27:09,139 - aiogram.event - INFO - Update id=645436259 is handled. Duration 235 ms by bot id=8236074997
+2025-10-14 00:27:11,422 - aiogram.event - INFO - Update id=645436260 is handled. Duration 203 ms by bot id=8236074997
+2025-10-14 00:27:14,789 - aiogram.event - INFO - Update id=645436261 is handled. Duration 250 ms by bot id=8236074997
+2025-10-14 00:27:16,431 - aiogram.event - INFO - Update id=645436262 is handled. Duration 219 ms by bot id=8236074997
+2025-10-14 00:27:18,352 - aiogram.event - INFO - Update id=645436263 is handled. Duration 296 ms by bot id=8236074997
+2025-10-14 00:27:21,151 - aiogram.event - INFO - Update id=645436264 is handled. Duration 187 ms by bot id=8236074997
+2025-10-14 00:27:22,933 - aiogram.event - INFO - Update id=645436265 is handled. Duration 188 ms by bot id=8236074997
+2025-10-14 00:27:25,984 - aiogram.event - INFO - Update id=645436266 is handled. Duration 360 ms by bot id=8236074997
+2025-10-14 00:27:28,411 - aiogram.event - INFO - Update id=645436267 is handled. Duration 218 ms by bot id=8236074997
+2025-10-14 00:27:30,088 - aiogram.event - INFO - Update id=645436268 is handled. Duration 343 ms by bot id=8236074997
+2025-10-14 00:27:31,713 - aiogram.event - INFO - Update id=645436269 is handled. Duration 202 ms by bot id=8236074997
+2025-10-14 00:28:10,263 - aiogram.event - INFO - Update id=645436271 is handled. Duration 360 ms by bot id=8236074997
+2025-10-14 00:28:13,074 - aiogram.event - INFO - Update id=645436270 is handled. Duration 9889 ms by bot id=8236074997
+2025-10-14 00:28:13,603 - handlers.tests - ERROR - Ошибка аналитики команды: столбец t.coach_id не существует
+2025-10-14 00:28:13,808 - aiogram.event - INFO - Update id=645436272 is handled. Duration 219 ms by bot id=8236074997

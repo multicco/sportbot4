@@ -1,27 +1,20 @@
-# ===== ИСПРАВЛЕННЫЙ handlers/tests.py С ПОЛНОЦЕННЫМИ ФУНКЦИЯМИ =====
+# ===== ИСПРАВЛЕННЫЙ handlers/tests.py БЕЗ КНОПКИ ТРЕНИРОВОК =====
 
 import logging
-
 from aiogram import F, Router
-
 from aiogram.fsm.context import FSMContext
-
 from aiogram.types import Message, CallbackQuery
-
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-
 from database import db_manager
-
 import logging
-
 import re
-
 from typing import Dict, Any, Tuple, Optional
 
 logger = logging.getLogger(__name__)
 
-# ===== ГЛАВНОЕ МЕНЮ ТЕСТОВ =====
 
+
+# ===== ГЛАВНОЕ МЕНЮ ТЕСТОВ =====
 async def tests_menu(callback: CallbackQuery):
     """Главное меню тестов с разделением на батареи и индивидуальные"""
     user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
@@ -43,19 +36,19 @@ async def tests_menu(callback: CallbackQuery):
     keyboard.button(text="🔙 Главное меню", callback_data="main_menu")
     keyboard.adjust(2)
     
-    text = f"📊 **Система тестирования - ОБНОВЛЕНО!**\\n\\n"
+    text = f"📊 **Система тестирования - ОБНОВЛЕНО!**\n\n"
     
     if user['role'] in ['coach', 'admin']:
-        text += f"👨🏫 **Тренерская панель:**\\n"
-        text += f"• 📋 **Батареи тестов** - НОВАЯ СИСТЕМА!\\n"
-        text += f"• 📊 **Индивидуальные тесты** - как раньше\\n\\n"
+        text += f"👨‍🏫 **Тренерская панель:**\n"
+        text += f"• 📋 **Батареи тестов** - НОВАЯ СИСТЕМА!\n"
+        text += f"• 📊 **Индивидуальные тесты** - как раньше\n\n"
     else:
-        text += f"👤 **Панель участника:**\\n"
-        text += f"• 📋 **Мои батареи тестов** - НОВОЕ!\\n"
-        text += f"• 🔬 **Индивидуальные тесты** - как раньше\\n\\n"
+        text += f"👤 **Панель участника:**\n"
+        text += f"• 📋 **Мои батареи тестов** - НОВОЕ!\n"
+        text += f"• 🔬 **Индивидуальные тесты** - как раньше\n\n"
     
-    text += f"🎯 **Батареи тестов:**\\n"
-    text += f"Создавайте наборы упражнений по темам!\\n\\n"
+    text += f"🎯 **Батареи тестов:**\n"
+    text += f"Создавайте наборы упражнений по темам!\n\n"
     text += f"**Выберите раздел:**"
     
     await callback.message.edit_text(
@@ -63,8 +56,8 @@ async def tests_menu(callback: CallbackQuery):
         reply_markup=keyboard.as_markup(),
         parse_mode="Markdown"
     )
-    
     await callback.answer()
+
 
 def validate_test_data(test_data, test_type):
     # ✅ ИСПРАВЛЕНИЕ: Проверяем тип данных
@@ -106,6 +99,7 @@ def validate_test_data(test_data, test_type):
     
     return result
 
+
 def parse_strength_test_input(text: str) -> Dict[str, Any]:
     """
     ИСПРАВЛЕННЫЙ парсинг ввода пользователя
@@ -113,15 +107,15 @@ def parse_strength_test_input(text: str) -> Dict[str, Any]:
     try:
         original_text = text
         text = text.strip().lower()
-        
+
         # Убираем единицы измерения
         text = re.sub(r'(кг|kg)', ' ', text)
         text = re.sub(r'(раз|повт)', ' ', text)
-        text = re.sub(r'\\s+', ' ', text).strip()
-        
+        text = re.sub(r'\s+', ' ', text).strip()
+
         # Ищем числа
-        numbers = re.findall(r'\\d+\\.?\\d*', text)
-        
+        numbers = re.findall(r'\d+\.?\d*', text)
+
         if len(numbers) >= 2:
             return {
                 'weight': float(numbers[0]),
@@ -142,7 +136,7 @@ def parse_strength_test_input(text: str) -> Dict[str, Any]:
                 'original_text': original_text,
                 'parsed_successfully': False
             }
-    
+
     except Exception as e:
         return {
             'error': 'parse_error',
@@ -151,8 +145,8 @@ def parse_strength_test_input(text: str) -> Dict[str, Any]:
             'parsed_successfully': False
         }
 
-# ===== БАТАРЕИ ТЕСТОВ - ПЕРЕНАПРАВЛЕНИЯ НА НОВЫЙ МОДУЛЬ =====
 
+# ===== БАТАРЕИ ТЕСТОВ - ПЕРЕНАПРАВЛЕНИЯ НА НОВЫЙ МОДУЛЬ =====
 async def coach_batteries_menu(callback: CallbackQuery):
     """Перенаправление на новый модуль батарей"""
     # Импортируем из нового модуля
@@ -164,277 +158,40 @@ async def player_batteries_menu(callback: CallbackQuery):
     from handlers.test_batteries import player_batteries_main_menu
     await player_batteries_main_menu(callback)
 
-# ===== ПОЛНОЦЕННЫЕ ФУНКЦИИ ВМЕСТО ЗАГЛУШЕК =====
-
+# ===== ОБЩИЕ ЗАГЛУШКИ =====
 async def team_analytics(callback: CallbackQuery):
-    """ПОЛНОЦЕННАЯ аналитика команды"""
-    user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
-    
-    if user['role'] not in ['coach', 'admin']:
-        await callback.answer("❌ Доступно только тренерам", show_alert=True)
-        return
-    
-    try:
-        async with db_manager.pool.acquire() as conn:
-            # Получаем команды тренера
-            teams = await conn.fetch("""
-                SELECT t.id, t.name, COUNT(tm.user_id) as members_count
-                FROM teams t
-                LEFT JOIN team_members tm ON t.id = tm.team_id AND tm.is_active = true
-                WHERE t.coach_id = $1 AND t.is_active = true
-                GROUP BY t.id, t.name
-                ORDER BY t.name
-            """, user['id'])
-            
-            if not teams:
-                text = f"📈 **Аналитика команды**\\n\\n"
-                text += f"⚠️ У вас пока нет команд\\n\\n"
-                text += f"Создайте команду, чтобы видеть аналитику участников."
-                
-                keyboard = InlineKeyboardBuilder()
-                keyboard.button(text="👥 Создать команду", callback_data="create_team")
-                keyboard.button(text="🔙 К тестам", callback_data="tests_menu")
-                keyboard.adjust(1)
-            else:
-                text = f"📈 **Аналитика команды**\\n\\n"
-                text += f"👨🏫 **Ваши команды:**\\n\\n"
-                
-                keyboard = InlineKeyboardBuilder()
-                
-                for team in teams:
-                    text += f"👥 **{team['name']}**\\n"
-                    text += f"   Участников: {team['members_count']}\\n\\n"
-                    
-                    keyboard.button(
-                        text=f"📊 {team['name']} ({team['members_count']})",
-                        callback_data=f"team_stats_{team['id']}"
-                    )
-                
-                text += f"💡 Выберите команду для детальной аналитики"
-                
-                keyboard.button(text="🔙 К тестам", callback_data="tests_menu")
-                keyboard.adjust(1)
-            
-            await callback.message.edit_text(
-                text,
-                reply_markup=keyboard.as_markup(),
-                parse_mode="Markdown"
-            )
-            
-    except Exception as e:
-        logger.error(f"Ошибка аналитики команды: {e}")
-        await callback.message.edit_text("❌ Ошибка загрузки аналитики команды")
-    
-    await callback.answer()
+    """Временная заглушка"""
+    await callback.answer("🚧 В разработке - аналитика команды")
 
 async def public_test_sets(callback: CallbackQuery):
-    """ПОЛНОЦЕННЫЕ публичные наборы тестов"""
-    try:
-        async with db_manager.pool.acquire() as conn:
-            # Получаем публичные батареи тестов
-            public_batteries = await conn.fetch("""
-                SELECT tb.id, tb.name, tb.description, tb.exercises_count,
-                       u.first_name as creator_name, tb.created_at
-                FROM test_batteries tb
-                JOIN users u ON tb.created_by = u.id
-                WHERE tb.visibility = 'public' AND tb.is_active = true
-                ORDER BY tb.created_at DESC
-                LIMIT 10
-            """)
-            
-            text = f"🌐 **Публичные наборы тестов**\\n\\n"
-            
-            if public_batteries:
-                text += f"📋 **Доступные наборы ({len(public_batteries)}):**\\n\\n"
-                
-                keyboard = InlineKeyboardBuilder()
-                
-                for battery in public_batteries:
-                    text += f"📦 **{battery['name']}**\\n"
-                    text += f"   👤 Автор: {battery['creator_name']}\\n"
-                    text += f"   🏋️ Упражнений: {battery['exercises_count']}\\n"
-                    text += f"   📅 {battery['created_at'].strftime('%d.%m.%Y')}\\n"
-                    
-                    if battery['description']:
-                        text += f"   💭 {battery['description'][:50]}{'...' if len(battery['description']) > 50 else ''}\\n"
-                    
-                    text += f"\\n"
-                    
-                    keyboard.button(
-                        text=f"📋 {battery['name']}",
-                        callback_data=f"view_public_battery_{battery['id']}"
-                    )
-                
-                text += f"💡 Нажмите на набор для просмотра упражнений"
-                
-            else:
-                text += f"⚠️ Публичных наборов пока нет\\n\\n"
-                text += f"Тренеры могут создавать публичные наборы тестов\\n"
-                text += f"для обмена опытом с коллегами."
-                
-                keyboard = InlineKeyboardBuilder()
-            
-            keyboard.button(text="🔍 Поиск наборов", callback_data="search_public_batteries")
-            keyboard.button(text="🔙 К тестам", callback_data="tests_menu")
-            keyboard.adjust(2)
-            
-            await callback.message.edit_text(
-                text,
-                reply_markup=keyboard.as_markup(),
-                parse_mode="Markdown"
-            )
-            
-    except Exception as e:
-        logger.error(f"Ошибка публичных наборов: {e}")
-        await callback.message.edit_text("❌ Ошибка загрузки публичных наборов")
-    
-    await callback.answer()
+    """Временная заглушка"""
+    await callback.answer("🚧 В разработке - публичные тесты")
 
 async def my_achievements(callback: CallbackQuery):
-    """ПОЛНОЦЕННАЯ система достижений"""
-    user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
-    
-    try:
-        async with db_manager.pool.acquire() as conn:
-            # Получаем статистику для достижений
-            stats = await conn.fetchrow("""
-                SELECT 
-                    COUNT(*) as total_tests,
-                    COUNT(DISTINCT exercise_id) as unique_exercises,
-                    MAX(formula_average) as best_1rm,
-                    MIN(tested_at) as first_test_date,
-                    MAX(tested_at) as last_test_date
-                FROM one_rep_max 
-                WHERE user_id = $1
-            """, user['id'])
-            
-            # Считаем тесты за последний месяц
-            recent_tests = await conn.fetchval("""
-                SELECT COUNT(*) FROM one_rep_max 
-                WHERE user_id = $1 
-                AND tested_at > CURRENT_DATE - INTERVAL '30 days'
-            """, user['id'])
-            
-            total_tests = stats['total_tests'] if stats else 0
-            unique_exercises = stats['unique_exercises'] if stats else 0
-            best_1rm = stats['best_1rm'] if stats else 0
-            
-            # Система достижений
-            achievements = [
-                {
-                    "name": "🥇 Первый тест",
-                    "desc": "Пройти первый силовой тест",
-                    "unlocked": total_tests > 0,
-                    "progress": min(total_tests, 1)
-                },
-                {
-                    "name": "💪 Силач",
-                    "desc": "Пройти 10 силовых тестов",
-                    "unlocked": total_tests >= 10,
-                    "progress": min(total_tests, 10)
-                },
-                {
-                    "name": "🎯 Снайпер",
-                    "desc": "Достичь 1ПМ свыше 100кг",
-                    "unlocked": best_1rm >= 100,
-                    "progress": min(best_1rm, 100) if best_1rm > 0 else 0
-                },
-                {
-                    "name": "🔬 Исследователь",
-                    "desc": "Протестировать 5 разных упражнений",
-                    "unlocked": unique_exercises >= 5,
-                    "progress": min(unique_exercises, 5)
-                },
-                {
-                    "name": "⚡ Активист",
-                    "desc": "Пройти 5 тестов за месяц",
-                    "unlocked": recent_tests >= 5,
-                    "progress": min(recent_tests, 5)
-                },
-                {
-                    "name": "🏆 Чемпион",
-                    "desc": "Достичь 1ПМ свыше 150кг",
-                    "unlocked": best_1rm >= 150,
-                    "progress": min(best_1rm, 150) if best_1rm > 0 else 0
-                },
-            ]
-            
-            unlocked_count = sum(1 for a in achievements if a["unlocked"])
-            
-            text = f"🏆 **Мои достижения**\\n\\n"
-            text += f"**Прогресс:** {unlocked_count}/{len(achievements)} "
-            text += f"({unlocked_count*100//len(achievements)}%)\\n\\n"
-            
-            for achievement in achievements:
-                if achievement["unlocked"]:
-                    status = "✅"
-                    progress = ""
-                else:
-                    status = "🔒"
-                    if achievement["name"] in ["💪 Силач", "🔬 Исследователь", "⚡ Активист"]:
-                        target_num = 10 if "Силач" in achievement["name"] else 5
-                        progress = f" ({achievement['progress']}/{target_num})"
-                    elif "1ПМ" in achievement["desc"]:
-                        target = int(achievement["desc"].split()[-1].replace("кг", ""))
-                        current = achievement['progress']
-                        progress = f" ({current:.0f}/{target}кг)" if current > 0 else f" (0/{target}кг)"
-                    else:
-                        progress = ""
-                
-                text += f"{status} **{achievement['name']}**{progress}\\n"
-                text += f"   _{achievement['desc']}_\\n\\n"
-            
-            if total_tests > 0:
-                text += f"📊 **Ваша статистика:**\\n"
-                text += f"• Всего тестов: {total_tests}\\n"
-                text += f"• Упражнений: {unique_exercises}\\n"
-                if best_1rm > 0:
-                    text += f"• Лучший 1ПМ: {best_1rm:.1f} кг\\n"
-                text += f"• За месяц: {recent_tests} тестов"
-            else:
-                text += f"💡 Начните проходить тесты, чтобы получать достижения!"
-            
-            keyboard = InlineKeyboardBuilder()
-            keyboard.button(text="💪 Новый тест", callback_data="individual_tests_menu")
-            keyboard.button(text="📈 Мой прогресс", callback_data="test_progress")
-            keyboard.button(text="🏆 Рекорды", callback_data="test_records")
-            keyboard.button(text="🔙 К тестам", callback_data="tests_menu")
-            keyboard.adjust(2)
-            
-            await callback.message.edit_text(
-                text,
-                reply_markup=keyboard.as_markup(),
-                parse_mode="Markdown"
-            )
-            
-    except Exception as e:
-        logger.error(f"Ошибка загрузки достижений: {e}")
-        await callback.message.edit_text(f"❌ Ошибка загрузки достижений: {e}")
-    
-    await callback.answer()
+    """Временная заглушка"""
+    await callback.answer("🚧 В разработке - достижения")
 
 # ===== ИНДИВИДУАЛЬНЫЕ ТЕСТЫ =====
-
 async def individual_tests_menu(callback: CallbackQuery):
     """Меню индивидуальных тестов"""
     keyboard = InlineKeyboardBuilder()
     keyboard.button(text="📊 Мои тесты", callback_data="my_tests")
-    keyboard.button(text="🔬 Новый тест", callback_data="new_test_menu")
+    keyboard.button(text="🔬 Новый тест", callback_data="new_test_menu") 
     keyboard.button(text="📈 Прогресс", callback_data="test_progress")
     keyboard.button(text="🏆 Рекорды", callback_data="test_records")
     keyboard.button(text="🔙 К тестам", callback_data="tests_menu")
     keyboard.adjust(2)
     
-    text = f"🔬 **Индивидуальные тесты**\\n\\n"
-    text += f"📊 **Ведите личные рекорды по упражнениям:**\\n"
-    text += f"• Отслеживайте прогресс в любом упражнении\\n"
-    text += f"• Система автоматически определит тип теста\\n"
-    text += f"• Сравнивайте результаты по времени\\n\\n"
-    text += f"💡 **Типы тестов:**\\n"
-    text += f"🏋️ Силовые - расчет 1ПМ по формулам\\n"
-    text += f"⏱️ Выносливость - время удержания\\n"
-    text += f"🏃 Скорость - время на дистанцию\\n"
-    text += f"🔢 Количественные - максимум повторений\\n\\n"
+    text = f"🔬 **Индивидуальные тесты**\n\n"
+    text += f"📊 **Ведите личные рекорды по упражнениям:**\n"
+    text += f"• Отслеживайте прогресс в любом упражнении\n"
+    text += f"• Система автоматически определит тип теста\n"
+    text += f"• Сравнивайте результаты по времени\n\n"
+    text += f"💡 **Типы тестов:**\n"
+    text += f"🏋️ Силовые - расчет 1ПМ по формулам\n"
+    text += f"⏱️ Выносливость - время удержания\n"
+    text += f"🏃 Скорость - время на дистанцию\n"
+    text += f"🔢 Количественные - максимум повторений\n\n"
     text += f"**Выберите действие:**"
     
     await callback.message.edit_text(
@@ -442,7 +199,6 @@ async def individual_tests_menu(callback: CallbackQuery):
         reply_markup=keyboard.as_markup(),
         parse_mode="Markdown"
     )
-    
     await callback.answer()
 
 async def new_test_menu(callback: CallbackQuery):
@@ -455,30 +211,31 @@ async def new_test_menu(callback: CallbackQuery):
     keyboard.adjust(1)
     
     await callback.message.edit_text(
-        "🔍 **Выберите упражнение для индивидуального теста:**\\n\\n"
-        "💡 **Любое упражнение может быть протестировано!**\\n"
-        "Система автоматически определит тип теста:\\n\\n"
-        "🏋️ **Силовые упражнения** → тест с расчетом 1ПМ по формулам\\n"
-        "⏱️ **Упражнения на выносливость** → тест времени удержания\\n"
-        "🏃 **Скоростные упражнения** → тест времени на дистанцию\\n"
-        "🔢 **Количественные** → тест максимальных повторений\\n\\n"
+        "🔍 **Выберите упражнение для индивидуального теста:**\n\n"
+        "💡 **Любое упражнение может быть протестировано!**\n"
+        "Система автоматически определит тип теста:\n\n"
+        
+        "🏋️ **Силовые упражнения** → тест с расчетом 1ПМ по формулам\n"
+        "⏱️ **Упражнения на выносливость** → тест времени удержания\n"
+        "🏃 **Скоростные упражнения** → тест времени на дистанцию\n"
+        "🔢 **Количественные** → тест максимальных повторений\n\n"
+        
         "**Выберите способ поиска упражнения:**",
+        
         reply_markup=keyboard.as_markup(),
         parse_mode="Markdown"
     )
-    
     await callback.answer()
 
 async def search_exercise_by_name_for_test(callback: CallbackQuery, state: FSMContext):
     """Поиск упражнения по названию для теста"""
     await callback.message.edit_text(
-        "🔍 **Поиск упражнения для теста**\\n\\n"
-        "Введите название упражнения:\\n"
-        "_Например: жим, приседания, планка, бег_\\n\\n"
+        "🔍 **Поиск упражнения для теста**\n\n"
+        "Введите название упражнения:\n"
+        "_Например: жим, приседания, планка, бег_\n\n"
         "💡 **Найденные упражнения будут кликабельными для тестирования!**",
         parse_mode="Markdown"
     )
-    
     await state.set_state("waiting_search_for_test")
     await callback.answer()
 
@@ -489,9 +246,10 @@ async def search_by_category_for_test(callback: CallbackQuery):
             categories = await conn.fetch("SELECT DISTINCT category FROM exercises ORDER BY category")
         
         keyboard = InlineKeyboardBuilder()
+        
         for cat in categories:
             keyboard.button(
-                text=f"📂 {cat['category']}",
+                text=f"📂 {cat['category']}", 
                 callback_data=f"test_cat_{cat['category']}"
             )
         
@@ -499,15 +257,13 @@ async def search_by_category_for_test(callback: CallbackQuery):
         keyboard.adjust(2)
         
         await callback.message.edit_text(
-            "📂 **Выберите категорию упражнений для тестирования:**\\n\\n"
+            "📂 **Выберите категорию упражнений для тестирования:**\n\n"
             "💡 **Найденные упражнения можно будет сразу протестировать!**",
             reply_markup=keyboard.as_markup(),
             parse_mode="Markdown"
         )
-        
     except Exception as e:
         await callback.message.edit_text(f"❌ Ошибка: {e}")
-    
     await callback.answer()
 
 async def search_by_muscle_for_test(callback: CallbackQuery):
@@ -517,9 +273,10 @@ async def search_by_muscle_for_test(callback: CallbackQuery):
             muscle_groups = await conn.fetch("SELECT DISTINCT muscle_group FROM exercises ORDER BY muscle_group")
         
         keyboard = InlineKeyboardBuilder()
+        
         for mg in muscle_groups:
             keyboard.button(
-                text=f"💪 {mg['muscle_group']}",
+                text=f"💪 {mg['muscle_group']}", 
                 callback_data=f"test_muscle_{mg['muscle_group']}"
             )
         
@@ -527,15 +284,13 @@ async def search_by_muscle_for_test(callback: CallbackQuery):
         keyboard.adjust(2)
         
         await callback.message.edit_text(
-            "💪 **Выберите группу мышц для тестирования:**\\n\\n"
+            "💪 **Выберите группу мышц для тестирования:**\n\n"
             "💡 **Найденные упражнения можно будет сразу протестировать!**",
             reply_markup=keyboard.as_markup(),
             parse_mode="Markdown"
         )
-        
     except Exception as e:
         await callback.message.edit_text(f"❌ Ошибка: {e}")
-    
     await callback.answer()
 
 async def show_test_category_exercises(callback: CallbackQuery):
@@ -550,22 +305,22 @@ async def show_test_category_exercises(callback: CallbackQuery):
             )
         
         if exercises:
-            text = f"📂 **{category} - упражнения для тестирования:**\\n\\n"
-            text += f"💡 **Нажмите на упражнение чтобы пройти тест:**\\n\\n"
+            text = f"📂 **{category} - упражнения для тестирования:**\n\n"
+            text += f"💡 **Нажмите на упражнение чтобы пройти тест:**\n\n"
             
             keyboard = InlineKeyboardBuilder()
             
             for ex in exercises:
                 test_emoji = {
                     'strength': '🏋️',
-                    'endurance': '⏱️',
+                    'endurance': '⏱️', 
                     'speed': '🏃',
                     'quantity': '🔢',
                     'none': '💪'
                 }.get(ex['test_type'] if ex['test_type'] else 'none', '💪')
                 
                 keyboard.button(
-                    text=f"{test_emoji} {ex['name']} • {ex['muscle_group']}",
+                    text=f"{test_emoji} {ex['name']} • {ex['muscle_group']}", 
                     callback_data=f"test_{ex['id']}"
                 )
             
@@ -580,10 +335,9 @@ async def show_test_category_exercises(callback: CallbackQuery):
             )
         else:
             await callback.message.edit_text(f"❌ Упражнения в категории '{category}' не найдены")
-    
+            
     except Exception as e:
         await callback.message.edit_text(f"❌ Ошибка: {e}")
-    
     await callback.answer()
 
 async def show_test_muscle_exercises(callback: CallbackQuery):
@@ -598,22 +352,22 @@ async def show_test_muscle_exercises(callback: CallbackQuery):
             )
         
         if exercises:
-            text = f"💪 **{muscle_group} - упражнения для тестирования:**\\n\\n"
-            text += f"💡 **Нажмите на упражнение чтобы пройти тест:**\\n\\n"
+            text = f"💪 **{muscle_group} - упражнения для тестирования:**\n\n"
+            text += f"💡 **Нажмите на упражнение чтобы пройти тест:**\n\n"
             
             keyboard = InlineKeyboardBuilder()
             
             for ex in exercises:
                 test_emoji = {
                     'strength': '🏋️',
-                    'endurance': '⏱️',
+                    'endurance': '⏱️', 
                     'speed': '🏃',
                     'quantity': '🔢',
                     'none': '💪'
                 }.get(ex['test_type'] if ex['test_type'] else 'none', '💪')
                 
                 keyboard.button(
-                    text=f"{test_emoji} {ex['name']} ({ex['category']})",
+                    text=f"{test_emoji} {ex['name']} ({ex['category']})", 
                     callback_data=f"test_{ex['id']}"
                 )
             
@@ -628,10 +382,9 @@ async def show_test_muscle_exercises(callback: CallbackQuery):
             )
         else:
             await callback.message.edit_text(f"❌ Упражнения для группы '{muscle_group}' не найдены")
-    
+            
     except Exception as e:
         await callback.message.edit_text(f"❌ Ошибка: {e}")
-    
     await callback.answer()
 
 async def handle_test_exercise_search(message: Message, state: FSMContext):
@@ -642,31 +395,31 @@ async def handle_test_exercise_search(message: Message, state: FSMContext):
         async with db_manager.pool.acquire() as conn:
             exercises = await conn.fetch("""
                 SELECT id, name, category, muscle_group, test_type
-                FROM exercises
-                WHERE LOWER(name) LIKE $1
-                OR LOWER(category) LIKE $1
-                OR LOWER(muscle_group) LIKE $1
+                FROM exercises 
+                WHERE LOWER(name) LIKE $1 
+                   OR LOWER(category) LIKE $1
+                   OR LOWER(muscle_group) LIKE $1
                 ORDER BY name
                 LIMIT 15
             """, f"%{search_term}%")
         
         if exercises:
-            text = f"🔍 **Найдено упражнений для тестирования: {len(exercises)}**\\n\\n"
-            text += f"💡 **Нажмите на упражнение чтобы сразу пройти тест:**\\n\\n"
+            text = f"🔍 **Найдено упражнений для тестирования: {len(exercises)}**\n\n"
+            text += f"💡 **Нажмите на упражнение чтобы сразу пройти тест:**\n\n"
             
             keyboard = InlineKeyboardBuilder()
             
             for ex in exercises:
                 test_emoji = {
                     'strength': '🏋️',
-                    'endurance': '⏱️',
+                    'endurance': '⏱️', 
                     'speed': '🏃',
                     'quantity': '🔢',
                     'none': '💪'
                 }.get(ex['test_type'] if ex['test_type'] else 'none', '💪')
                 
                 keyboard.button(
-                    text=f"{test_emoji} {ex['name']} • {ex['muscle_group']}",
+                    text=f"{test_emoji} {ex['name']} • {ex['muscle_group']}", 
                     callback_data=f"test_{ex['id']}"
                 )
             
@@ -676,12 +429,12 @@ async def handle_test_exercise_search(message: Message, state: FSMContext):
             keyboard.adjust(1)
             
             await message.answer(
-                text,
-                reply_markup=keyboard.as_markup(),
+                text, 
+                reply_markup=keyboard.as_markup(), 
                 parse_mode="Markdown"
             )
         else:
-            text = f"❌ Упражнения по запросу '{search_term}' не найдены\\n\\n"  \
+            text = f"❌ Упражнения по запросу '{search_term}' не найдены\n\n" \
                    f"Попробуйте другие ключевые слова."
             
             keyboard = InlineKeyboardBuilder()
@@ -690,14 +443,13 @@ async def handle_test_exercise_search(message: Message, state: FSMContext):
             keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
             
             await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
-        
+            
         await state.clear()
         
     except Exception as e:
         await message.answer(f"❌ Ошибка поиска: {e}")
 
 # ===== ПРОХОЖДЕНИЕ ТЕСТОВ С ИСПРАВЛЕННОЙ ЛОГИКОЙ =====
-
 async def start_exercise_test(callback: CallbackQuery, state: FSMContext):
     """Начало тестирования упражнения"""
     exercise_id = int(callback.data[5:])  # Убираем "test_"
@@ -719,52 +471,47 @@ async def start_exercise_test(callback: CallbackQuery, state: FSMContext):
         keyboard.button(text="❌ Отменить тест", callback_data="new_test_menu")
         
         if test_type == 'strength':
-            text = f"🏋️ **Силовой тест: {exercise['name']}**\\n\\n"
-            text += f"💪 **Группа мышц:** {exercise['muscle_group']}\\n"
-            text += f"📂 **Категория:** {exercise['category']}\\n\\n"
-            text += f"📝 **Введите вес и количество повторений:**\\n"
-            text += f"_Например: 80 10 (80кг на 10 повторений)_\\n"
-            text += f"_Или: 80кг 10раз_\\n\\n"
-            text += f"💡 **1ПМ будет рассчитан автоматически по формулам:**\\n"
+            text = f"🏋️ **Силовой тест: {exercise['name']}**\n\n"
+            text += f"💪 **Группа мышц:** {exercise['muscle_group']}\n"
+            text += f"📂 **Категория:** {exercise['category']}\n\n"
+            text += f"📝 **Введите вес и количество повторений:**\n"
+            text += f"_Например: 80 10 (80кг на 10 повторений)_\n"
+            text += f"_Или: 80кг 10раз_\n\n"
+            text += f"💡 **1ПМ будет рассчитан автоматически по формулам:**\n"
             text += f"• Brzycki • Epley • Lander"
-            
             await state.set_state("waiting_strength_test_data")
             
         elif test_type == 'endurance':
-            text = f"⏱️ **Тест выносливости: {exercise['name']}**\\n\\n"
-            text += f"💪 **Группа мышц:** {exercise['muscle_group']}\\n"
-            text += f"📂 **Категория:** {exercise['category']}\\n\\n"
-            text += f"📝 **Введите время удержания:**\\n"
+            text = f"⏱️ **Тест выносливости: {exercise['name']}**\n\n"
+            text += f"💪 **Группа мышц:** {exercise['muscle_group']}\n"
+            text += f"📂 **Категория:** {exercise['category']}\n\n"
+            text += f"📝 **Введите время удержания:**\n"
             text += f"_Например: 90 (секунд) или 1:30 (мин:сек)_"
-            
             await state.set_state("waiting_endurance_test_data")
             
         elif test_type == 'speed':
-            text = f"🏃 **Скоростной тест: {exercise['name']}**\\n\\n"
-            text += f"💪 **Группа мышц:** {exercise['muscle_group']}\\n"
-            text += f"📂 **Категория:** {exercise['category']}\\n\\n"
-            text += f"📝 **Введите время и дистанцию:**\\n"
+            text = f"🏃 **Скоростной тест: {exercise['name']}**\n\n"
+            text += f"💪 **Группа мышц:** {exercise['muscle_group']}\n"
+            text += f"📂 **Категория:** {exercise['category']}\n\n"
+            text += f"📝 **Введите время и дистанцию:**\n"
             text += f"_Например: 12.5 30 (12.5сек на 30м)_"
-            
             await state.set_state("waiting_speed_test_data")
             
         elif test_type == 'quantity':
-            text = f"🔢 **Количественный тест: {exercise['name']}**\\n\\n"
-            text += f"💪 **Группа мышц:** {exercise['muscle_group']}\\n"
-            text += f"📂 **Категория:** {exercise['category']}\\n\\n"
-            text += f"📝 **Введите максимальное количество повторений:**\\n"
+            text = f"🔢 **Количественный тест: {exercise['name']}**\n\n"
+            text += f"💪 **Группа мышц:** {exercise['muscle_group']}\n"
+            text += f"📂 **Категория:** {exercise['category']}\n\n"
+            text += f"📝 **Введите максимальное количество повторений:**\n"
             text += f"_Например: 25 (отжиманий)_"
-            
             await state.set_state("waiting_quantity_test_data")
-            
+        
         else:
             # По умолчанию силовой тест с расчетом по формулам
-            text = f"💪 **Силовой тест: {exercise['name']}**\\n\\n"
-            text += f"💪 **Группа мышц:** {exercise['muscle_group']}\\n"
-            text += f"📂 **Категория:** {exercise['category']}\\n\\n"
-            text += f"📝 **Введите вес и количество повторений:**\\n"
+            text = f"💪 **Силовой тест: {exercise['name']}**\n\n"
+            text += f"💪 **Группа мышц:** {exercise['muscle_group']}\n"
+            text += f"📂 **Категория:** {exercise['category']}\n\n"
+            text += f"📝 **Введите вес и количество повторений:**\n"
             text += f"_Например: 80 10 (80кг на 10 повторений)_"
-            
             await state.set_state("waiting_strength_test_data")
         
         await callback.message.edit_text(
@@ -779,45 +526,44 @@ async def start_exercise_test(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 # ===== ОБРАБОТКА РЕЗУЛЬТАТОВ ТЕСТОВ =====
-
 async def process_strength_test_data(message: Message, state: FSMContext):
     """ИСПРАВЛЕННАЯ логика обработки силового теста"""
     try:
         # Получаем данные из состояния
-        state_data = await state.get_data()
-        exercise_data = state_data.get('exercise', {})
+        statedata = await state.get_data()
+        exercise_data = statedata.get('exercise', {})
         exercise_name = exercise_data.get('name', 'Упражнение')  # ✅
-        exercise_id = state_data.get('exercise_id')  # ✅
-        
+        exercise_id = statedata.get('exercise_id')  # ✅
+
         if not exercise_id:
             await message.answer("❌ Ошибка: упражнение не выбрано")
             await state.clear()
             return
-        
+
         # ✅ ШАГ 1: Сначала ПАРСИМ строку в словарь
         parsed_result = parse_strength_test_input(message.text)
-        
+
         # ✅ ШАГ 2: Проверяем успешность парсинга
         if not parsed_result.get('parsed_successfully', False):
             # Обработка ошибок парсинга
             error_type = parsed_result.get('error', 'unknown')
-            
+
             if error_type == 'found_one_number':
                 await message.answer(
-                    f"❌ Найдено только одно число\\n\\n"
-                    f"Введите **вес и повторения**:\\n"
+                    f"❌ Найдено только одно число\n\n"
+                    f"Введите **вес и повторения**:\n"
                     f"Например: `80 10`",
                     parse_mode="Markdown"
                 )
             else:
                 await message.answer(
-                    f"❌ Неверный формат\\n\\n"
-                    f"Введите: `вес повторения`\\n"
+                    f"❌ Неверный формат\n\n"
+                    f"Введите: `вес повторения`\n"
                     f"Например: `80 10`",
                     parse_mode="Markdown"
                 )
             return
-        
+
         # ✅ ШАГ 3: Создаем СЛОВАРЬ с данными
         test_data = {
             'weight': parsed_result['weight'],
@@ -825,46 +571,46 @@ async def process_strength_test_data(message: Message, state: FSMContext):
             'exercise_id': exercise_id,
             'exercise_name': exercise_name
         }
-        
+
         # ✅ ШАГ 4: Теперь валидируем СЛОВАРЬ (а не строку!)
         validation = validate_test_data(test_data, 'strength')
-        
+
         if not validation['valid']:
-            error_text = "❌ **Ошибки в данных:**\\n\\n"
+            error_text = "❌ **Ошибки в данных:**\n\n"
             for error in validation['errors']:
-                error_text += f"• {error}\\n"
-            
+                error_text += f"• {error}\n"
+
             await message.answer(error_text, parse_mode="Markdown")
             return
-        
+
         # ✅ ШАГ 5: Получаем валидные данные и делаем расчет
         valid_data = validation['data']
         weight = valid_data['weight']
         reps = valid_data['reps']
-        
+
         # Расчет 1ПМ
         def calculate_1rm(w: float, r: int):
             if r == 1:
                 return {'brzycki': w, 'epley': w, 'lander': w, 'average': w}
-            
+
             brzycki = w / (1.0278 - 0.0278 * r)
             epley = w * (1 + r / 30.0)
             lander = (100 * w) / (101.3 - 2.67123 * r)
             average = (brzycki + epley + lander) / 3.0
-            
+
             return {
                 'brzycki': round(brzycki, 1),
                 'epley': round(epley, 1),
                 'lander': round(lander, 1),
                 'average': round(average, 1)
             }
-        
+
         results = calculate_1rm(weight, reps)
-        
+
         # Сохранение в БД
         from database import db_manager
         user = await db_manager.get_user_by_telegram_id(message.from_user.id)
-        
+
         async with db_manager.pool.acquire() as conn:
             await conn.execute("""
                 INSERT INTO one_rep_max (
@@ -875,29 +621,29 @@ async def process_strength_test_data(message: Message, state: FSMContext):
             user['id'], int(exercise_id), results['average'], 
             reps, weight, results['brzycki'], results['epley'],
             results['lander'], results['average'])
-        
+
         # Показ результата
-        text = f"🎉 **Результат силового теста**\\n\\n"
-        text += f"💪 **Упражнение:** {exercise_name}\\n"
-        text += f"📊 **Результат:** {weight} кг × {reps} повт.\\n\\n"
-        
-        text += f"**📈 1ПМ по формулам:**\\n"
-        text += f"• **Brzycki:** {results['brzycki']} кг\\n"
-        text += f"• **Epley:** {results['epley']} кг\\n"
-        text += f"• **Lander:** {results['lander']} кг\\n\\n"
-        
-        text += f"🎯 **Ваш 1ПМ: {results['average']} кг**\\n"
+        text = f"🎉 **Результат силового теста**\n\n"
+        text += f"💪 **Упражнение:** {exercise_name}\n"
+        text += f"📊 **Результат:** {weight} кг × {reps} повт.\n\n"
+
+        text += f"**📈 1ПМ по формулам:**\n"
+        text += f"• **Brzycki:** {results['brzycki']} кг\n"
+        text += f"• **Epley:** {results['epley']} кг\n"
+        text += f"• **Lander:** {results['lander']} кг\n\n"
+
+        text += f"🎯 **Ваш 1ПМ: {results['average']} кг**\n"
         text += f"_(среднее по 3 формулам)_"
-        
+
         from aiogram.utils.keyboard import InlineKeyboardBuilder
         keyboard = InlineKeyboardBuilder()
-        keyboard.button(text="💪 Новый тест", callback_data="new_test_menu")
+        keyboard.button(text="💪 Новый тест", callback_data="new_strength_test")
         keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
         keyboard.adjust(2)
-        
+
         await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
         await state.clear()
-        
+
     except Exception as e:
         logger.error(f"Ошибка в process_strength_test_data: {e}")
         await message.answer("❌ Произошла ошибка при обработке теста")
@@ -911,7 +657,6 @@ async def process_endurance_test_data(message: Message, state: FSMContext):
     user = await db_manager.get_user_by_telegram_id(message.from_user.id)
     
     validation = validate_test_data(test_data, 'endurance')
-    
     if not validation['valid']:
         await message.answer(f"❌ Ошибки: {', '.join(validation['errors'])}")
         return
@@ -919,16 +664,16 @@ async def process_endurance_test_data(message: Message, state: FSMContext):
     try:
         async with db_manager.pool.acquire() as conn:
             await conn.execute("""
-                INSERT INTO test_results
+                INSERT INTO test_results 
                 (user_id, exercise_id, test_type, result_value, result_unit, duration_seconds)
                 VALUES ($1, $2, $3, $4, $5, $6)
-            """, user['id'], data['exercise_id'], 'endurance',
-                validation['seconds'], 'сек', validation['seconds'])
+            """, user['id'], data['exercise_id'], 'endurance', 
+                 validation['seconds'], 'сек', validation['seconds'])
         
-        text = f"✅ **Тест выносливости завершен!**\\n\\n"
-        text += f"⏱️ **Упражнение:** {exercise['name']}\\n"
-        text += f"💪 **Результат:** {validation['formatted_time']}\\n"
-        text += f"📅 **Дата:** {message.date.strftime('%d.%m.%Y %H:%M')}\\n\\n"
+        text = f"✅ **Тест выносливости завершен!**\n\n"
+        text += f"⏱️ **Упражнение:** {exercise['name']}\n"
+        text += f"💪 **Результат:** {validation['formatted_time']}\n"
+        text += f"📅 **Дата:** {message.date.strftime('%d.%m.%Y %H:%M')}\n\n"
         text += f"✅ **Тест сохранен в вашу историю!**"
         
         keyboard = InlineKeyboardBuilder()
@@ -951,7 +696,6 @@ async def process_speed_test_data(message: Message, state: FSMContext):
     user = await db_manager.get_user_by_telegram_id(message.from_user.id)
     
     validation = validate_test_data(test_data, 'speed')
-    
     if not validation['valid']:
         await message.answer(f"❌ Ошибки: {', '.join(validation['errors'])}")
         return
@@ -959,16 +703,16 @@ async def process_speed_test_data(message: Message, state: FSMContext):
     try:
         async with db_manager.pool.acquire() as conn:
             await conn.execute("""
-                INSERT INTO test_results
+                INSERT INTO test_results 
                 (user_id, exercise_id, test_type, result_value, result_unit, time_seconds, distance)
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
-            """, user['id'], data['exercise_id'], 'speed',
-                validation['time'], 'сек', validation['time'], validation['distance'])
+            """, user['id'], data['exercise_id'], 'speed', 
+                 validation['time'], 'сек', validation['time'], validation['distance'])
         
-        text = f"✅ **Скоростной тест завершен!**\\n\\n"
-        text += f"🏃 **Упражнение:** {exercise['name']}\\n"
-        text += f"💪 **Результат:** {validation['time']}сек на {validation['distance']}м\\n"
-        text += f"📅 **Дата:** {message.date.strftime('%d.%m.%Y %H:%M')}\\n\\n"
+        text = f"✅ **Скоростной тест завершен!**\n\n"
+        text += f"🏃 **Упражнение:** {exercise['name']}\n"
+        text += f"💪 **Результат:** {validation['time']}сек на {validation['distance']}м\n"
+        text += f"📅 **Дата:** {message.date.strftime('%d.%m.%Y %H:%M')}\n\n"
         text += f"✅ **Тест сохранен в вашу историю!**"
         
         keyboard = InlineKeyboardBuilder()
@@ -991,7 +735,6 @@ async def process_quantity_test_data(message: Message, state: FSMContext):
     user = await db_manager.get_user_by_telegram_id(message.from_user.id)
     
     validation = validate_test_data(test_data, 'quantity')
-    
     if not validation['valid']:
         await message.answer(f"❌ Ошибки: {', '.join(validation['errors'])}")
         return
@@ -999,16 +742,16 @@ async def process_quantity_test_data(message: Message, state: FSMContext):
     try:
         async with db_manager.pool.acquire() as conn:
             await conn.execute("""
-                INSERT INTO test_results
+                INSERT INTO test_results 
                 (user_id, exercise_id, test_type, result_value, result_unit, max_reps)
                 VALUES ($1, $2, $3, $4, $5, $6)
-            """, user['id'], data['exercise_id'], 'quantity',
-                validation['reps'], 'раз', validation['reps'])
+            """, user['id'], data['exercise_id'], 'quantity', 
+                 validation['reps'], 'раз', validation['reps'])
         
-        text = f"✅ **Количественный тест завершен!**\\n\\n"
-        text += f"🔢 **Упражнение:** {exercise['name']}\\n"
-        text += f"💪 **Результат:** {validation['reps']} повторений\\n"
-        text += f"📅 **Дата:** {message.date.strftime('%d.%m.%Y %H:%M')}\\n\\n"
+        text = f"✅ **Количественный тест завершен!**\n\n"
+        text += f"🔢 **Упражнение:** {exercise['name']}\n"
+        text += f"💪 **Результат:** {validation['reps']} повторений\n"
+        text += f"📅 **Дата:** {message.date.strftime('%d.%m.%Y %H:%M')}\n\n"
         text += f"✅ **Тест сохранен в вашу историю!**"
         
         keyboard = InlineKeyboardBuilder()
@@ -1024,7 +767,6 @@ async def process_quantity_test_data(message: Message, state: FSMContext):
         await message.answer(f"❌ Ошибка сохранения: {e}")
 
 # ===== ПРОСМОТР ТЕСТОВ =====
-
 async def my_tests(callback: CallbackQuery):
     """Показать тесты пользователя"""
     user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
@@ -1041,7 +783,7 @@ async def my_tests(callback: CallbackQuery):
             """, user['id'])
         
         if tests:
-            text = f"📊 **Ваши последние тесты ({len(tests)}):**\\n\\n"
+            text = f"📊 **Ваши последние тесты ({len(tests)}):**\n\n"
             
             for test in tests:
                 test_emoji = {
@@ -1051,7 +793,7 @@ async def my_tests(callback: CallbackQuery):
                     'quantity': '🔢'
                 }.get(test['test_type'], '💪')
                 
-                text += f"{test_emoji} **{test['exercise_name']}**\\n"
+                text += f"{test_emoji} **{test['exercise_name']}**\n"
                 text += f"💪 {test['muscle_group']} • "
                 
                 if test['test_type'] == 'strength':
@@ -1069,9 +811,9 @@ async def my_tests(callback: CallbackQuery):
                 elif test['test_type'] == 'quantity':
                     text += f"{int(test['result_value'])} раз"
                 
-                text += f" • {test['tested_at'].strftime('%d.%m')}\\n\\n"
+                text += f" • {test['tested_at'].strftime('%d.%m')}\n\n"
         else:
-            text = f"📊 **У вас пока нет тестов**\\n\\n"
+            text = f"📊 **У вас пока нет тестов**\n\n"
             text += f"Пройдите первый тест, чтобы начать отслеживать прогресс!"
         
         keyboard = InlineKeyboardBuilder()
@@ -1092,173 +834,21 @@ async def my_tests(callback: CallbackQuery):
     await callback.answer()
 
 async def test_progress(callback: CallbackQuery):
-    """ПОЛНОЦЕННАЯ функция прогресса тестов"""
-    user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
-    
-    try:
-        async with db_manager.pool.acquire() as conn:
-            # Получаем общую статистику
-            total_tests = await conn.fetchval("""
-                SELECT COUNT(*) FROM one_rep_max 
-                WHERE user_id = $1
-            """, user['id'])
-            
-            # Последние 5 тестов
-            recent_tests = await conn.fetch("""
-                SELECT e.name, orm.weight, orm.reps, orm.formula_average,
-                       orm.tested_at, orm.test_weight
-                FROM one_rep_max orm
-                JOIN exercises e ON orm.exercise_id = e.id
-                WHERE orm.user_id = $1
-                ORDER BY orm.tested_at DESC
-                LIMIT 5
-            """, user['id'])
-            
-            # Статистика по месяцам
-            monthly_stats = await conn.fetchval("""
-                SELECT COUNT(*) FROM one_rep_max 
-                WHERE user_id = $1 
-                AND tested_at > CURRENT_DATE - INTERVAL '30 days'
-            """, user['id'])
-            
-            # Лучший результат
-            best_result = await conn.fetchrow("""
-                SELECT e.name, orm.formula_average, orm.tested_at
-                FROM one_rep_max orm
-                JOIN exercises e ON orm.exercise_id = e.id
-                WHERE orm.user_id = $1
-                ORDER BY orm.formula_average DESC
-                LIMIT 1
-            """, user['id'])
-            
-            text = f"📈 **Ваш прогресс в тестах**\\n\\n"
-            text += f"📊 **Общая статистика:**\\n"
-            text += f"• Всего тестов: {total_tests}\\n"
-            text += f"• За месяц: {monthly_stats}\\n"
-            
-            if best_result:
-                text += f"• Лучший 1ПМ: {best_result['formula_average']} кг ({best_result['name']})\\n"
-            
-            text += f"\\n"
-            
-            if recent_tests:
-                text += f"🏃 **Последние тесты:**\\n"
-                for test in recent_tests[:3]:  # Показываем только 3 последних
-                    test_date = test['tested_at'].strftime('%d.%m.%Y')
-                    text += f"💪 **{test['name']}**\\n"
-                    text += f"   📊 {test['test_weight']} кг × {test['reps']} → 1ПМ: {test['formula_average']} кг\\n"
-                    text += f"   📅 {test_date}\\n\\n"
-                    
-                if len(recent_tests) > 3:
-                    text += f"_И еще {len(recent_tests) - 3} тестов..._\\n\\n"
-            else:
-                text += f"⚠️ У вас пока нет завершенных тестов\\n"
-                text += f"Пройдите первый тест для отслеживания прогресса!\\n\\n"
-            
-            text += f"💡 Регулярное тестирование поможет отследить прогресс\\n"
-            text += f"и правильно планировать нагрузки в тренировках."
-            
-            keyboard = InlineKeyboardBuilder()
-            if total_tests > 0:
-                keyboard.button(text="🏆 Мои рекорды", callback_data="test_records")
-                keyboard.button(text="📊 Детали", callback_data="detailed_progress")
-            keyboard.button(text="🆕 Новый тест", callback_data="individual_tests_menu")
-            keyboard.button(text="🔙 К тестам", callback_data="tests_menu")
-            keyboard.adjust(2)
-            
-            await callback.message.edit_text(
-                text,
-                reply_markup=keyboard.as_markup(),
-                parse_mode="Markdown"
-            )
-            
-    except Exception as e:
-        logger.error(f"Ошибка загрузки прогресса: {e}")
-        await callback.message.edit_text(
-            f"❌ Ошибка загрузки прогресса.\\n\\n"
-            f"Попробуйте позже или обратитесь к администратору."
-        )
-    
-    await callback.answer()
+    """Показать прогресс по тестам"""
+    await callback.answer("🚧 В разработке - анализ прогресса по тестам")
 
 async def test_records(callback: CallbackQuery):
-    """ПОЛНОЦЕННАЯ функция рекордов тестов"""
-    user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
-    
-    try:
-        async with db_manager.pool.acquire() as conn:
-            # Получаем лучшие результаты по каждому упражнению
-            records = await conn.fetch("""
-                WITH best_results AS (
-                    SELECT DISTINCT ON (exercise_id)
-                        exercise_id, formula_average, test_weight, reps, tested_at
-                    FROM one_rep_max 
-                    WHERE user_id = $1
-                    ORDER BY exercise_id, formula_average DESC
-                )
-                SELECT e.name, e.muscle_group, br.formula_average, 
-                       br.test_weight, br.reps, br.tested_at
-                FROM best_results br
-                JOIN exercises e ON br.exercise_id = e.id
-                ORDER BY br.formula_average DESC
-            """, user['id'])
-            
-            if records:
-                text = f"🏆 **Ваши рекорды**\\n\\n"
-                
-                # Топ-3 лучших результата
-                text += f"🥇 **Топ-3 лучших 1ПМ:**\\n"
-                for i, record in enumerate(records[:3], 1):
-                    medal = ["🥇", "🥈", "🥉"][i-1]
-                    text += f"{medal} **{record['name']}** ({record['muscle_group']})\\n"
-                    text += f"   🎯 1ПМ: **{record['formula_average']} кг**\\n"
-                    text += f"   📊 Тест: {record['test_weight']} кг × {record['reps']}\\n"
-                    text += f"   📅 {record['tested_at'].strftime('%d.%m.%Y')}\\n\\n"
-                
-                # Остальные рекорды
-                if len(records) > 3:
-                    text += f"📋 **Остальные рекорды:**\\n"
-                    for record in records[3:]:
-                        text += f"💪 **{record['name']}**: {record['formula_average']} кг\\n"
-                        text += f"   📊 {record['test_weight']} × {record['reps']} | {record['tested_at'].strftime('%d.%m')}\\n\\n"
-                
-                text += f"🎯 **Всего упражнений с рекордами:** {len(records)}"
-            else:
-                text = f"🏆 **Ваши рекорды**\\n\\n"
-                text += f"⚠️ У вас пока нет рекордов\\n\\n"
-                text += f"Пройдите тесты чтобы установить первые рекорды!\\n\\n"
-                text += f"💡 Рекорды помогают отслеживать прогресс\\n"
-                text += f"и мотивируют к новым достижениям."
-            
-            keyboard = InlineKeyboardBuilder()
-            if records:
-                keyboard.button(text="📈 Мой прогресс", callback_data="test_progress")
-                keyboard.button(text="🎖️ Достижения", callback_data="my_achievements")
-            keyboard.button(text="💪 Новый тест", callback_data="individual_tests_menu")
-            keyboard.button(text="🔙 К тестам", callback_data="tests_menu")
-            keyboard.adjust(2)
-            
-            await callback.message.edit_text(
-                text,
-                reply_markup=keyboard.as_markup(),
-                parse_mode="Markdown"
-            )
-            
-    except Exception as e:
-        logger.error(f"Ошибка загрузки рекордов: {e}")
-        await callback.message.edit_text(f"❌ Ошибка загрузки рекордов: {e}")
-    
-    await callback.answer()
+    """Показать рекорды пользователя"""
+    await callback.answer("🚧 В разработке - личные рекорды")
 
 # ===== ФУНКЦИЯ ДЛЯ ТРЕНИРОВОК =====
-
 async def get_user_test_result_for_workout(user_id: int, exercise_id: int):
     """Получить последний результат теста пользователя для упражнения"""
     try:
         async with db_manager.pool.acquire() as conn:
             result = await conn.fetchrow("""
-                SELECT * FROM test_results
-                WHERE user_id = $1 AND exercise_id = $2
+                SELECT * FROM test_results 
+                WHERE user_id = $1 AND exercise_id = $2 
                 ORDER BY tested_at DESC LIMIT 1
             """, user_id, exercise_id)
         return result
@@ -1266,7 +856,6 @@ async def get_user_test_result_for_workout(user_id: int, exercise_id: int):
         return None
 
 # ===== ОБРАБОТКА ТЕКСТОВЫХ СООБЩЕНИЙ =====
-
 async def process_test_text_input(message: Message, state: FSMContext):
     """Обработка текстовых вводов для индивидуальных тестов"""
     current_state = await state.get_state()
@@ -1285,9 +874,9 @@ async def process_test_text_input(message: Message, state: FSMContext):
         await message.answer("❓ Используйте меню для навигации.")
 
 # ===== РЕГИСТРАЦИЯ ОБРАБОТЧИКОВ =====
-
 def register_test_handlers(dp):
     """Регистрация обработчиков универсальных тестов"""
+    
     # ГЛАВНОЕ МЕНЮ ТЕСТОВ
     dp.callback_query.register(tests_menu, F.data == "tests_menu")
     
@@ -1295,7 +884,7 @@ def register_test_handlers(dp):
     dp.callback_query.register(coach_batteries_menu, F.data == "coach_batteries")
     dp.callback_query.register(player_batteries_menu, F.data == "player_batteries")
     
-    # ПОЛНОЦЕННЫЕ ФУНКЦИИ ВМЕСТО ЗАГЛУШЕК
+    # ОБЩИЕ ЗАГЛУШКИ
     dp.callback_query.register(team_analytics, F.data == "team_analytics")
     dp.callback_query.register(public_test_sets, F.data == "public_test_sets")
     dp.callback_query.register(my_achievements, F.data == "my_achievements")
@@ -1309,7 +898,7 @@ def register_test_handlers(dp):
     
     # ПОИСК УПРАЖНЕНИЙ ДЛЯ ТЕСТОВ
     dp.callback_query.register(search_exercise_by_name_for_test, F.data == "search_by_name")
-    dp.callback_query.register(search_by_category_for_test, F.data == "search_by_category")
+    dp.callback_query.register(search_by_category_for_test, F.data == "search_by_category") 
     dp.callback_query.register(search_by_muscle_for_test, F.data == "search_by_muscle")
     
     # ПРОСМОТР УПРАЖНЕНИЙ ПО КАТЕГОРИЯМ/ГРУППАМ
