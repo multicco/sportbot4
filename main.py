@@ -121,7 +121,7 @@ async def main():
 
         try:
             await bot.session.close()
-            logger.info("🤖 Сессия бота закрыта")
+            logger.info("🤖 Сессия бота закрыта")\
         except Exception as e:
             logger.error(f"❌ Ошибка при закрытии сессии: {e}")
 
