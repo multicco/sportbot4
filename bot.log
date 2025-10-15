@@ -1023,3 +1023,151 @@ aiogram.exceptions.TelegramBadRequest: Telegram server says - Bad Request: query
 2025-10-14 21:13:38,362 - aiogram.event - INFO - Update id=645436361 is handled. Duration 155 ms by bot id=8236074997
 2025-10-14 21:14:31,517 - aiogram.event - INFO - Update id=645436362 is handled. Duration 280 ms by bot id=8236074997
 2025-10-14 21:14:33,273 - aiogram.event - INFO - Update id=645436363 is handled. Duration 265 ms by bot id=8236074997
+2025-10-15 17:32:39,313 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-10-15 17:32:39,313 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-10-15 17:32:39,771 - database.database - INFO - ✅ База данных инициализирована
+2025-10-15 17:32:39,771 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-10-15 17:32:39,812 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-10-15 17:32:39,817 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-10-15 17:32:39,818 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-10-15 17:32:39,820 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-10-15 17:32:39,827 - handlers.teams - INFO - ✅ Teams module registered with database support
+2025-10-15 17:32:39,827 - handlers - INFO - ✅ Все обработчики зарегистрированы
+2025-10-15 17:32:40,184 - __main__ - INFO - ✅ Команды бота настроены
+2025-10-15 17:32:40,273 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-10-15 17:32:40,273 - __main__ - INFO - 🆔 ID: 8236074997
+2025-10-15 17:32:40,273 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-10-15 17:32:40,274 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-10-15 17:32:40,274 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-10-15 17:32:40,274 - aiogram.dispatcher - INFO - Start polling
+2025-10-15 17:32:40,356 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-10-15 17:32:54,391 - aiogram.event - INFO - Update id=645436364 is handled. Duration 671 ms by bot id=8236074997
+2025-10-15 17:33:02,232 - handlers - WARNING - Неизвестное FSM состояние: TeamStates:waiting_team_name, сбрасываем
+2025-10-15 17:33:02,458 - aiogram.event - INFO - Update id=645436365 is handled. Duration 233 ms by bot id=8236074997
+2025-10-15 18:14:25,384 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-10-15 18:14:25,384 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-10-15 18:14:25,506 - database.database - INFO - ✅ База данных инициализирована
+2025-10-15 18:14:25,507 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-10-15 18:14:25,508 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-10-15 18:14:25,510 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-10-15 18:14:25,510 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-10-15 18:14:25,513 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-10-15 18:14:25,519 - handlers.teams - INFO - ✅ Teams module registered with database support
+2025-10-15 18:14:25,519 - handlers - INFO - ✅ Все обработчики зарегистрированы
+2025-10-15 18:14:25,813 - __main__ - INFO - ✅ Команды бота настроены
+2025-10-15 18:14:25,896 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-10-15 18:14:25,898 - __main__ - INFO - 🆔 ID: 8236074997
+2025-10-15 18:14:25,898 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-10-15 18:14:25,898 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-10-15 18:14:25,898 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-10-15 18:14:25,899 - aiogram.dispatcher - INFO - Start polling
+2025-10-15 18:14:25,982 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-10-15 18:14:55,196 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-10-15 18:14:55,197 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-10-15 18:14:55,321 - database.database - INFO - ✅ База данных инициализирована
+2025-10-15 18:14:55,322 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-10-15 18:14:55,323 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-10-15 18:14:55,325 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-10-15 18:14:55,325 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-10-15 18:14:55,328 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-10-15 18:14:55,335 - handlers.teams - INFO - ✅ Teams module registered with database support
+2025-10-15 18:14:55,335 - handlers - INFO - ✅ Все обработчики зарегистрированы
+2025-10-15 18:14:55,609 - __main__ - INFO - ✅ Команды бота настроены
+2025-10-15 18:14:55,696 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-10-15 18:14:55,696 - __main__ - INFO - 🆔 ID: 8236074997
+2025-10-15 18:14:55,697 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-10-15 18:14:55,697 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-10-15 18:14:55,697 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-10-15 18:14:55,698 - aiogram.dispatcher - INFO - Start polling
+2025-10-15 18:14:55,780 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-10-15 18:15:01,684 - aiogram.event - INFO - Update id=645436366 is not handled. Duration 15 ms by bot id=8236074997
+2025-10-15 18:15:01,684 - aiogram.event - ERROR - Cause exception while process update id=645436366 by bot id=8236074997
+AttributeError: 'DatabaseManager' object has no attribute 'get_user_by_telegram_id'
+Traceback (most recent call last):
+  File "F:\python\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "F:\python\lib\site-packages\aiogram\dispatcher\middlewares\error.py", line 25, in __call__
+    return await handler(event, data)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\middlewares\user_context.py", line 49, in __call__
+    return await handler(event, data)
+  File "F:\python\lib\site-packages\aiogram\fsm\middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\handler.py", line 43, in call
+    return await wrapped()
+  File "F:\python\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 142, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 137, in _wrapped
+    return await self._propagate_event(
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 162, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\handler.py", line 43, in call
+    return await wrapped()
+  File "V:\python\sportbot3\handlers\start.py", line 26, in cmd_start
+    existing_user = await db_manager.get_user_by_telegram_id(user.id)
+AttributeError: 'DatabaseManager' object has no attribute 'get_user_by_telegram_id'
+2025-10-15 18:15:06,494 - aiogram.event - INFO - Update id=645436367 is not handled. Duration 0 ms by bot id=8236074997
+2025-10-15 18:15:06,494 - aiogram.event - ERROR - Cause exception while process update id=645436367 by bot id=8236074997
+AttributeError: 'DatabaseManager' object has no attribute 'get_user_by_telegram_id'
+Traceback (most recent call last):
+  File "F:\python\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "F:\python\lib\site-packages\aiogram\dispatcher\middlewares\error.py", line 25, in __call__
+    return await handler(event, data)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\middlewares\user_context.py", line 49, in __call__
+    return await handler(event, data)
+  File "F:\python\lib\site-packages\aiogram\fsm\middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\handler.py", line 43, in call
+    return await wrapped()
+  File "F:\python\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 142, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 137, in _wrapped
+    return await self._propagate_event(
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 162, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\handler.py", line 43, in call
+    return await wrapped()
+  File "V:\python\sportbot3\handlers\start.py", line 26, in cmd_start
+    existing_user = await db_manager.get_user_by_telegram_id(user.id)
+AttributeError: 'DatabaseManager' object has no attribute 'get_user_by_telegram_id'
+2025-10-15 20:11:25,558 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-10-15 20:11:25,567 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-10-15 20:11:25,726 - database.database - INFO - ✅ База данных инициализирована
+2025-10-15 20:11:25,727 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-10-15 20:11:25,753 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-10-15 20:11:25,755 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-10-15 20:11:25,755 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-10-15 20:11:25,758 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-10-15 20:11:25,765 - handlers.teams - INFO - ✅ Teams module registered with database support
+2025-10-15 20:11:25,765 - handlers - INFO - ✅ Все обработчики зарегистрированы
+2025-10-15 20:11:26,061 - __main__ - INFO - ✅ Команды бота настроены
+2025-10-15 20:11:26,148 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-10-15 20:11:26,148 - __main__ - INFO - 🆔 ID: 8236074997
+2025-10-15 20:11:26,148 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-10-15 20:11:26,149 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-10-15 20:11:26,149 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-10-15 20:11:26,149 - aiogram.dispatcher - INFO - Start polling
+2025-10-15 20:11:26,231 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-10-15 20:11:38,121 - aiogram.event - INFO - Update id=645436368 is handled. Duration 420 ms by bot id=8236074997
+2025-10-15 20:11:40,201 - aiogram.event - INFO - Update id=645436369 is handled. Duration 311 ms by bot id=8236074997
+2025-10-15 20:11:41,360 - aiogram.event - INFO - Update id=645436370 is handled. Duration 233 ms by bot id=8236074997
+2025-10-15 20:11:42,846 - handlers - INFO - 🏆 Состояние TeamStates:waiting_team_name - передаем в teams router
+2025-10-15 20:11:42,847 - aiogram.event - INFO - Update id=645436371 is handled. Duration 0 ms by bot id=8236074997
+2025-10-15 20:11:53,008 - handlers - INFO - 🏆 Состояние TeamStates:waiting_team_name - передаем в teams router
+2025-10-15 20:11:53,009 - aiogram.event - INFO - Update id=645436372 is handled. Duration 0 ms by bot id=8236074997

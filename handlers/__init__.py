@@ -1,23 +1,24 @@
 
-# ===== ИСПРАВЛЕННЫЙ handlers/__init__.py =====
+# ===== ИСПРАВЛЕННЫЙ handlers/__init__.py С ПОДДЕРЖКОЙ TeamStates =====
 
 from . import start
-from . import exercises  
+from . import exercises
 from . import workouts
-from . import tests
-from . import test_batteries
+from . import tests # ← Индивидуальные тесты
+from . import test_batteries # ← Батареи тестов
 
+# Остальные модули при наличии
 try:
-    from . import team_tests
+    from . import team_tests # ← Командные тесты (наборы) - если есть
 except ImportError:
     team_tests = None
 
 try:
-    from . import player_tests  
+    from . import player_tests # ← Участники командных тестов - если есть
 except ImportError:
     player_tests = None
 
-from . import teams  # ← ТВОЙ МОДУЛЬ КОМАНД
+from . import teams
 
 from aiogram import F
 from aiogram.fsm.context import FSMContext
@@ -32,9 +33,9 @@ def register_all_handlers(dp):
     # Порядок регистрации важен!
     start.register_start_handlers(dp)
     exercises.register_exercise_handlers(dp)
-    workouts.register_workout_handlers(dp) 
-    tests.register_test_handlers(dp)
-    test_batteries.register_battery_handlers(dp)
+    workouts.register_workout_handlers(dp)
+    tests.register_test_handlers(dp) # ← Индивидуальные тесты
+    test_batteries.register_battery_handlers(dp) # ← Батареи тестов
 
     # Если есть эти модули, то регистрируем
     if team_tests:
@@ -42,32 +43,48 @@ def register_all_handlers(dp):
     if player_tests:
         player_tests.register_player_test_handlers(dp)
 
-    # ТВОЙ МОДУЛЬ КОМАНД    
     teams.register_team_handlers(dp)
 
-    # ГЛАВНЫЙ ОБРАБОТЧИК ТОЛЬКО ДЛЯ FSM СОСТОЯНИЙ
-    dp.message.register(handle_fsm_text_messages)
+    # ГЛАВНЫЙ ОБРАБОТЧИК ВСЕХ ТЕКСТОВЫХ СООБЩЕНИЙ
+    dp.message.register(handle_all_text_messages)
 
     logger.info("✅ Все обработчики зарегистрированы")
 
-async def handle_fsm_text_messages(message: Message, state: FSMContext):
-    """ИСПРАВЛЕННЫЙ обработчик ТОЛЬКО для FSM состояний"""
+async def handle_all_text_messages(message: Message, state: FSMContext):
+    """ИСПРАВЛЕННЫЙ единый обработчик всех текстовых сообщений"""
+
     current_state = await state.get_state()
 
-    # ВАЖНО: Если нет FSM состояния - НЕ ОБРАБАТЫВАЕМ!
-    if current_state is None:
-        return  # Пусть другие обработчики обработают
+    # ===== ОБРАБОТКА СОСТОЯНИЙ КОМАНД (TeamStates) =====
+    # 🔥 ДОБАВЛЕНО! Проверка TeamStates в начале функции
+    if current_state and "TeamStates:" in current_state:
+        logger.info(f"🏆 Состояние {current_state} - передаем в teams router")
+        return  # Не обрабатываем здесь - пусть teams router обработает
 
-    # ===== ОБРАБОТКА ТЕСТОВ 1ПМ =====
+    if current_state is None:
+        # Если состояние не определено, показываем справку
+        try:
+            from keyboards.main_keyboards import get_main_menu_keyboard
+        except ImportError:
+            pass
+
+        await message.answer(
+            "ℹ️ Используйте меню бота для навигации.\n"
+            "Нажмите /start для возврата в главное меню."
+        )
+        return
+
+    # ===== ИСПРАВЛЕННАЯ ОБРАБОТКА ТЕСТОВ 1ПМ =====
     if current_state == "waiting_1rm_data":
+        # ✅ ИСПРАВЛЕНИЕ: Правильная обработка тестов 1ПМ
         await tests.process_1rm_test_input(message, state)
         return
 
     # Другие состояния тестов
     if current_state in [
         "waiting_search_for_test",
-        "waiting_strength_test_data", 
-        "waiting_endurance_test_data",
+        "waiting_strength_test_data",
+        "waiting_endurance_test_data", 
         "waiting_speed_test_data",
         "waiting_quantity_test_data"
     ]:
@@ -75,31 +92,37 @@ async def handle_fsm_text_messages(message: Message, state: FSMContext):
         return
 
     # ===== ОБРАБОТКА СОСТОЯНИЙ УПРАЖНЕНИЙ =====
-    from states.exercise_states import CreateExerciseStates
-    if current_state in [
-        CreateExerciseStates.waiting_name,
-        CreateExerciseStates.waiting_description,
-        CreateExerciseStates.waiting_instructions,
-        "waiting_new_category",
-        "waiting_new_muscle_group", 
-        "waiting_custom_equipment",
-        "waiting_search"
-    ]:
-        await exercises.process_exercise_text_input(message, state)
-        return
+    try:
+        from states.exercise_states import CreateExerciseStates
+        if current_state in [
+            CreateExerciseStates.waiting_name,
+            CreateExerciseStates.waiting_description,
+            CreateExerciseStates.waiting_instructions,
+            "waiting_new_category",
+            "waiting_new_muscle_group",
+            "waiting_custom_equipment",
+            "waiting_search"
+        ]:
+            await exercises.process_exercise_text_input(message, state)
+            return
+    except ImportError:
+        logger.warning("Модуль exercise_states не найден")
 
     # ===== ОБРАБОТКА СОСТОЯНИЙ ТРЕНИРОВОК =====
-    from states.workout_states import CreateWorkoutStates
-    if current_state in [
-        CreateWorkoutStates.waiting_name,
-        CreateWorkoutStates.waiting_description,
-        CreateWorkoutStates.adding_block_description,
-        "simple_block_config",
-        "advanced_block_config", 
-        "searching_exercise_for_block"
-    ]:
-        await workouts.process_workout_text_input(message, state)
-        return
+    try:
+        from states.workout_states import CreateWorkoutStates
+        if current_state in [
+            CreateWorkoutStates.waiting_name,
+            CreateWorkoutStates.waiting_description,
+            CreateWorkoutStates.adding_block_description,
+            "simple_block_config",
+            "advanced_block_config",
+            "searching_exercise_for_block"
+        ]:
+            await workouts.process_workout_text_input(message, state)
+            return
+    except ImportError:
+        logger.warning("Модуль workout_states не найден")
 
     # ===== ОБРАБОТКА СОСТОЯНИЙ БАТАРЕЙ ТЕСТОВ =====
     try:
@@ -116,7 +139,7 @@ async def handle_fsm_text_messages(message: Message, state: FSMContext):
     except ImportError:
         logger.warning("Модуль test_batteries не найден")
 
-    # ===== ОБРАБОТКА СОСТОЯНИЙ КОМАНДНЫХ ТЕСТОВ =====
+    # ===== ОБРАБОТКА СОСТОЯНИЙ КОМАНДНЫХ ТЕСТОВ (ЕСЛИ ЕСТЬ) =====
     if team_tests:
         try:
             from states.test_set_states import CreateTestSetStates
@@ -128,9 +151,9 @@ async def handle_fsm_text_messages(message: Message, state: FSMContext):
                 await team_tests.process_team_test_text_input(message, state)
                 return
         except ImportError:
-            pass
+            pass # Нет модуля test_set_states
 
-    # ===== ОБРАБОТКА СОСТОЯНИЙ УЧАСТНИКОВ =====  
+    # ===== ОБРАБОТКА СОСТОЯНИЙ УЧАСТНИКОВ (ЕСЛИ ЕСТЬ) =====
     if player_tests:
         try:
             from states.test_set_states import JoinTestSetStates
@@ -140,11 +163,14 @@ async def handle_fsm_text_messages(message: Message, state: FSMContext):
                 await player_tests.process_player_test_text_input(message, state)
                 return
         except ImportError:
-            pass
+            pass # Нет модуля
 
-    # ЕСЛИ FSM СОСТОЯНИЕ НЕ РАСПОЗНАНО - СБРАСЫВАЕМ ЕГО
-    logger.warning(f"Неизвестное FSM состояние: {current_state}, сбрасываем")
+    # Если состояние не распознано
+    logger.warning(f"Неизвестное состояние FSM: {current_state}, сбрасываем")
+    await message.answer(
+        f"❓ Неожиданное состояние: {current_state}\n\n"
+        f"Используйте меню для навигации."
+    )
     await state.clear()
-    await message.answer("❌ Операция сброшена. Используйте меню.")
 
-__all__ = ['register_all_handlers', 'handle_fsm_text_messages']
+__all__ = ['register_all_handlers', 'handle_all_text_messages']

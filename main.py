@@ -19,6 +19,12 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
+
+from handlers.teams import init_teams_database
+
+from database import db_manager
+
+
 # Создаем storage для FSM состояний
 storage = MemoryStorage()
 
@@ -138,6 +144,7 @@ async def check_database_connection():
 async def main():
     """Главная функция запуска бота"""
     logger.info("🚀 Запуск спортивного бота...")
+    
 
     try:
         # Проверяем конфигурацию
@@ -211,6 +218,7 @@ async def main():
             logger.error(f"❌ Ошибка при закрытии сессии: {e}")
 
         logger.info("👋 Бот остановлен")
+
 
 def run_bot():
     """Запуск бота с обработкой исключений"""
