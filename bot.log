@@ -1171,3 +1171,32 @@ AttributeError: 'DatabaseManager' object has no attribute 'get_user_by_telegram_
 2025-10-15 20:11:42,847 - aiogram.event - INFO - Update id=645436371 is handled. Duration 0 ms by bot id=8236074997
 2025-10-15 20:11:53,008 - handlers - INFO - 🏆 Состояние TeamStates:waiting_team_name - передаем в teams router
 2025-10-15 20:11:53,009 - aiogram.event - INFO - Update id=645436372 is handled. Duration 0 ms by bot id=8236074997
+2025-10-15 20:15:50,617 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-10-15 20:15:50,618 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-10-15 20:15:50,858 - database.database - INFO - ✅ База данных инициализирована
+2025-10-15 20:15:50,858 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-10-15 20:15:50,860 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-10-15 20:15:50,862 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-10-15 20:15:50,862 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-10-15 20:15:50,866 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-10-15 20:15:50,873 - handlers.teams - INFO - ✅ Team handlers registered successfully
+2025-10-15 20:15:50,873 - handlers - INFO - ✅ Все обработчики зарегистрированы
+2025-10-15 20:15:51,139 - __main__ - INFO - ✅ Команды бота настроены
+2025-10-15 20:15:51,223 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-10-15 20:15:51,224 - __main__ - INFO - 🆔 ID: 8236074997
+2025-10-15 20:15:51,224 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-10-15 20:15:51,224 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-10-15 20:15:51,224 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-10-15 20:15:51,225 - aiogram.dispatcher - INFO - Start polling
+2025-10-15 20:15:51,303 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-10-15 20:15:59,573 - aiogram.event - INFO - Update id=645436373 is handled. Duration 360 ms by bot id=8236074997
+2025-10-15 20:16:01,648 - aiogram.event - INFO - Update id=645436374 is handled. Duration 547 ms by bot id=8236074997
+2025-10-15 20:16:02,238 - aiogram.event - INFO - Update id=645436375 is not handled. Duration 14 ms by bot id=8236074997
+2025-10-15 20:16:07,402 - aiogram.event - INFO - Update id=645436376 is handled. Duration 219 ms by bot id=8236074997
+2025-10-15 20:16:11,584 - handlers - INFO - 🏆 Состояние TeamStates:waiting_student_name - передаем в teams router
+2025-10-15 20:16:11,584 - aiogram.event - INFO - Update id=645436377 is handled. Duration 0 ms by bot id=8236074997
+2025-10-15 20:16:26,511 - aiogram.event - INFO - Update id=645436378 is handled. Duration 266 ms by bot id=8236074997
+2025-10-15 20:16:28,277 - aiogram.event - INFO - Update id=645436379 is handled. Duration 203 ms by bot id=8236074997
+2025-10-15 20:16:30,054 - aiogram.event - INFO - Update id=645436380 is not handled. Duration 15 ms by bot id=8236074997
+2025-10-15 20:16:34,955 - aiogram.event - INFO - Update id=645436381 is not handled. Duration 30 ms by bot id=8236074997
+2025-10-15 20:16:36,732 - aiogram.event - INFO - Update id=645436382 is not handled. Duration 30 ms by bot id=8236074997
