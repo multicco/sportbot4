@@ -19,6 +19,9 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
+# После инициализации основной БД добавь:
+from handlers.teams import init_teams_database
+
 
 from handlers.teams import init_teams_database
 
@@ -144,7 +147,7 @@ async def check_database_connection():
 async def main():
     """Главная функция запуска бота"""
     logger.info("🚀 Запуск спортивного бота...")
-    
+    await init_teams_database()
 
     try:
         # Проверяем конфигурацию
