@@ -701,6 +701,31 @@ async def process_block_description(message: Message, state: FSMContext):
 
     # Здесь должна быть функция show_block_exercises_menu, но она не помещается
     # В реальном проекте она должна быть добавлена
+async def notify_team_about_workout(team_id: int, workout_id: int, workout_name: str):
+    """Отправить уведомление команде о новой тренировке"""
+    from main import bot
+    
+    # Получаем игроков с telegram_id
+    players = await teams_database.get_team_players(team_id)
+    
+    notified_count = 0
+    for player in players:
+        if player.telegram_id:
+            try:
+                await bot.send_message(
+                    player.telegram_id,
+                    f"🏋️ **Новая тренировка!**\n\n"
+                    f"📋 {workout_name}\n"
+                    f"🆔 Код: `{workout_id}`\n\n"
+                    f"Нажмите /myteam для просмотра.",
+                    parse_mode="Markdown"
+                )
+                notified_count += 1
+            except Exception as e:
+                logger.error(f"Failed to notify player {player.id}: {e}")
+    
+    logger.info(f"Notified {notified_count} players about workout {workout_id}")
+    return notified_count
 
 # ===== ФУНКЦИЯ РЕГИСТРАЦИИ =====
 def register_workout_handlers(dp):

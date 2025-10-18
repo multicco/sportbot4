@@ -8,6 +8,10 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.filters import Command
 from aiogram.exceptions import TelegramBadRequest
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from states.team_states import JoinTeamStates
+from database.teams_database import teams_database
+
 
 # Импортируем реализацию БД из папки database
 try:
@@ -21,6 +25,327 @@ logger = logging.getLogger(__name__)
 
 # Роутер
 teams_router = Router(name="teams")
+
+from aiogram import Router, F
+from aiogram.filters import Command
+from aiogram.types import Message, CallbackQuery
+from aiogram.fsm.context import FSMContext
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from states.team_states import JoinTeamStates
+from database.teams_database import teams_database
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Добавить к существующему teams_router
+
+
+@teams_router.message(Command("join"))
+async def cmd_join_team(message: Message, state: FSMContext):
+    """Команда для присоединения к команде по коду"""
+    args = message.text.split(maxsplit=1)
+    
+    if len(args) < 2:
+        await message.answer(
+            "🎟️ **Присоединение к команде**\n\n"
+            "Введите команду с кодом приглашения:\n"
+            "`/join КОД`\n\n"
+            "Например: `/join abc12345`",
+            parse_mode="Markdown"
+        )
+        return
+    
+    access_code = args.strip()
+    
+    # Ищем команду по коду
+    team = await teams_database.get_team_by_access_code(access_code)
+    
+    if not team:
+        await message.answer(
+            "❌ **Неверный код приглашения**\n\n"
+            "Проверьте код и попробуйте снова.",
+            parse_mode="Markdown"
+        )
+        return
+    
+    # Проверяем, не состоит ли уже в команде
+    already_in = await teams_database.check_player_in_team(
+        message.from_user.id, 
+        team.id
+    )
+    
+    if already_in:
+        await message.answer(
+            f"ℹ️ Вы уже состоите в команде **{team.name}**!\n\n"
+            f"Используйте /myteam для просмотра ваших команд.",
+            parse_mode="Markdown"
+        )
+        return
+    
+    # Проверяем лимит игроков
+    if team.players_count >= team.max_players:
+        await message.answer(
+            f"❌ **Команда {team.name} заполнена**\n\n"
+            f"В команде уже {team.players_count}/{team.max_players} игроков.",
+            parse_mode="Markdown"
+        )
+        return
+    
+    # Сохраняем данные команды и начинаем регистрацию
+    await state.update_data(
+        team_id=team.id,
+        team_name=team.name,
+        access_code=access_code
+    )
+    
+    await message.answer(
+        f"🏆 **Присоединение к команде {team.name}**\n\n"
+        f"📝 Вид спорта: {team.sport_type}\n"
+        f"👥 Игроков: {team.players_count}/{team.max_players}\n\n"
+        f"Для завершения регистрации ответьте на несколько вопросов.\n\n"
+        f"**Введите ваше имя:**",
+        parse_mode="Markdown"
+    )
+    
+    await state.set_state(JoinTeamStates.waiting_first_name)
+
+
+@teams_router.message(JoinTeamStates.waiting_first_name)
+async def process_join_first_name(message: Message, state: FSMContext):
+    """Обработка имени"""
+    first_name = message.text.strip()
+    
+    if len(first_name) < 2:
+        await message.answer("❌ Имя слишком короткое. Минимум 2 символа.")
+        return
+    
+    await state.update_data(first_name=first_name)
+    
+    keyboard = InlineKeyboardBuilder()
+    keyboard.button(text="⏭️ Пропустить", callback_data="skip_last_name")
+    
+    await message.answer(
+        f"✅ Имя: **{first_name}**\n\n"
+        f"**Введите вашу фамилию:**\n"
+        f"(или нажмите кнопку, чтобы пропустить)",
+        reply_markup=keyboard.as_markup(),
+        parse_mode="Markdown"
+    )
+    
+    await state.set_state(JoinTeamStates.waiting_last_name)
+
+
+@teams_router.message(JoinTeamStates.waiting_last_name)
+async def process_join_last_name(message: Message, state: FSMContext):
+    """Обработка фамилии"""
+    last_name = message.text.strip()
+    await state.update_data(last_name=last_name)
+    await ask_position(message, state)
+
+
+@teams_router.callback_query(F.data == "skip_last_name")
+async def skip_last_name(callback: CallbackQuery, state: FSMContext):
+    """Пропустить фамилию"""
+    await state.update_data(last_name=None)
+    await ask_position(callback.message, state)
+    await callback.answer()
+
+
+async def ask_position(message: Message, state: FSMContext):
+    """Запросить позицию игрока"""
+    data = await state.get_data()
+    
+    keyboard = InlineKeyboardBuilder()
+    keyboard.button(text="⏭️ Пропустить", callback_data="skip_position")
+    
+    await message.answer(
+        f"**Укажите вашу позицию:**\n"
+        f"(например: нападающий, защитник, вратарь)\n\n"
+        f"Или нажмите кнопку, чтобы пропустить.",
+        reply_markup=keyboard.as_markup(),
+        parse_mode="Markdown"
+    )
+    
+    await state.set_state(JoinTeamStates.waiting_position)
+
+
+@teams_router.message(JoinTeamStates.waiting_position)
+async def process_join_position(message: Message, state: FSMContext):
+    """Обработка позиции"""
+    position = message.text.strip()
+    await state.update_data(position=position)
+    await ask_jersey_number(message, state)
+
+
+@teams_router.callback_query(F.data == "skip_position")
+async def skip_position(callback: CallbackQuery, state: FSMContext):
+    """Пропустить позицию"""
+    await state.update_data(position=None)
+    await ask_jersey_number(callback.message, state)
+    await callback.answer()
+
+
+async def ask_jersey_number(message: Message, state: FSMContext):
+    """Запросить номер игрока"""
+    keyboard = InlineKeyboardBuilder()
+    keyboard.button(text="⏭️ Пропустить", callback_data="skip_jersey")
+    
+    await message.answer(
+        f"**Введите ваш игровой номер:**\n"
+        f"(число от 0 до 99)\n\n"
+        f"Или нажмите кнопку, чтобы пропустить.",
+        reply_markup=keyboard.as_markup(),
+        parse_mode="Markdown"
+    )
+    
+    await state.set_state(JoinTeamStates.waiting_jersey_number)
+
+
+@teams_router.message(JoinTeamStates.waiting_jersey_number)
+async def process_join_jersey(message: Message, state: FSMContext):
+    """Обработка номера"""
+    try:
+        jersey_number = int(message.text.strip())
+        
+        if jersey_number < 0 or jersey_number > 99:
+            await message.answer("❌ Номер должен быть от 0 до 99")
+            return
+        
+        await state.update_data(jersey_number=jersey_number)
+        await complete_join(message, state)
+        
+    except ValueError:
+        await message.answer("❌ Введите число от 0 до 99")
+
+
+@teams_router.callback_query(F.data == "skip_jersey")
+async def skip_jersey(callback: CallbackQuery, state: FSMContext):
+    """Пропустить номер"""
+    await state.update_data(jersey_number=None)
+    await complete_join(callback.message, state)
+    await callback.answer()
+
+
+async def complete_join(message: Message, state: FSMContext):
+    """Завершить присоединение к команде"""
+    data = await state.get_data()
+    
+    try:
+        # Добавляем игрока в команду
+        player = await teams_database.add_team_player(
+            team_id=data['team_id'],
+            first_name=data['first_name'],
+            last_name=data.get('last_name'),
+            position=data.get('position'),
+            jersey_number=data.get('jersey_number'),
+            telegram_id=message.from_user.id
+        )
+        
+        # Формируем текст
+        full_name = data['first_name']
+        if data.get('last_name'):
+            full_name += f" {data['last_name']}"
+        
+        text = f"🎉 **Поздравляем!**\n\n"
+        text += f"Вы успешно присоединились к команде **{data['team_name']}**!\n\n"
+        text += f"👤 Имя: {full_name}\n"
+        
+        if data.get('position'):
+            text += f"⚽ Позиция: {data['position']}\n"
+        
+        if data.get('jersey_number') is not None:
+            text += f"🔢 Номер: {data['jersey_number']}\n"
+        
+        text += f"\n💡 Используйте /myteam для просмотра ваших команд"
+        
+        keyboard = InlineKeyboardBuilder()
+        keyboard.button(text="🏆 Мои команды", callback_data="my_teams_as_player")
+        keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
+        keyboard.adjust(1)
+        
+        await message.answer(
+            text,
+            reply_markup=keyboard.as_markup(),
+            parse_mode="Markdown"
+        )
+        
+        # Отправляем уведомление тренеру
+        from main import bot
+        team = await teams_database.get_team_by_id(data['team_id'])
+        
+        try:
+            await bot.send_message(
+                team.coach_telegram_id,
+                f"👋 **Новый игрок в команде {team.name}!**\n\n"
+                f"👤 {full_name}\n"
+                f"⚽ Позиция: {data.get('position', 'не указана')}\n"
+                f"🔢 Номер: {data.get('jersey_number', 'не указан')}",
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            logger.error(f"Failed to notify coach: {e}")
+        
+        await state.clear()
+        
+    except Exception as e:
+        logger.error(f"Error completing join: {e}")
+        await message.answer(
+            f"❌ **Ошибка при добавлении в команду**\n\n"
+            f"Попробуйте еще раз позже.",
+            parse_mode="Markdown"
+        )
+@teams_router.message(Command("myteam"))
+async def cmd_my_teams(message: Message):
+    """Показать команды игрока"""
+    teams = await teams_database.get_player_teams(message.from_user.id)
+    
+    if not teams:
+        await message.answer(
+            "ℹ️ **Вы не состоите ни в одной команде**\n\n"
+            "Чтобы присоединиться, попросите тренера отправить вам код команды,\n"
+            "затем используйте команду:\n"
+            "`/join КОД`",
+            parse_mode="Markdown"
+        )
+        return
+    
+    text = f"🏆 **Ваши команды ({len(teams)}):**\n\n"
+    
+    keyboard = InlineKeyboardBuilder()
+    
+    for team in teams:
+        text += f"**{team.name}**\n"
+        text += f"📝 {team.sport_type}\n"
+        text += f"👥 Игроков: {team.players_count}/{team.max_players}\n"
+        text += f"🆔 Код: `{team.access_code if hasattr(team, 'access_code') else 'N/A'}`\n\n"
+        
+        keyboard.button(
+            text=f"🏆 {team.name}",
+            callback_data=f"view_team_player_{team.id}"
+        )
+    
+    keyboard.button(text="➕ Присоединиться к команде", callback_data="join_new_team")
+    keyboard.adjust(1)
+    
+    await message.answer(
+        text,
+        reply_markup=keyboard.as_markup(),
+        parse_mode="Markdown"
+    )
+
+
+@teams_router.callback_query(F.data == "join_new_team")
+async def join_new_team_button(callback: CallbackQuery):
+    """Кнопка присоединения к новой команде"""
+    await callback.message.answer(
+        "🎟️ **Присоединение к команде**\n\n"
+        "Введите команду с кодом приглашения:\n"
+        "`/join КОД`\n\n"
+        "Например: `/join abc12345`",
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
 
 # Глобальный экземпляр БД для модуля
 teams_db: TeamsDatabase | None = None
@@ -326,7 +651,8 @@ async def cb_view_team(callback: CallbackQuery, state: FSMContext) -> None:
     )
     await safe_edit_text(callback.message, text, reply_markup=kb)
     await callback.answer()
-
+    text += f"🆔 **Код команды:** `{team.access_code}`\n"
+    text += f"💡 Отправьте этот код игрокам для присоединения!\n\n"
 
 @teams_router.callback_query(F.data.startswith("team_players_"))
 async def cb_team_players(callback: CallbackQuery, state: FSMContext) -> None:
