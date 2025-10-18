@@ -531,14 +531,14 @@ async def ask_sport_type(update: Message | CallbackQuery, state: FSMContext, is_
     await state.set_state(TeamStates.waiting_team_sport)
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="⚽ Футбол", callback_data="sport_football")],
-            [InlineKeyboardButton(text="🏀 Баскетбол", callback_data="sport_basketball")],
-            [InlineKeyboardButton(text="🏐 Волейбол", callback_data="sport_volleyball")],
-            [InlineKeyboardButton(text="🏒 Хоккей", callback_data="sport_hockey")],
-            [InlineKeyboardButton(text="🏃 Легкая атлетика", callback_data="sport_athletics")],
-            [InlineKeyboardButton(text="🥊 Единоборства", callback_data="sport_combat")],
-            [InlineKeyboardButton(text="🏊 Плавание", callback_data="sport_swimming")],
-            [InlineKeyboardButton(text="💪 ОФП", callback_data="sport_general")],
+            [InlineKeyboardButton(text="⚽ Футбол", callback_data="team_sport_football")],
+            [InlineKeyboardButton(text="🏀 Баскетбол", callback_data="team_sport_basketball")],
+            [InlineKeyboardButton(text="🏐 Волейбол", callback_data="team_sport_volleyball")],
+            [InlineKeyboardButton(text="🏒 Хоккей", callback_data="team_sport_hockey")],
+            [InlineKeyboardButton(text="🏃 Легкая атлетика", callback_data="team_sport_athletics")],
+            [InlineKeyboardButton(text="🥊 Единоборства", callback_data="team_sport_combat")],
+            [InlineKeyboardButton(text="🏊 Плавание", callback_data="team_sport_swimming")],
+            [InlineKeyboardButton(text="💪 ОФП", callback_data="team_sport_general")],
             [InlineKeyboardButton(text="❌ Отмена", callback_data="teams_menu")]
         ]
     )
@@ -554,18 +554,18 @@ async def ask_sport_type(update: Message | CallbackQuery, state: FSMContext, is_
         await update.answer(text, reply_markup=kb, parse_mode="HTML")
 
 
-@teams_router.callback_query(F.data.startswith("sport_"))
+@teams_router.callback_query(F.data.startswith("team_sport_"))
 async def cb_finalize_team_creation(callback: CallbackQuery, state: FSMContext) -> None:
     """Завершение создания команды."""
     mapping = {
-        "sport_football": "футбол",
-        "sport_basketball": "баскетбол",
-        "sport_volleyball": "волейбол",
-        "sport_hockey": "хоккей",
-        "sport_athletics": "легкая атлетика",
-        "sport_combat": "единоборства",
-        "sport_swimming": "плавание",
-        "sport_general": "ОФП",
+        "team_sport_football": "футбол",
+        "team_sport_basketball": "баскетбол",
+        "team_sport_volleyball": "волейбол",
+        "team_sport_hockey": "хоккей",
+        "team_sport_athletics": "легкая атлетика",
+        "team_sport_combat": "единоборства",
+        "team_sport_swimming": "плавание",
+        "team_sport_general": "ОФП",
     }
     sport_type = mapping.get(callback.data, "ОФП")
     data = await state.get_data()

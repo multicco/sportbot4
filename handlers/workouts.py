@@ -304,7 +304,8 @@ async def start_create_workout(callback: CallbackQuery, state: FSMContext):
         "_Например: \"Силовая тренировка верха\" или \"ОФП для новичков\"_",
         parse_mode="Markdown"
     )
-    await state.set_state(CreateWorkoutStates.waiting_name)
+    await state.set_state(CreateWorkoutStates.waiting_workout_name)
+
     await callback.answer()
 
 @workouts_router.callback_query(F.data == "skip_description")
@@ -636,12 +637,11 @@ async def process_workout_text_input(message: Message, state: FSMContext):
     """Обработка текстового ввода для создания тренировок"""
     current_state = await state.get_state()
 
-    if current_state == CreateWorkoutStates.waiting_name:
+    if current_state == CreateWorkoutStates.waiting_workout_name:
         await process_workout_name(message, state)
-    elif current_state == CreateWorkoutStates.waiting_description:
+    elif current_state == CreateWorkoutStates.waiting_workout_description:
         await process_workout_description(message, state)
-    elif current_state == CreateWorkoutStates.adding_block_description:
-        await process_block_description(message, state)
+
     else:
         await message.answer(
             "❓ Используйте кнопки меню для навигации.",
@@ -674,7 +674,8 @@ async def process_workout_name(message: Message, state: FSMContext):
         reply_markup=keyboard.as_markup(),
         parse_mode="Markdown"
     )
-    await state.set_state(CreateWorkoutStates.waiting_description)
+    await state.set_state(CreateWorkoutStates.waiting_workout_name)
+
 
 async def process_workout_description(message: Message, state: FSMContext):
     """Обработка описания тренировки"""

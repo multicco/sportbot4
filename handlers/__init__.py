@@ -82,8 +82,8 @@ async def handle_all_text_messages(message: Message, state: FSMContext):
     try:
         from states.workout_states import CreateWorkoutStates
         if current_state in [
-            CreateWorkoutStates.waiting_name,
-            CreateWorkoutStates.waiting_description,
+            CreateWorkoutStates.waiting_workout_name,
+            CreateWorkoutStates.waiting_workout_description,
             CreateWorkoutStates.adding_block_description,
             "simple_block_config",
             "advanced_block_config",
