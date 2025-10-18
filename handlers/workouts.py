@@ -308,7 +308,7 @@ async def start_create_workout(callback: CallbackQuery, state: FSMContext):
 
     await callback.answer()
 
-@workouts_router.callback_query(F.data == "skip_description")
+@workouts_router.callback_query(F.data == "skip_workout_description")
 async def skip_description(callback: CallbackQuery, state: FSMContext):
     """Пропустить описание тренировки"""
     await state.update_data(description="")
@@ -355,6 +355,7 @@ async def show_block_selection_menu(message: Message, state: FSMContext):
 
     keyboard.button(text="❌ Отменить", callback_data="cancel_workout_creation")
     keyboard.adjust(2)
+
 
     try:
         await message.edit_text(text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
@@ -513,6 +514,28 @@ async def finish_workout_creation(callback: CallbackQuery, state: FSMContext):
 
     await callback.answer()
 
+
+@workouts_router.callback_query(F.data == "cancel_workout_creation")
+async def cancel_workout_creation(callback: CallbackQuery, state: FSMContext):
+    """Отменить создание тренировки"""
+    await state.clear()
+    
+    keyboard = InlineKeyboardBuilder()
+    keyboard.button(text="🏋️ Мои тренировки", callback_data="my_workouts")
+    keyboard.button(text="➕ Создать новую", callback_data="create_workout")
+    keyboard.button(text="🔙 К тренировкам", callback_data="workouts_menu")
+    keyboard.adjust(2)
+    
+    await callback.message.edit_text(
+        "❌ **Создание тренировки отменено**\n\n"
+        "Данные не сохранены.",
+        reply_markup=keyboard.as_markup(),
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+
 # ===== ДРУГИЕ ФУНКЦИИ =====
 @workouts_router.callback_query(F.data.startswith("start_workout_"))
 async def start_workout_session(callback: CallbackQuery):
@@ -664,7 +687,7 @@ async def process_workout_name(message: Message, state: FSMContext):
     await state.update_data(name=workout_name)
 
     keyboard = InlineKeyboardBuilder()
-    keyboard.button(text="⏭️ Пропустить описание", callback_data="skip_description")
+    keyboard.button(text="⏭️ Пропустить описание", callback_data="skip_workout_description")
 
     await message.answer(
         f"✅ **Название:** {workout_name}\n\n"
@@ -674,7 +697,8 @@ async def process_workout_name(message: Message, state: FSMContext):
         reply_markup=keyboard.as_markup(),
         parse_mode="Markdown"
     )
-    await state.set_state(CreateWorkoutStates.waiting_workout_name)
+    await state.set_state(CreateWorkoutStates.waiting_workout_description)  # ✅ ПРАВИЛЬНО
+
 
 
 async def process_workout_description(message: Message, state: FSMContext):

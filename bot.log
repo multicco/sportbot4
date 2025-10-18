@@ -2682,3 +2682,69 @@ AttributeError: type object 'CreateWorkoutStates' has no attribute 'waiting_name
 2025-10-18 16:26:08,974 - aiogram.event - INFO - Update id=645436679 is handled. Duration 375 ms by bot id=8236074997
 2025-10-18 16:26:12,934 - aiogram.event - INFO - Update id=645436680 is handled. Duration 125 ms by bot id=8236074997
 2025-10-18 16:26:17,394 - aiogram.event - INFO - Update id=645436681 is handled. Duration 157 ms by bot id=8236074997
+2025-10-18 16:58:07,691 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-10-18 16:58:07,691 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-10-18 16:58:07,821 - database.database - INFO - ✅ База данных инициализирована
+2025-10-18 16:58:07,822 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-10-18 16:58:07,823 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-10-18 16:58:07,825 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-10-18 16:58:07,825 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2025-10-18 16:58:07,826 - handlers.teams - INFO - 🔧 Initializing teams module...
+2025-10-18 16:58:07,827 - database.teams_database - INFO - ✅ Teams database tables initialized
+2025-10-18 16:58:07,829 - handlers.teams - INFO - ✅ Teams module loaded and database initialized
+2025-10-18 16:58:07,829 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2025-10-18 16:58:07,830 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-10-18 16:58:07,833 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-10-18 16:58:07,839 - handlers - INFO - ✅ Все обработчики успешно зарегистрированы
+2025-10-18 16:58:07,839 - __main__ - INFO - 🔗 Регистрация универсального обработчика...
+2025-10-18 16:58:08,418 - __main__ - INFO - ✅ Команды бота настроены
+2025-10-18 16:58:08,518 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-10-18 16:58:08,518 - __main__ - INFO - 🆔 ID: 8236074997
+2025-10-18 16:58:08,518 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-10-18 16:58:08,518 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-10-18 16:58:08,519 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-10-18 16:58:08,519 - aiogram.dispatcher - INFO - Start polling
+2025-10-18 16:58:08,615 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-10-18 16:58:41,440 - aiogram.event - INFO - Update id=645436682 is handled. Duration 594 ms by bot id=8236074997
+2025-10-18 16:58:43,033 - aiogram.event - INFO - Update id=645436683 is handled. Duration 296 ms by bot id=8236074997
+2025-10-18 16:58:44,499 - aiogram.event - INFO - Update id=645436684 is handled. Duration 265 ms by bot id=8236074997
+2025-10-18 16:58:46,953 - aiogram.event - INFO - Update id=645436685 is handled. Duration 203 ms by bot id=8236074997
+2025-10-18 16:58:49,105 - aiogram.event - INFO - Update id=645436686 is handled. Duration 234 ms by bot id=8236074997
+2025-10-18 16:58:50,880 - aiogram.event - INFO - Update id=645436687 is not handled. Duration 15 ms by bot id=8236074997
+2025-10-18 16:58:55,184 - aiogram.event - INFO - Update id=645436688 is handled. Duration 109 ms by bot id=8236074997
+2025-10-18 16:58:56,916 - aiogram.event - INFO - Update id=645436689 is handled. Duration 516 ms by bot id=8236074997
+2025-10-18 16:58:58,613 - aiogram.event - INFO - Update id=645436690 is handled. Duration 250 ms by bot id=8236074997
+2025-10-18 16:59:00,812 - aiogram.event - INFO - Update id=645436691 is handled. Duration 109 ms by bot id=8236074997
+2025-10-18 16:59:02,859 - aiogram.event - INFO - Update id=645436692 is handled. Duration 109 ms by bot id=8236074997
+2025-10-18 16:59:11,250 - aiogram.event - INFO - Update id=645436693 is handled. Duration 108 ms by bot id=8236074997
+2025-10-18 16:59:59,647 - aiogram.event - INFO - Update id=645436694 is handled. Duration 641 ms by bot id=8236074997
+2025-10-18 17:00:06,753 - aiogram.event - INFO - Update id=645436695 is not handled. Duration 15 ms by bot id=8236074997
+2025-10-18 17:28:57,786 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-10-18 17:28:57,787 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-10-18 17:28:57,914 - database.database - INFO - ✅ База данных инициализирована
+2025-10-18 17:28:57,914 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-10-18 17:28:57,916 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-10-18 17:28:57,918 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-10-18 17:28:57,918 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2025-10-18 17:28:57,918 - handlers.teams - INFO - 🔧 Initializing teams module...
+2025-10-18 17:28:57,921 - database.teams_database - INFO - ✅ Teams database tables initialized
+2025-10-18 17:28:57,922 - handlers.teams - INFO - ✅ Teams module loaded and database initialized
+2025-10-18 17:28:57,922 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2025-10-18 17:28:57,922 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-10-18 17:28:57,925 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-10-18 17:28:57,933 - handlers - INFO - ✅ Все обработчики успешно зарегистрированы
+2025-10-18 17:28:57,933 - __main__ - INFO - 🔗 Регистрация универсального обработчика...
+2025-10-18 17:28:58,797 - __main__ - INFO - ✅ Команды бота настроены
+2025-10-18 17:28:58,896 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-10-18 17:28:58,897 - __main__ - INFO - 🆔 ID: 8236074997
+2025-10-18 17:28:58,897 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-10-18 17:28:58,897 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-10-18 17:28:58,897 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-10-18 17:28:58,898 - aiogram.dispatcher - INFO - Start polling
+2025-10-18 17:28:58,993 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-10-18 17:29:03,238 - aiogram.event - INFO - Update id=645436696 is handled. Duration 561 ms by bot id=8236074997
+2025-10-18 17:29:04,762 - aiogram.event - INFO - Update id=645436697 is handled. Duration 265 ms by bot id=8236074997
+2025-10-18 17:29:06,643 - aiogram.event - INFO - Update id=645436698 is handled. Duration 265 ms by bot id=8236074997
+2025-10-18 17:29:08,494 - aiogram.event - INFO - Update id=645436699 is handled. Duration 125 ms by bot id=8236074997
+2025-10-18 17:29:10,375 - aiogram.event - INFO - Update id=645436700 is handled. Duration 250 ms by bot id=8236074997
+2025-10-18 17:29:12,890 - aiogram.event - INFO - Update id=645436701 is handled. Duration 438 ms by bot id=8236074997
