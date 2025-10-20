@@ -22,6 +22,8 @@ from aiogram.enums import ParseMode
 # После инициализации основной БД добавь:
 from handlers.teams import get_teams_router, init_teams_module_async
 
+from handlers.player_workouts import get_player_workouts_router
+
 
 
 
@@ -144,6 +146,10 @@ async def check_database_connection():
 async def main():
     """Главная функция запуска бота"""
     logger.info("🚀 Запуск спортивного бота...")
+    from database.teams_database import init_teams_database
+    teams_database = init_teams_database(db_manager.pool)
+    await teams_database.init_tables()
+
     
     try:
         # Проверяем конфигурацию
@@ -168,16 +174,21 @@ async def main():
         
         # ===== ИСПРАВЛЕНИЕ: ПРАВИЛЬНЫЙ ПОРЯДОК РЕГИСТРАЦИИ РОУТЕРОВ =====
         
-        # 1. СНАЧАЛА регистрируем teams_router (специфичные обработчики)
+        # 1. Teams router
         logger.info("🏆 Регистрация роутера команд...")
         teams_router = get_teams_router()
         dp.include_router(teams_router)
         
-        # 2. Регистрация всех остальных обработчиков (НЕ включает general_router)
+        # 2. Player workouts router (НОВЫЙ)
+        logger.info("💪 Регистрация роутера тренировок игроков...")
+        player_workouts_router = get_player_workouts_router()
+        dp.include_router(player_workouts_router)
+        
+        # 3. Остальные обработчики
         logger.info("🔗 Регистрация основных обработчиков...")
         register_all_handlers(dp)
         
-        # 3. В САМОМ КОНЦЕ регистрируем general_router (catch-all обработчик)
+        # 4. General router последним
         logger.info("🔗 Регистрация универсального обработчика...")
         from handlers import general_router
         dp.include_router(general_router)

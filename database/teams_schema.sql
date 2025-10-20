@@ -55,6 +55,58 @@ CREATE TABLE IF NOT EXISTS individual_students (
     FOREIGN KEY (coach_id) REFERENCES coaches(telegram_id) ON DELETE CASCADE
 );
 
+
+-- database/teams_schema.sql (добавить в конец файла)
+
+-- Назначение тренировок командам
+CREATE TABLE IF NOT EXISTS workout_teams (
+    id SERIAL PRIMARY KEY,
+    workout_id INTEGER REFERENCES workouts(id) ON DELETE CASCADE,
+    team_id INTEGER REFERENCES teams(id) ON DELETE CASCADE,
+    assigned_by BIGINT NOT NULL,  -- telegram_id тренера
+    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deadline TIMESTAMP,
+    notes TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    UNIQUE(workout_id, team_id)
+);
+
+-- Назначение тренировок индивидуальным подопечным
+CREATE TABLE IF NOT EXISTS workout_individual_students (
+    id SERIAL PRIMARY KEY,
+    workout_id INTEGER REFERENCES workouts(id) ON DELETE CASCADE,
+    student_id INTEGER REFERENCES individual_students(id) ON DELETE CASCADE,
+    assigned_by BIGINT NOT NULL,
+    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deadline TIMESTAMP,
+    notes TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    UNIQUE(workout_id, student_id)
+);
+
+-- Индивидуальные назначения игрокам команды (для выборочного назначения)
+CREATE TABLE IF NOT EXISTS workout_team_player_assignments (
+    id SERIAL PRIMARY KEY,
+    workout_team_id INTEGER REFERENCES workout_teams(id) ON DELETE CASCADE,
+    team_player_id INTEGER REFERENCES team_players(id) ON DELETE CASCADE,
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed', 'skipped')),
+    started_at TIMESTAMP,
+    completed_at TIMESTAMP,
+    session_id INTEGER REFERENCES workout_sessions(id),
+    rpe DECIMAL(3,1) CHECK (rpe >= 1 AND rpe <= 10),
+    notes TEXT,
+    UNIQUE(workout_team_id, team_player_id)
+);
+
+-- Индексы
+CREATE INDEX IF NOT EXISTS idx_workout_teams_team ON workout_teams(team_id);
+CREATE INDEX IF NOT EXISTS idx_workout_teams_workout ON workout_teams(workout_id);
+CREATE INDEX IF NOT EXISTS idx_workout_individual_students_student ON workout_individual_students(student_id);
+CREATE INDEX IF NOT EXISTS idx_workout_team_player_assignments_player ON workout_team_player_assignments(team_player_id);
+CREATE INDEX IF NOT EXISTS idx_workout_team_player_assignments_status ON workout_team_player_assignments(status);
+
+
+
 -- Индексы для производительности
 CREATE INDEX IF NOT EXISTS idx_teams_coach_id ON teams(coach_id);
 CREATE INDEX IF NOT EXISTS idx_team_players_team_id ON team_players(team_id);
