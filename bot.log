@@ -2893,3 +2893,138 @@ Traceback (most recent call last):
 AttributeError: 'NoneType' object has no attribute 'get_team_workouts'
 2025-10-20 17:38:59,582 - __main__ - INFO - 🚀 Запуск спортивного бота...
 2025-10-20 17:38:59,582 - database.teams_database - ERROR - ❌ Error initializing teams tables: 'NoneType' object has no attribute 'acquire'
+2025-10-20 19:31:52,685 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-10-20 19:31:52,686 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-10-20 19:31:52,833 - database.database - INFO - ✅ База данных инициализирована
+2025-10-20 19:31:52,833 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-10-20 19:31:52,855 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-10-20 19:31:52,859 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-10-20 19:31:52,859 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2025-10-20 19:31:52,859 - handlers.teams - INFO - 🔧 Initializing teams module...
+2025-10-20 19:31:52,887 - database.teams_database - INFO - ✅ Teams database tables initialized
+2025-10-20 19:31:52,889 - handlers.teams - INFO - ✅ Teams module loaded and database initialized
+2025-10-20 19:31:52,889 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2025-10-20 19:31:52,890 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2025-10-20 19:31:52,890 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-10-20 19:31:52,893 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-10-20 19:31:52,899 - handlers - INFO - ✅ Все обработчики успешно зарегистрированы
+2025-10-20 19:31:52,899 - __main__ - INFO - 🔗 Регистрация универсального обработчика...
+2025-10-20 19:31:53,185 - __main__ - INFO - ✅ Команды бота настроены
+2025-10-20 19:31:53,272 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-10-20 19:31:53,273 - __main__ - INFO - 🆔 ID: 8236074997
+2025-10-20 19:31:53,273 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-10-20 19:31:53,273 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-10-20 19:31:53,273 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-10-20 19:31:53,274 - aiogram.dispatcher - INFO - Start polling
+2025-10-20 19:31:53,357 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-10-20 19:32:03,560 - aiogram.event - INFO - Update id=645436756 is handled. Duration 390 ms by bot id=8236074997
+2025-10-20 19:32:06,026 - aiogram.event - INFO - Update id=645436757 is handled. Duration 329 ms by bot id=8236074997
+2025-10-20 19:32:08,867 - aiogram.event - INFO - Update id=645436758 is handled. Duration 218 ms by bot id=8236074997
+2025-10-20 19:32:10,129 - aiogram.event - INFO - Update id=645436759 is handled. Duration 344 ms by bot id=8236074997
+2025-10-20 19:32:11,526 - aiogram.event - INFO - Update id=645436760 is not handled. Duration 31 ms by bot id=8236074997
+2025-10-20 19:32:11,526 - aiogram.event - ERROR - Cause exception while process update id=645436760 by bot id=8236074997
+AttributeError: 'NoneType' object has no attribute 'get_team_workouts'
+Traceback (most recent call last):
+  File "F:\python\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "F:\python\lib\site-packages\aiogram\dispatcher\middlewares\error.py", line 25, in __call__
+    return await handler(event, data)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\middlewares\user_context.py", line 49, in __call__
+    return await handler(event, data)
+  File "F:\python\lib\site-packages\aiogram\fsm\middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\handler.py", line 43, in call
+    return await wrapped()
+  File "F:\python\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 142, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 137, in _wrapped
+    return await self._propagate_event(
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 170, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 142, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 137, in _wrapped
+    return await self._propagate_event(
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 162, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\handler.py", line 43, in call
+    return await wrapped()
+  File "V:\python\sportbot3\handlers\teams.py", line 1493, in show_team_workouts
+    workouts = await teams_database.get_team_workouts(team_id)
+AttributeError: 'NoneType' object has no attribute 'get_team_workouts'
+2025-10-20 19:33:01,920 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ClientOSError: [WinError 10053] Программа на вашем хост-компьютере разорвала установленное подключение
+2025-10-20 19:33:01,921 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8236074997)
+2025-10-20 19:33:13,426 - aiogram.dispatcher - INFO - Connection established (tryings = 1, bot id = 8236074997)
+2025-10-20 19:34:00,104 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-10-20 19:34:00,105 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-10-20 19:34:00,235 - database.database - INFO - ✅ База данных инициализирована
+2025-10-20 19:34:00,235 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-10-20 19:34:00,237 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-10-20 19:34:00,240 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-10-20 19:34:00,240 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2025-10-20 19:34:00,240 - handlers.teams - INFO - 🔧 Initializing teams module...
+2025-10-20 19:34:00,243 - database.teams_database - INFO - ✅ Teams database tables initialized
+2025-10-20 19:34:00,244 - handlers.teams - INFO - ✅ Teams module loaded and database initialized
+2025-10-20 19:34:00,244 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2025-10-20 19:34:00,244 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2025-10-20 19:34:00,246 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-10-20 19:34:00,247 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-10-20 19:34:00,255 - handlers - INFO - ✅ Все обработчики успешно зарегистрированы
+2025-10-20 19:34:00,255 - __main__ - INFO - 🔗 Регистрация универсального обработчика...
+2025-10-20 19:34:00,851 - __main__ - INFO - ✅ Команды бота настроены
+2025-10-20 19:34:00,952 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-10-20 19:34:00,952 - __main__ - INFO - 🆔 ID: 8236074997
+2025-10-20 19:34:00,953 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-10-20 19:34:00,953 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-10-20 19:34:00,953 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-10-20 19:34:00,954 - aiogram.dispatcher - INFO - Start polling
+2025-10-20 19:34:01,050 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-10-20 19:36:12,632 - aiogram.event - INFO - Update id=645436761 is handled. Duration 938 ms by bot id=8236074997
+2025-10-20 19:36:16,442 - aiogram.event - INFO - Update id=645436762 is handled. Duration 264 ms by bot id=8236074997
+2025-10-20 19:36:18,018 - aiogram.event - INFO - Update id=645436763 is not handled. Duration 15 ms by bot id=8236074997
+2025-10-20 19:36:18,018 - aiogram.event - ERROR - Cause exception while process update id=645436763 by bot id=8236074997
+AttributeError: 'NoneType' object has no attribute 'get_team_workouts'
+Traceback (most recent call last):
+  File "F:\python\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "F:\python\lib\site-packages\aiogram\dispatcher\middlewares\error.py", line 25, in __call__
+    return await handler(event, data)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\middlewares\user_context.py", line 49, in __call__
+    return await handler(event, data)
+  File "F:\python\lib\site-packages\aiogram\fsm\middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\handler.py", line 43, in call
+    return await wrapped()
+  File "F:\python\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 142, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 137, in _wrapped
+    return await self._propagate_event(
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 170, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 142, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 137, in _wrapped
+    return await self._propagate_event(
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 162, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\handler.py", line 43, in call
+    return await wrapped()
+  File "V:\python\sportbot3\handlers\teams.py", line 1493, in show_team_workouts
+    workouts = await teams_database.get_team_workouts(team_id)
+AttributeError: 'NoneType' object has no attribute 'get_team_workouts'

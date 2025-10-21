@@ -146,9 +146,7 @@ async def check_database_connection():
 async def main():
     """Главная функция запуска бота"""
     logger.info("🚀 Запуск спортивного бота...")
-    from database.teams_database import init_teams_database
-    teams_database = init_teams_database(db_manager.pool)
-    await teams_database.init_tables()
+   
 
     
     try:

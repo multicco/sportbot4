@@ -74,6 +74,7 @@ class TeamsDatabase:
                     coach_telegram_id BIGINT NOT NULL,
                     sport_type VARCHAR(50) DEFAULT 'general',
                     max_players INTEGER DEFAULT 25,
+                    access_code VARCHAR(20) UNIQUE,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
@@ -349,48 +350,21 @@ class TeamsDatabase:
                 'total_athletes': stats['team_players_count'] + stats['individual_students_count']
             }
 
-async def get_team_by_access_code(self, access_code: str) -> Optional[Team]:
-    """Найти команду по коду доступа"""
-    async with self.pool.acquire() as conn:
-        row = await conn.fetchrow("""
-            SELECT t.*, COUNT(tp.id) as players_count
-            FROM teams t
-            LEFT JOIN team_players tp ON t.id = tp.team_id AND tp.is_active = TRUE
-            WHERE t.access_code = $1
-            GROUP BY t.id
-        """, access_code)
-        
-        if not row:
-            return None
-        
-        return Team(
-            id=row['id'],
-            name=row['name'],
-            description=row['description'],
-            coach_telegram_id=row['coach_telegram_id'],
-            sport_type=row['sport_type'],
-            max_players=row['max_players'],
-            created_at=row['created_at'],
-            updated_at=row['updated_at'],
-            players_count=row['players_count']
-        )
-
-async def get_player_teams(self, telegram_id: int) -> List[Team]:
-    """Получить все команды игрока по его telegram_id"""
-    async with self.pool.acquire() as conn:
-        rows = await conn.fetch("""
-            SELECT t.*, COUNT(tp2.id) as players_count
-            FROM teams t
-            JOIN team_players tp ON t.id = tp.team_id
-            LEFT JOIN team_players tp2 ON t.id = tp2.team_id AND tp2.is_active = TRUE
-            WHERE tp.telegram_id = $1 AND tp.is_active = TRUE
-            GROUP BY t.id
-            ORDER BY tp.joined_at DESC
-        """, telegram_id)
-        
-        teams = []
-        for row in rows:
-            teams.append(Team(
+    async def get_team_by_access_code(self, access_code: str) -> Optional[Team]:
+        """Найти команду по коду доступа"""
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow("""
+                SELECT t.*, COUNT(tp.id) as players_count
+                FROM teams t
+                LEFT JOIN team_players tp ON t.id = tp.team_id AND tp.is_active = TRUE
+                WHERE t.access_code = $1
+                GROUP BY t.id
+            """, access_code)
+            
+            if not row:
+                return None
+            
+            return Team(
                 id=row['id'],
                 name=row['name'],
                 description=row['description'],
@@ -400,123 +374,150 @@ async def get_player_teams(self, telegram_id: int) -> List[Team]:
                 created_at=row['created_at'],
                 updated_at=row['updated_at'],
                 players_count=row['players_count']
-            ))
-        return teams
+            )
 
-async def check_player_in_team(self, telegram_id: int, team_id: int) -> bool:
-    """Проверить, состоит ли игрок в команде"""
-    async with self.pool.acquire() as conn:
-        count = await conn.fetchval("""
-            SELECT COUNT(*) FROM team_players
-            WHERE telegram_id = $1 AND team_id = $2 AND is_active = TRUE
-        """, telegram_id, team_id)
-        return count > 0
+    async def get_player_teams(self, telegram_id: int) -> List[Team]:
+        """Получить все команды игрока по его telegram_id"""
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch("""
+                SELECT t.*, COUNT(tp2.id) as players_count
+                FROM teams t
+                JOIN team_players tp ON t.id = tp.team_id
+                LEFT JOIN team_players tp2 ON t.id = tp2.team_id AND tp2.is_active = TRUE
+                WHERE tp.telegram_id = $1 AND tp.is_active = TRUE
+                GROUP BY t.id
+                ORDER BY tp.joined_at DESC
+            """, telegram_id)
+            
+            teams = []
+            for row in rows:
+                teams.append(Team(
+                    id=row['id'],
+                    name=row['name'],
+                    description=row['description'],
+                    coach_telegram_id=row['coach_telegram_id'],
+                    sport_type=row['sport_type'],
+                    max_players=row['max_players'],
+                    created_at=row['created_at'],
+                    updated_at=row['updated_at'],
+                    players_count=row['players_count']
+                ))
+            return teams
 
-async def assign_workout_to_team(self, workout_id: int, team_id: int, assigned_by: int):
-    """Назначить тренировку на команду"""
-    async with self.pool.acquire() as conn:
-        await conn.execute("""
-            INSERT INTO workout_teams (workout_id, team_id, assigned_by)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (workout_id, team_id) DO NOTHING
-        """, workout_id, team_id, assigned_by)
+    async def check_player_in_team(self, telegram_id: int, team_id: int) -> bool:
+        """Проверить, состоит ли игрок в команде"""
+        async with self.pool.acquire() as conn:
+            count = await conn.fetchval("""
+                SELECT COUNT(*) FROM team_players
+                WHERE telegram_id = $1 AND team_id = $2 AND is_active = TRUE
+            """, telegram_id, team_id)
+            return count > 0
 
-async def get_team_workouts(self, team_id: int) -> List[Dict]:
-    """Получить тренировки команды"""
-    async with self.pool.acquire() as conn:
-        rows = await conn.fetch("""
-            SELECT w.*, wt.assigned_at, u.first_name as creator_name
-            FROM workouts w
-            JOIN workout_teams wt ON w.id = wt.workout_id
-            LEFT JOIN users u ON w.created_by = u.id
-            WHERE wt.team_id = $1 AND w.is_active = TRUE
-            ORDER BY wt.assigned_at DESC
-        """, team_id)
-        return [dict(row) for row in rows]
-
-async def find_user_by_telegram_id(self, telegram_id: int) -> Optional[Dict]:
-    """Найти пользователя Telegram по ID"""
-    async with self.pool.acquire() as conn:
-        # Проверяем, есть ли пользователь в системе
-        user_row = await conn.fetchrow("""
-            SELECT id, telegram_id, first_name, last_name, username
-            FROM users
-            WHERE telegram_id = $1
-        """, telegram_id)
-        
-        if user_row:
-            return {
-                'id': user_row['id'],
-                'telegram_id': user_row['telegram_id'],
-                'first_name': user_row['first_name'],
-                'last_name': user_row['last_name'],
-                'username': user_row['username']
-            }
-        return None
-
-async def add_player_by_telegram_id(self, team_id: int, telegram_id: int, 
-                                     added_by: int) -> Optional[TeamPlayer]:
-    """Добавить игрока в команду по Telegram ID"""
-    async with self.pool.acquire() as conn:
-        # Проверяем, не состоит ли уже в команде
-        existing = await conn.fetchval("""
-            SELECT COUNT(*) FROM team_players
-            WHERE team_id = $1 AND telegram_id = $2 AND is_active = TRUE
-        """, team_id, telegram_id)
-        
-        if existing > 0:
-            return None  # Уже в команде
-        
-        # Получаем информацию о пользователе
-        user_info = await self.find_user_by_telegram_id(telegram_id)
-        
-        if user_info:
-            # Пользователь есть в системе
-            row = await conn.fetchrow("""
-                INSERT INTO team_players 
-                (team_id, telegram_id, first_name, last_name)
-                VALUES ($1, $2, $3, $4)
-                RETURNING *
-            """, team_id, telegram_id, 
-                user_info['first_name'], 
-                user_info.get('last_name'))
-        else:
-            # Пользователя нет в системе - добавляем базовую информацию
-            row = await conn.fetchrow("""
-                INSERT INTO team_players 
-                (team_id, telegram_id, first_name)
-                VALUES ($1, $2, $3)
-                RETURNING *
-            """, team_id, telegram_id, f"User {telegram_id}")
-        
-        return TeamPlayer(
-            id=row['id'],
-            team_id=row['team_id'],
-            first_name=row['first_name'],
-            last_name=row.get('last_name'),
-            position=row.get('position'),
-            jersey_number=row.get('jersey_number'),
-            telegram_id=row['telegram_id'],
-            phone=row.get('phone'),
-            birth_date=row.get('birth_date'),
-            is_active=row['is_active'],
-            joined_at=row['joined_at']
-        )
-
-
-async def update_team_access_code(self, team_id: int, access_code: str) -> bool:
-    """Обновить код доступа команды"""
-    async with self.pool.acquire() as conn:
-        try:
+    async def assign_workout_to_team(self, workout_id: int, team_id: int, assigned_by: int):
+        """Назначить тренировку на команду"""
+        async with self.pool.acquire() as conn:
             await conn.execute("""
-                UPDATE teams 
-                SET access_code = $1, updated_at = CURRENT_TIMESTAMP
-                WHERE id = $2
-            """, access_code, team_id)
-            return True
-        except Exception as e:
-            logger.error(f"Error updating access code: {e}")
-            return False
+                INSERT INTO workout_teams (workout_id, team_id, assigned_by)
+                VALUES ($1, $2, $3)
+                ON CONFLICT (workout_id, team_id) DO NOTHING
+            """, workout_id, team_id, assigned_by)
+
+    async def get_team_workouts(self, team_id: int) -> List[Dict]:
+        """Получить тренировки команды"""
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch("""
+                SELECT w.*, wt.assigned_at, u.first_name as creator_name
+                FROM workouts w
+                JOIN workout_teams wt ON w.id = wt.workout_id
+                LEFT JOIN users u ON w.created_by = u.id
+                WHERE wt.team_id = $1 AND w.is_active = TRUE
+                ORDER BY wt.assigned_at DESC
+            """, team_id)
+            return [dict(row) for row in rows]
+
+    async def find_user_by_telegram_id(self, telegram_id: int) -> Optional[Dict]:
+        """Найти пользователя Telegram по ID"""
+        async with self.pool.acquire() as conn:
+            # Проверяем, есть ли пользователь в системе
+            user_row = await conn.fetchrow("""
+                SELECT id, telegram_id, first_name, last_name, username
+                FROM users
+                WHERE telegram_id = $1
+            """, telegram_id)
+            
+            if user_row:
+                return {
+                    'id': user_row['id'],
+                    'telegram_id': user_row['telegram_id'],
+                    'first_name': user_row['first_name'],
+                    'last_name': user_row['last_name'],
+                    'username': user_row['username']
+                }
+            return None
+
+    async def add_player_by_telegram_id(self, team_id: int, telegram_id: int, 
+                                        added_by: int) -> Optional[TeamPlayer]:
+        """Добавить игрока в команду по Telegram ID"""
+        async with self.pool.acquire() as conn:
+            # Проверяем, не состоит ли уже в команде
+            existing = await conn.fetchval("""
+                SELECT COUNT(*) FROM team_players
+                WHERE team_id = $1 AND telegram_id = $2 AND is_active = TRUE
+            """, team_id, telegram_id)
+            
+            if existing > 0:
+                return None  # Уже в команде
+            
+            # Получаем информацию о пользователе
+            user_info = await self.find_user_by_telegram_id(telegram_id)
+            
+            if user_info:
+                # Пользователь есть в системе
+                row = await conn.fetchrow("""
+                    INSERT INTO team_players 
+                    (team_id, telegram_id, first_name, last_name)
+                    VALUES ($1, $2, $3, $4)
+                    RETURNING *
+                """, team_id, telegram_id, 
+                    user_info['first_name'], 
+                    user_info.get('last_name'))
+            else:
+                # Пользователя нет в системе - добавляем базовую информацию
+                row = await conn.fetchrow("""
+                    INSERT INTO team_players 
+                    (team_id, telegram_id, first_name)
+                    VALUES ($1, $2, $3)
+                    RETURNING *
+                """, team_id, telegram_id, f"User {telegram_id}")
+            
+            return TeamPlayer(
+                id=row['id'],
+                team_id=row['team_id'],
+                first_name=row['first_name'],
+                last_name=row.get('last_name'),
+                position=row.get('position'),
+                jersey_number=row.get('jersey_number'),
+                telegram_id=row['telegram_id'],
+                phone=row.get('phone'),
+                birth_date=row.get('birth_date'),
+                is_active=row['is_active'],
+                joined_at=row['joined_at']
+            )
+
+
+    async def update_team_access_code(self, team_id: int, access_code: str) -> bool:
+        """Обновить код доступа команды"""
+        async with self.pool.acquire() as conn:
+            try:
+                await conn.execute("""
+                    UPDATE teams 
+                    SET access_code = $1, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = $2
+                """, access_code, team_id)
+                return True
+            except Exception as e:
+                logger.error(f"Error updating access code: {e}")
+                return False
 
 
 @dataclass
