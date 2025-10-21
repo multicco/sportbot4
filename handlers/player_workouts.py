@@ -8,11 +8,12 @@ from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from states.workout_assignment_states import WorkoutPlayerStates
-from database.teams_database import teams_database
-
+#from database.teams_database import teams_database
+#from handlers.teams import teams_db
 logger = logging.getLogger(__name__)
-
+from handlers.teams import  teams_db
 player_workouts_router = Router(name="player_workouts")
+logger.info("Импорт teams_db в player_workouts.py: %s", teams_db)
 
 @player_workouts_router.message(Command("myworkouts"))
 @player_workouts_router.callback_query(F.data == "my_workouts")
@@ -29,23 +30,56 @@ async def show_my_workouts(update: Message | CallbackQuery, state: FSMContext):
         message = update
         is_callback = False
     
+    # Проверка инициализации teams_db
+    if teams_db is None:
+        logger.error("teams_db не инициализирована в show_my_workouts")
+        text = (
+            "<b>❌ Ошибка</b>\n\n"
+            "База данных недоступна. Попробуйте позже."
+        )
+        keyboard = InlineKeyboardBuilder()
+        keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
+        
+        if is_callback:
+            await message.edit_text(text, reply_markup=keyboard.as_markup(), parse_mode="HTML")
+            await update.answer()
+        else:
+            await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="HTML")
+        return
+    
     # Получаем тренировки игрока
-    workouts = await teams_database.get_player_workouts(telegram_id)
+    try:
+        workouts = await teams_db.get_player_workouts(telegram_id)
+    except Exception as e:
+        logger.error(f"Ошибка при получении тренировок для telegram_id {telegram_id}: {e}", exc_info=True)
+        text = (
+            "<b>❌ Ошибка</b>\n\n"
+            "Не удалось загрузить тренировки. Попробуйте позже."
+        )
+        keyboard = InlineKeyboardBuilder()
+        keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
+        
+        if is_callback:
+            await message.edit_text(text, reply_markup=keyboard.as_markup(), parse_mode="HTML")
+            await update.answer()
+        else:
+            await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="HTML")
+        return
     
     if not workouts:
         keyboard = InlineKeyboardBuilder()
         keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
         
         text = (
-            "📭 **У вас пока нет тренировок**\n\n"
+            "<b>📭 У вас пока нет тренировок</b>\n\n"
             "Тренер назначит тренировки, и они появятся здесь."
         )
         
         if is_callback:
-            await message.edit_text(text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
+            await message.edit_text(text, reply_markup=keyboard.as_markup(), parse_mode="HTML")
             await update.answer()
         else:
-            await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
+            await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="HTML")
         return
     
     # Группируем по статусам
@@ -53,13 +87,13 @@ async def show_my_workouts(update: Message | CallbackQuery, state: FSMContext):
     in_progress = [w for w in workouts if w['status'] == 'in_progress']
     completed = [w for w in workouts if w['status'] == 'completed']
     
-    text = "💪 **Мои тренировки**\n\n"
+    text = "<b>💪 Мои тренировки</b>\n\n"
     
     keyboard = InlineKeyboardBuilder()
     
     # Новые тренировки
     if new_workouts:
-        text += f"🔴 **Новые ({len(new_workouts)}):**\n"
+        text += f"<b>🔴 Новые ({len(new_workouts)}):</b>\n"
         for w in new_workouts:
             deadline_text = ""
             if w['deadline']:
@@ -74,7 +108,7 @@ async def show_my_workouts(update: Message | CallbackQuery, state: FSMContext):
     
     # В процессе
     if in_progress:
-        text += f"⏳ **В процессе ({len(in_progress)}):**\n"
+        text += f"<b>⏳ В процессе ({len(in_progress)}):</b>\n"
         for w in in_progress:
             text += f"  • {w['workout_name']} ({w['team_name']})\n"
             keyboard.button(
@@ -85,7 +119,7 @@ async def show_my_workouts(update: Message | CallbackQuery, state: FSMContext):
     
     # Выполненные (последние 5)
     if completed:
-        text += f"✅ **Выполнено ({len(completed)}):**\n"
+        text += f"<b>✅ Выполнено ({len(completed)}):</b>\n"
         for w in completed[:5]:
             rpe_text = f" (RPE: {w['rpe']:.1f})" if w['rpe'] else ""
             completed_date = w['completed_at'].strftime('%d.%m') if w['completed_at'] else ""
@@ -95,10 +129,10 @@ async def show_my_workouts(update: Message | CallbackQuery, state: FSMContext):
     keyboard.adjust(1)
     
     if is_callback:
-        await message.edit_text(text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
+        await message.edit_text(text, reply_markup=keyboard.as_markup(), parse_mode="HTML")
         await update.answer()
     else:
-        await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
+        await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="HTML")
 
 @player_workouts_router.callback_query(F.data.startswith("start_workout_"))
 async def start_workout(callback: CallbackQuery, state: FSMContext):
@@ -106,7 +140,7 @@ async def start_workout(callback: CallbackQuery, state: FSMContext):
     workout_id = int(callback.data.split("_")[-1])
     
     # Обновляем статус
-    success = await teams_database.update_player_workout_status(
+    success = await teams_db.update_player_workout_status(
         telegram_id=callback.from_user.id,
         workout_id=workout_id,
         status='in_progress'
@@ -172,7 +206,7 @@ async def process_rpe_rating(callback: CallbackQuery, state: FSMContext):
         rpe_text = f"{rpe}/10"
     
     # Обновляем статус на завершено с RPE
-    success = await teams_database.update_player_workout_status(
+    success = await teams_db.update_player_workout_status(
         telegram_id=callback.from_user.id,
         workout_id=workout_id,
         status='completed',

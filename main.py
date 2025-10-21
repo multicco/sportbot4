@@ -88,63 +88,12 @@ async def check_database_connection():
         logger.error(f"❌ Ошибка подключения к БД: {e}")
         return False
 
-# async def register_team_handlers_integration():
-#     """Интеграция модуля команд (ИСПРАВЛЕННАЯ ФУНКЦИЯ)"""
-#     try:
-#         # ИСПРАВЛЕНИЕ: Правильный импорт из handlers
-#         from handlers import teams
 
-#         # Проверяем, есть ли функция register_team_handlers
-#         if hasattr(teams, 'register_team_handlers'):
-#             teams.register_team_handlers(dp)
-#             logger.info("🏆 Модуль команд зарегистрирован через register_team_handlers")
 
-#         # Если нет старой функции, но есть роутер (для нового модуля)
-#         elif hasattr(teams, 'teams_router'):
-#             dp.include_router(teams.teams_router)
-#             logger.info("🏆 Модуль команд зарегистрирован через teams_router")
-
-#         # Если нет ни того, ни другого - создаем заглушки
-#         else:
-#             logger.warning("⚠️ В handlers/teams.py нет нужных функций")
-
-#             # Создаем простой обработчик команды /teams
-#             from aiogram.types import Message
-#             from aiogram.filters import Command
-
-#             @dp.message(Command("teams"))
-#             async def teams_command(message: Message):
-#                 await message.answer(
-#                     "🏆 <b>Управление командами</b>\n\n"
-#                     "⚠️ Модуль команд в разработке.\n"
-#                     "Скоро здесь будет полноценное управление командами!",
-#                     parse_mode="HTML"
-#                 )
-
-#             logger.info("🏆 Базовый обработчик команды /teams создан")
-
-#     except ImportError as e:
-#         logger.warning(f"⚠️ Модуль handlers.teams не найден: {e}")
-
-#         # Создаем заглушку если модуль teams вообще не найден
-#         from aiogram.types import Message
-#         from aiogram.filters import Command
-
-#         @dp.message(Command("teams"))
-#         async def teams_not_found(message: Message):
-#             await message.answer(
-#                 "❌ <b>Модуль команд не найден</b>\n\n"
-#                 "Создайте файл handlers/teams.py для управления командами.",
-#                 parse_mode="HTML"
-#             )
-
-#         logger.info("🚫 Создана заглушка для /teams (модуль не найден)")
-
-#     except Exception as e:
-#         logger.error(f"❌ Ошибка регистрации модуля команд: {e}")
 
 async def main():
     """Главная функция запуска бота"""
+    
     logger.info("🚀 Запуск спортивного бота...")
    
 
@@ -245,6 +194,7 @@ async def main():
 def run_bot():
     """Запуск бота с обработкой исключений"""
     try:
+        
         asyncio.run(main())
     except KeyboardInterrupt:
         print("\n👋 Бот остановлен пользователем")
