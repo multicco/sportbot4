@@ -11,9 +11,10 @@ from states.workout_assignment_states import WorkoutPlayerStates
 #from database.teams_database import teams_database
 #from handlers.teams import teams_db
 logger = logging.getLogger(__name__)
-from handlers.teams import  teams_db
+#from handlers.teams import  teams_db
 player_workouts_router = Router(name="player_workouts")
-logger.info("Импорт teams_db в player_workouts.py: %s", teams_db)
+from handlers import teams 
+logger.info("Импорт teams_db в player_workouts.py: %s", teams )
 
 
 @player_workouts_router.message(Command("myworkouts"))
@@ -32,8 +33,8 @@ async def show_my_workouts(update: Message | CallbackQuery, state: FSMContext):
         is_callback = False
     
     # Проверка инициализации teams_db
-    if teams_db is None:
-        logger.error("teams_db не инициализирована в show_my_workouts")
+    if teams.teams_db is None:
+        logger.error("teams.teams_db не инициализирована в show_my_workouts")
         text = (
             "<b>❌ Ошибка</b>\n\n"
             "База данных недоступна. Попробуйте позже."
@@ -50,7 +51,7 @@ async def show_my_workouts(update: Message | CallbackQuery, state: FSMContext):
     
     # Получаем тренировки игрока
     try:
-        workouts = await teams_db.get_player_workouts(telegram_id)
+        workouts = await teams.teams_db.get_player_workouts(telegram_id)
     except Exception as e:
         logger.error(f"Ошибка при получении тренировок для telegram_id {telegram_id}: {e}", exc_info=True)
         text = (
@@ -141,7 +142,7 @@ async def start_workout(callback: CallbackQuery, state: FSMContext):
     workout_id = int(callback.data.split("_")[-1])
     
     # Обновляем статус
-    success = await teams_db.update_player_workout_status(
+    success = await teams.teams_db.update_player_workout_status(
         telegram_id=callback.from_user.id,
         workout_id=workout_id,
         status='in_progress'
@@ -207,7 +208,7 @@ async def process_rpe_rating(callback: CallbackQuery, state: FSMContext):
         rpe_text = f"{rpe}/10"
     
     # Обновляем статус на завершено с RPE
-    success = await teams_db.update_player_workout_status(
+    success = await teams.teams_db.update_player_workout_status(
         telegram_id=callback.from_user.id,
         workout_id=workout_id,
         status='completed',
