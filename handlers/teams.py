@@ -409,31 +409,23 @@ def build_teams_menu(teams_count: int) -> InlineKeyboardMarkup:
 
 
 async def init_teams_module_async(db_manager) -> bool:
-    """Инициализация модуля и таблиц БД. Вызывается из main.py."""
     global teams_db
     try:
-        logger.info("🔧 Initializing teams module...")
+        logger.info("🔧 Начало инициализации модуля команд...")
+        logger.info("Проверка init_teams_database: %s", init_teams_database)
         if init_teams_database is None:
             raise RuntimeError("database.teams_database is not available")
+        logger.info("Проверка db_manager.pool: %s", db_manager.pool)
         if not hasattr(db_manager, 'pool') or db_manager.pool is None:
             raise RuntimeError("db_manager.pool is not initialized")
-        
-        # ИСПРАВЛЕНИЕ: Инициализируем ОБОИХ - teams_db и teams_database
         teams_db = init_teams_database(db_manager.pool)
+        logger.info("teams_db после init_teams_database: %s", teams_db)
         await teams_db.init_tables()
-        
-        # ВАЖНО: Проверяем что teams_database тоже инициализирована
-        from database.teams_database import teams_database as global_teams_db
-        if global_teams_db is None:
-            logger.error("❌ teams_database не инициализирована!")
-            raise RuntimeError("teams_database is None after init")
-        
-        logger.info("✅ Teams module loaded and database initialized")
-        logger.info(f"✅ teams_db: {teams_db}")
-        logger.info(f"✅ teams_database: {global_teams_db}")
+        logger.info("✅ Модуль команд успешно инициализирован, teams_db: %s", teams_db)
         return True
     except Exception as e:
-        logger.exception("❌ Failed to initialize teams module: %s", e)
+        logger.error("❌ Ошибка инициализации модуля команд: %s", e, exc_info=True)
+        teams_db = None  # Явно устанавливаем None при ошибке
         raise
 
 

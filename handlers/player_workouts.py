@@ -15,6 +15,7 @@ from handlers.teams import  teams_db
 player_workouts_router = Router(name="player_workouts")
 logger.info("Импорт teams_db в player_workouts.py: %s", teams_db)
 
+
 @player_workouts_router.message(Command("myworkouts"))
 @player_workouts_router.callback_query(F.data == "my_workouts")
 async def show_my_workouts(update: Message | CallbackQuery, state: FSMContext):

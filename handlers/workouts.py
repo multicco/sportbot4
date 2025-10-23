@@ -12,11 +12,17 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from database import db_manager
 from states.workout_states import CreateWorkoutStates
 
+
+
 logger = logging.getLogger(__name__)
+
+
+
+    
 
 # Роутер для обработчиков тренировок
 workouts_router = Router()
-
+from handlers.teams import teams_db
 # ===== УТИЛИТЫ =====
 def parse_callback_id(callback_data: str, expected_prefix: str = None) -> int:
     """Универсальная функция для парсинга ID из callback_data"""

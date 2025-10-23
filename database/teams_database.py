@@ -61,10 +61,8 @@ class TeamsDatabase:
         self.pool = db_pool
 
     async def init_tables(self):
-        """Инициализация таблиц"""
         try:
             async with self.pool.acquire() as conn:
-                # Читаем схему и создаем таблицы
                 schema_sql = """
                 -- Таблица команд
                 CREATE TABLE IF NOT EXISTS teams (
@@ -110,16 +108,56 @@ class TeamsDatabase:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
 
+                -- Таблица тренировок
+                CREATE TABLE IF NOT EXISTS workouts (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(100) NOT NULL,
+                    description TEXT,
+                    unique_id VARCHAR(20) UNIQUE,
+                    created_by INTEGER,
+                    visibility VARCHAR(20) DEFAULT 'public',
+                    difficulty_level VARCHAR(20),
+                    estimated_duration_minutes INTEGER,
+                    category VARCHAR(50),
+                    is_active BOOLEAN DEFAULT TRUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+
+                -- Таблица назначений тренировок командам
+                CREATE TABLE IF NOT EXISTS workout_teams (
+                    id SERIAL PRIMARY KEY,
+                    workout_id INTEGER REFERENCES workouts(id),
+                    team_id INTEGER REFERENCES teams(id),
+                    assigned_by INTEGER,
+                    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    is_active BOOLEAN DEFAULT TRUE,
+                    notes TEXT,
+                    deadline TIMESTAMP
+                );
+
+                -- Таблица назначений тренировок игрокам
+                CREATE TABLE IF NOT EXISTS workout_team_player_assignments (
+                    id SERIAL PRIMARY KEY,
+                    workout_team_id INTEGER REFERENCES workout_teams(id),
+                    team_player_id INTEGER REFERENCES team_players(id),
+                    status VARCHAR(20) DEFAULT 'pending',
+                    started_at TIMESTAMP,
+                    completed_at TIMESTAMP,
+                    rpe FLOAT,
+                    notes TEXT
+                );
+
                 -- Индексы
                 CREATE INDEX IF NOT EXISTS idx_teams_coach ON teams(coach_telegram_id);
                 CREATE INDEX IF NOT EXISTS idx_team_players_team ON team_players(team_id);
                 CREATE INDEX IF NOT EXISTS idx_individual_students_coach ON individual_students(coach_telegram_id);
+                CREATE INDEX IF NOT EXISTS idx_workout_teams_team ON workout_teams(team_id);
+                CREATE INDEX IF NOT EXISTS idx_workout_team_player_assignments ON workout_team_player_assignments(workout_team_id);
                 """
-
                 await conn.execute(schema_sql)
                 logger.info("✅ Teams database tables initialized")
         except Exception as e:
-            logger.error(f"❌ Error initializing teams tables: {e}")
+            logger.error(f"❌ Error initializing teams tables: {e}", exc_info=True)
             raise
 
     # ===== КОМАНДЫ =====
