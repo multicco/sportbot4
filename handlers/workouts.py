@@ -317,6 +317,22 @@ async def start_create_workout(callback: CallbackQuery, state: FSMContext):
 @workouts_router.callback_query(F.data == "skip_workout_description")
 async def skip_description(callback: CallbackQuery, state: FSMContext):
     """Пропустить описание тренировки"""
+    data = await state.get_data()
+    
+    # ✅ ИСПРАВЛЕНИЕ: Проверка наличия имени тренировки
+    if 'name' not in data:
+        await callback.answer("❌ Сначала введите название тренировки", show_alert=True)
+        
+        # Возвращаем пользователя к вводу имени
+        await callback.message.edit_text(
+            "🏋️ **Создание новой тренировки**\n\n"
+            "Введите название вашей тренировки:\n"
+            "_Например: \"Силовая тренировка верха\" или \"ОФП для новичков\"_",
+            parse_mode="Markdown"
+        )
+        await state.set_state(CreateWorkoutStates.waiting_workout_name)
+        return
+    
     await state.update_data(description="")
     await show_block_selection_menu(callback.message, state)
     await callback.answer()
@@ -325,9 +341,12 @@ async def skip_description(callback: CallbackQuery, state: FSMContext):
 async def show_block_selection_menu(message: Message, state: FSMContext):
     """Показать меню выбора блоков тренировки"""
     data = await state.get_data()
-    selected_blocks = data.get('selected_blocks', {})
 
-    text = f"🏗️ **Структура тренировки: {data['name']}**\n\n"
+    workout_name = data.get('name', 'Без названия')
+    selected_blocks = data.get('selected_blocks', {})
+    
+    text = f"🏗️ **Структура тренировки: {workout_name}**\n\n"
+    
     text += f"📋 **Выберите блоки для вашей тренировки:**\n\n"
 
     blocks = {
@@ -421,6 +440,66 @@ async def select_workout_block(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 @workouts_router.callback_query(F.data == "add_block_description")
+
+
+# ===== ОБРАБОТЧИКИ ДЛЯ УПРАВЛЕНИЯ БЛОКАМИ (ИСПРАВЛЕНИЕ) =====
+
+@workouts_router.callback_query(F.data == "skip_block_description")
+async def skip_block_description(callback: CallbackQuery, state: FSMContext):
+    """Пропустить описание блока и перейти к упражнениям"""
+    data = await state.get_data()
+
+    # ✅ Проверка наличия данных
+    if 'current_block' not in data:
+        await callback.answer("❌ Ошибка: блок не выбран", show_alert=True)
+        await show_block_selection_menu(callback.message, state)
+        return
+
+    # TODO: Переход к добавлению упражнений
+    # Пока функция не реализована, возвращаемся к меню блоков
+    await callback.message.edit_text(
+        "⚠️ **Функция добавления упражнений в разработке**\n\n"
+        "Возвращаемся к выбору блоков...",
+        parse_mode="Markdown"
+    )
+
+    await show_block_selection_menu(callback.message, state)
+    await callback.answer()
+
+
+@workouts_router.callback_query(F.data == "skip_entire_block")
+async def skip_entire_block(callback: CallbackQuery, state: FSMContext):
+    """Пропустить весь блок и вернуться к выбору"""
+    data = await state.get_data()
+
+    # ✅ Проверка наличия данных
+    if 'name' not in data:
+        await callback.answer("❌ Данные тренировки потеряны", show_alert=True)
+        await start_create_workout(callback, state)
+        return
+
+    # Очищаем текущий блок
+    await state.update_data(current_block=None)
+
+    await callback.answer("✅ Блок пропущен")
+    await show_block_selection_menu(callback.message, state)
+
+
+@workouts_router.callback_query(F.data == "back_to_blocks")
+async def back_to_blocks(callback: CallbackQuery, state: FSMContext):
+    """Вернуться к выбору блоков"""
+    data = await state.get_data()
+
+    # ✅ Проверка наличия данных
+    if 'name' not in data:
+        await callback.answer("❌ Данные тренировки потеряны. Начните сначала.", show_alert=True)
+        await start_create_workout(callback, state)
+        return
+
+    await show_block_selection_menu(callback.message, state)
+    await callback.answer()
+
+
 async def add_block_description(callback: CallbackQuery, state: FSMContext):
     """Добавить описание к блоку"""
     data = await state.get_data()
@@ -665,12 +744,14 @@ async def feature_coming_soon(callback: CallbackQuery):
 async def process_workout_text_input(message: Message, state: FSMContext):
     """Обработка текстового ввода для создания тренировок"""
     current_state = await state.get_state()
-
+    
     if current_state == CreateWorkoutStates.waiting_workout_name:
         await process_workout_name(message, state)
     elif current_state == CreateWorkoutStates.waiting_workout_description:
         await process_workout_description(message, state)
-
+    # ✅ ИСПРАВЛЕНИЕ: Добавить обработку описания блока
+    elif current_state == CreateWorkoutStates.adding_block_description:
+        await process_block_description(message, state)
     else:
         await message.answer(
             "❓ Используйте кнопки меню для навигации.",
@@ -721,17 +802,41 @@ async def process_block_description(message: Message, state: FSMContext):
         await message.answer("❌ Описание слишком длинное. Максимум 200 символов.")
         return
 
+    # Сохраняем описание блока
+    data = await state.get_data()
+    current_block = data.get('current_block')
+
+    if not current_block:
+        await message.answer("❌ Ошибка: блок не выбран")
+        await show_block_selection_menu(message, state)
+        return
+
+    # Сохраняем описание для текущего блока
     await state.update_data(current_block_description=description)
 
+    block_names = {
+        'warmup': '🔥 Разминка',
+        'nervous_prep': '⚡ Подготовка НС',
+        'main': '💪 Основная часть',
+        'cooldown': '🧘 Заминка'
+    }
+
+    block_name = block_names.get(current_block, current_block)
+
     await message.answer(
-        f"✅ **Описание блока сохранено:**\n\n"
+        f"✅ **Описание блока сохранено**\n\n"
+        f"**{block_name}:**\n"
         f"_{description}_\n\n"
-        f"Переходим к добавлению упражнений в блок...",
+        f"⚠️ Функция добавления упражнений в разработке.\n"
+        f"Возвращаемся к выбору блоков...",
         parse_mode="Markdown"
     )
 
-    # Здесь должна быть функция show_block_exercises_menu, но она не помещается
-    # В реальном проекте она должна быть добавлена
+    # TODO: Здесь должен быть вызов show_block_exercises_menu
+    # Пока возвращаемся к выбору блоков
+    await show_block_selection_menu(message, state)
+
+
 async def notify_team_about_workout(team_id: int, workout_id: int, workout_name: str):
     """Отправить уведомление команде о новой тренировке"""
     from main import bot

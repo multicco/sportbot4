@@ -4760,3 +4760,330 @@ KeyError: None
 2025-10-23 16:36:34,103 - aiogram.event - INFO - Update id=645436887 is handled. Duration 406 ms by bot id=8236074997
 2025-10-23 16:36:35,627 - aiogram.event - INFO - Update id=645436888 is handled. Duration 218 ms by bot id=8236074997
 2025-10-23 16:36:41,881 - aiogram.event - INFO - Update id=645436889 is handled. Duration 108 ms by bot id=8236074997
+2025-10-23 16:38:00,773 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-10-23 16:38:00,774 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-10-23 16:38:00,901 - database.database - INFO - ✅ База данных инициализирована
+2025-10-23 16:38:00,901 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-10-23 16:38:00,903 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-10-23 16:38:00,905 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-10-23 16:38:00,906 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2025-10-23 16:38:00,906 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2025-10-23 16:38:00,906 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x000001D0CD5A5CF0>
+2025-10-23 16:38:00,906 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x000001D0CD84D9B0>
+2025-10-23 16:38:00,907 - database.teams_database - INFO - ✅ teams_database инициализирована
+2025-10-23 16:38:00,907 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x000001D0CD859DB0>
+2025-10-23 16:38:00,910 - database.teams_database - INFO - ✅ Teams database tables initialized
+2025-10-23 16:38:00,911 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x000001D0CD859DB0>
+2025-10-23 16:38:00,911 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2025-10-23 16:38:00,912 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2025-10-23 16:38:00,912 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-10-23 16:38:00,915 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-10-23 16:38:00,921 - handlers - INFO - ✅ Все обработчики успешно зарегистрированы
+2025-10-23 16:38:00,921 - __main__ - INFO - 🔗 Регистрация универсального обработчика...
+2025-10-23 16:38:01,195 - __main__ - INFO - ✅ Команды бота настроены
+2025-10-23 16:38:01,271 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-10-23 16:38:01,271 - __main__ - INFO - 🆔 ID: 8236074997
+2025-10-23 16:38:01,271 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-10-23 16:38:01,279 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-10-23 16:38:01,279 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-10-23 16:38:01,279 - aiogram.dispatcher - INFO - Start polling
+2025-10-23 16:38:01,356 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-10-23 16:38:44,580 - aiogram.event - INFO - Update id=645436890 is not handled. Duration 31 ms by bot id=8236074997
+2025-10-23 16:38:44,581 - aiogram.event - ERROR - Cause exception while process update id=645436890 by bot id=8236074997
+KeyError: 'name'
+Traceback (most recent call last):
+  File "F:\python\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "F:\python\lib\site-packages\aiogram\dispatcher\middlewares\error.py", line 25, in __call__
+    return await handler(event, data)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\middlewares\user_context.py", line 49, in __call__
+    return await handler(event, data)
+  File "F:\python\lib\site-packages\aiogram\fsm\middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\handler.py", line 43, in call
+    return await wrapped()
+  File "F:\python\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 142, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 137, in _wrapped
+    return await self._propagate_event(
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 170, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 142, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 137, in _wrapped
+    return await self._propagate_event(
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 162, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\handler.py", line 43, in call
+    return await wrapped()
+  File "V:\python\sportbot3\handlers\workouts.py", line 321, in skip_description
+    await show_block_selection_menu(callback.message, state)
+  File "V:\python\sportbot3\handlers\workouts.py", line 330, in show_block_selection_menu
+    text = f"🏗️ **Структура тренировки: {data['name']}**\n\n"
+KeyError: 'name'
+2025-10-23 16:39:04,182 - aiogram.event - INFO - Update id=645436891 is not handled. Duration 30 ms by bot id=8236074997
+2025-10-23 16:39:04,182 - aiogram.event - ERROR - Cause exception while process update id=645436891 by bot id=8236074997
+KeyError: 'name'
+Traceback (most recent call last):
+  File "F:\python\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "F:\python\lib\site-packages\aiogram\dispatcher\middlewares\error.py", line 25, in __call__
+    return await handler(event, data)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\middlewares\user_context.py", line 49, in __call__
+    return await handler(event, data)
+  File "F:\python\lib\site-packages\aiogram\fsm\middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\handler.py", line 43, in call
+    return await wrapped()
+  File "F:\python\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 142, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 137, in _wrapped
+    return await self._propagate_event(
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 170, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 142, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 137, in _wrapped
+    return await self._propagate_event(
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 162, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\handler.py", line 43, in call
+    return await wrapped()
+  File "V:\python\sportbot3\handlers\workouts.py", line 321, in skip_description
+    await show_block_selection_menu(callback.message, state)
+  File "V:\python\sportbot3\handlers\workouts.py", line 330, in show_block_selection_menu
+    text = f"🏗️ **Структура тренировки: {data['name']}**\n\n"
+KeyError: 'name'
+2025-10-23 16:40:32,480 - aiogram.event - INFO - Update id=645436892 is handled. Duration 406 ms by bot id=8236074997
+2025-10-23 16:40:33,756 - aiogram.event - INFO - Update id=645436893 is handled. Duration 280 ms by bot id=8236074997
+2025-10-23 16:40:35,143 - aiogram.event - INFO - Update id=645436894 is handled. Duration 235 ms by bot id=8236074997
+2025-10-23 16:40:39,290 - aiogram.event - INFO - Update id=645436895 is handled. Duration 109 ms by bot id=8236074997
+2025-10-23 16:40:41,855 - aiogram.event - INFO - Update id=645436896 is handled. Duration 265 ms by bot id=8236074997
+2025-10-23 16:41:14,573 - aiogram.event - INFO - Update id=645436897 is handled. Duration 375 ms by bot id=8236074997
+2025-10-23 16:41:16,465 - aiogram.event - INFO - Update id=645436898 is handled. Duration 297 ms by bot id=8236074997
+2025-10-23 16:41:18,292 - aiogram.event - INFO - Update id=645436899 is handled. Duration 109 ms by bot id=8236074997
+2025-10-23 17:02:38,717 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-10-23 17:02:38,717 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-10-23 17:02:38,932 - database.database - INFO - ✅ База данных инициализирована
+2025-10-23 17:02:38,932 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-10-23 17:02:38,945 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-10-23 17:02:38,947 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-10-23 17:02:38,947 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2025-10-23 17:02:38,947 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2025-10-23 17:02:38,948 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x000001ECAF425CF0>
+2025-10-23 17:02:38,948 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x000001ECAF6C5D20>
+2025-10-23 17:02:38,948 - database.teams_database - INFO - ✅ teams_database инициализирована
+2025-10-23 17:02:38,949 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x000001ECAF6DA500>
+2025-10-23 17:02:38,951 - database.teams_database - INFO - ✅ Teams database tables initialized
+2025-10-23 17:02:38,952 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x000001ECAF6DA500>
+2025-10-23 17:02:38,953 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2025-10-23 17:02:38,953 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2025-10-23 17:02:38,953 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-10-23 17:02:38,956 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-10-23 17:02:38,962 - handlers - INFO - ✅ Все обработчики успешно зарегистрированы
+2025-10-23 17:02:38,963 - __main__ - INFO - 🔗 Регистрация универсального обработчика...
+2025-10-23 17:02:39,258 - __main__ - INFO - ✅ Команды бота настроены
+2025-10-23 17:02:39,340 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-10-23 17:02:39,340 - __main__ - INFO - 🆔 ID: 8236074997
+2025-10-23 17:02:39,340 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-10-23 17:02:39,341 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-10-23 17:02:39,341 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-10-23 17:02:39,341 - aiogram.dispatcher - INFO - Start polling
+2025-10-23 17:02:39,417 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-10-23 17:02:39,964 - aiogram.event - INFO - Update id=645436900 is handled. Duration 436 ms by bot id=8236074997
+2025-10-23 17:02:41,245 - aiogram.event - INFO - Update id=645436901 is handled. Duration 250 ms by bot id=8236074997
+2025-10-23 17:02:42,589 - aiogram.event - INFO - Update id=645436902 is handled. Duration 422 ms by bot id=8236074997
+2025-10-23 17:02:43,983 - aiogram.event - INFO - Update id=645436903 is handled. Duration 453 ms by bot id=8236074997
+2025-10-23 17:02:45,750 - aiogram.event - INFO - Update id=645436904 is handled. Duration 108 ms by bot id=8236074997
+2025-10-23 17:02:49,268 - aiogram.event - INFO - Update id=645436905 is handled. Duration 250 ms by bot id=8236074997
+2025-10-23 17:02:54,089 - aiogram.event - INFO - Update id=645436906 is handled. Duration 328 ms by bot id=8236074997
+2025-10-23 17:02:55,781 - aiogram.event - INFO - Update id=645436907 is handled. Duration 234 ms by bot id=8236074997
+2025-10-23 17:02:57,237 - aiogram.event - INFO - Update id=645436908 is handled. Duration 110 ms by bot id=8236074997
+2025-10-23 17:06:10,824 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-10-23 17:06:10,824 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-10-23 17:06:11,055 - database.database - INFO - ✅ База данных инициализирована
+2025-10-23 17:06:11,055 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-10-23 17:06:11,057 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-10-23 17:06:11,059 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-10-23 17:06:11,059 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2025-10-23 17:06:11,068 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2025-10-23 17:06:11,068 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x0000019C6EFD5CF0>
+2025-10-23 17:06:11,068 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x0000019C6F27DA60>
+2025-10-23 17:06:11,069 - database.teams_database - INFO - ✅ teams_database инициализирована
+2025-10-23 17:06:11,069 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x0000019C6F289CF0>
+2025-10-23 17:06:11,071 - database.teams_database - INFO - ✅ Teams database tables initialized
+2025-10-23 17:06:11,072 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x0000019C6F289CF0>
+2025-10-23 17:06:11,073 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2025-10-23 17:06:11,073 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2025-10-23 17:06:11,073 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-10-23 17:06:11,076 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-10-23 17:06:11,082 - handlers - INFO - ✅ Все обработчики успешно зарегистрированы
+2025-10-23 17:06:11,082 - __main__ - INFO - 🔗 Регистрация универсального обработчика...
+2025-10-23 17:06:11,352 - __main__ - INFO - ✅ Команды бота настроены
+2025-10-23 17:06:11,438 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-10-23 17:06:11,439 - __main__ - INFO - 🆔 ID: 8236074997
+2025-10-23 17:06:11,439 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-10-23 17:06:11,439 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-10-23 17:06:11,440 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-10-23 17:06:11,440 - aiogram.dispatcher - INFO - Start polling
+2025-10-23 17:06:11,521 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-10-23 17:06:12,049 - aiogram.event - INFO - Update id=645436909 is handled. Duration 405 ms by bot id=8236074997
+2025-10-23 17:06:13,459 - aiogram.event - INFO - Update id=645436910 is handled. Duration 218 ms by bot id=8236074997
+2025-10-23 17:06:15,141 - aiogram.event - INFO - Update id=645436911 is handled. Duration 360 ms by bot id=8236074997
+2025-10-23 17:06:17,640 - aiogram.event - INFO - Update id=645436912 is handled. Duration 719 ms by bot id=8236074997
+2025-10-23 17:06:18,648 - aiogram.event - INFO - Update id=645436913 is handled. Duration 219 ms by bot id=8236074997
+2025-10-23 17:06:20,697 - aiogram.event - INFO - Update id=645436914 is handled. Duration 218 ms by bot id=8236074997
+2025-10-23 17:06:22,021 - aiogram.event - INFO - Update id=645436915 is not handled. Duration 31 ms by bot id=8236074997
+2025-10-23 17:06:32,046 - aiogram.event - INFO - Update id=645436916 is not handled. Duration 30 ms by bot id=8236074997
+2025-10-23 17:06:35,294 - aiogram.event - INFO - Update id=645436917 is not handled. Duration 14 ms by bot id=8236074997
+2025-10-23 17:07:27,171 - aiogram.event - INFO - Update id=645436918 is not handled. Duration 30 ms by bot id=8236074997
+2025-10-23 17:20:34,512 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-10-23 17:20:34,512 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-10-23 17:20:34,639 - database.database - INFO - ✅ База данных инициализирована
+2025-10-23 17:20:34,640 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-10-23 17:20:34,641 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-10-23 17:20:34,644 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-10-23 17:20:34,644 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2025-10-23 17:20:34,644 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2025-10-23 17:20:34,645 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x0000019605405CF0>
+2025-10-23 17:20:34,645 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x0000019605685C70>
+2025-10-23 17:20:34,645 - database.teams_database - INFO - ✅ teams_database инициализирована
+2025-10-23 17:20:34,645 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x0000019605695EA0>
+2025-10-23 17:20:34,648 - database.teams_database - INFO - ✅ Teams database tables initialized
+2025-10-23 17:20:34,649 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x0000019605695EA0>
+2025-10-23 17:20:34,649 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2025-10-23 17:20:34,650 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2025-10-23 17:20:34,650 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-10-23 17:20:34,652 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-10-23 17:20:34,658 - handlers - INFO - ✅ Все обработчики успешно зарегистрированы
+2025-10-23 17:20:34,659 - __main__ - INFO - 🔗 Регистрация универсального обработчика...
+2025-10-23 17:20:34,936 - __main__ - INFO - ✅ Команды бота настроены
+2025-10-23 17:20:35,020 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-10-23 17:20:35,020 - __main__ - INFO - 🆔 ID: 8236074997
+2025-10-23 17:20:35,021 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-10-23 17:20:35,021 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-10-23 17:20:35,021 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-10-23 17:20:35,022 - aiogram.dispatcher - INFO - Start polling
+2025-10-23 17:20:35,101 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-10-23 17:20:37,680 - aiogram.event - INFO - Update id=645436919 is not handled. Duration 30 ms by bot id=8236074997
+2025-10-23 17:20:37,680 - aiogram.event - ERROR - Cause exception while process update id=645436919 by bot id=8236074997
+KeyError: None
+Traceback (most recent call last):
+  File "F:\python\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "F:\python\lib\site-packages\aiogram\dispatcher\middlewares\error.py", line 25, in __call__
+    return await handler(event, data)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\middlewares\user_context.py", line 49, in __call__
+    return await handler(event, data)
+  File "F:\python\lib\site-packages\aiogram\fsm\middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\handler.py", line 43, in call
+    return await wrapped()
+  File "F:\python\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 142, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 137, in _wrapped
+    return await self._propagate_event(
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 170, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 142, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 137, in _wrapped
+    return await self._propagate_event(
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 162, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\handler.py", line 43, in call
+    return await wrapped()
+  File "V:\python\sportbot3\handlers\workouts.py", line 456, in add_block_description
+    f"📝 **Описание блока: {block_names[block_key]}**\n\n"
+KeyError: None
+2025-10-23 17:20:40,641 - aiogram.event - INFO - Update id=645436920 is not handled. Duration 31 ms by bot id=8236074997
+2025-10-23 17:20:43,267 - aiogram.event - INFO - Update id=645436921 is handled. Duration 422 ms by bot id=8236074997
+2025-10-23 17:20:44,665 - aiogram.event - INFO - Update id=645436922 is handled. Duration 311 ms by bot id=8236074997
+2025-10-23 17:20:47,993 - aiogram.event - INFO - Update id=645436923 is handled. Duration 297 ms by bot id=8236074997
+2025-10-23 17:20:49,850 - aiogram.event - INFO - Update id=645436924 is handled. Duration 125 ms by bot id=8236074997
+2025-10-23 17:20:51,561 - aiogram.event - INFO - Update id=645436925 is handled. Duration 265 ms by bot id=8236074997
+2025-10-23 17:20:53,324 - aiogram.event - INFO - Update id=645436926 is handled. Duration 265 ms by bot id=8236074997
+2025-10-23 17:20:54,419 - aiogram.event - INFO - Update id=645436927 is handled. Duration 296 ms by bot id=8236074997
+2025-10-23 17:20:55,619 - aiogram.event - INFO - Update id=645436928 is handled. Duration 125 ms by bot id=8236074997
+2025-10-23 17:21:17,214 - aiogram.event - INFO - Update id=645436929 is handled. Duration 375 ms by bot id=8236074997
+2025-10-23 17:21:18,595 - aiogram.event - INFO - Update id=645436930 is handled. Duration 219 ms by bot id=8236074997
+2025-10-23 17:21:21,234 - aiogram.event - INFO - Update id=645436931 is handled. Duration 250 ms by bot id=8236074997
+2025-10-23 17:21:22,985 - aiogram.event - INFO - Update id=645436932 is handled. Duration 203 ms by bot id=8236074997
+2025-10-23 17:21:24,347 - aiogram.event - INFO - Update id=645436933 is handled. Duration 202 ms by bot id=8236074997
+2025-10-23 17:21:25,348 - aiogram.event - INFO - Update id=645436934 is handled. Duration 219 ms by bot id=8236074997
+2025-10-23 17:21:27,072 - aiogram.event - INFO - Update id=645436935 is handled. Duration 109 ms by bot id=8236074997
+2025-10-23 17:21:28,224 - aiogram.event - INFO - Update id=645436936 is handled. Duration 202 ms by bot id=8236074997
+2025-10-23 17:21:30,219 - aiogram.event - INFO - Update id=645436937 is handled. Duration 313 ms by bot id=8236074997
+2025-10-23 17:21:31,281 - aiogram.event - INFO - Update id=645436938 is not handled. Duration 31 ms by bot id=8236074997
+2025-10-23 17:21:33,369 - aiogram.event - INFO - Update id=645436939 is not handled. Duration 31 ms by bot id=8236074997
+2025-10-23 17:21:35,786 - aiogram.event - INFO - Update id=645436940 is not handled. Duration 31 ms by bot id=8236074997
+2025-10-23 17:21:49,899 - aiogram.event - INFO - Update id=645436941 is handled. Duration 531 ms by bot id=8236074997
+2025-10-23 17:22:07,589 - aiogram.event - INFO - Update id=645436942 is handled. Duration 281 ms by bot id=8236074997
+2025-10-23 17:32:20,601 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-10-23 17:32:20,601 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-10-23 17:32:20,724 - database.database - INFO - ✅ База данных инициализирована
+2025-10-23 17:32:20,726 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-10-23 17:32:20,727 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-10-23 17:32:20,730 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-10-23 17:32:20,730 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2025-10-23 17:32:20,730 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2025-10-23 17:32:20,730 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x0000021B3CCD5CF0>
+2025-10-23 17:32:20,731 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x0000021B3CF6E770>
+2025-10-23 17:32:20,731 - database.teams_database - INFO - ✅ teams_database инициализирована
+2025-10-23 17:32:20,731 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x0000021B3CF866E0>
+2025-10-23 17:32:20,734 - database.teams_database - INFO - ✅ Teams database tables initialized
+2025-10-23 17:32:20,735 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x0000021B3CF866E0>
+2025-10-23 17:32:20,735 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2025-10-23 17:32:20,736 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2025-10-23 17:32:20,736 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-10-23 17:32:20,739 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-10-23 17:32:20,745 - handlers - INFO - ✅ Все обработчики успешно зарегистрированы
+2025-10-23 17:32:20,745 - __main__ - INFO - 🔗 Регистрация универсального обработчика...
+2025-10-23 17:32:21,073 - __main__ - INFO - ✅ Команды бота настроены
+2025-10-23 17:32:21,157 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-10-23 17:32:21,157 - __main__ - INFO - 🆔 ID: 8236074997
+2025-10-23 17:32:21,157 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-10-23 17:32:21,157 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-10-23 17:32:21,164 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-10-23 17:32:21,164 - aiogram.dispatcher - INFO - Start polling
+2025-10-23 17:32:21,242 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-10-23 17:32:22,136 - aiogram.event - INFO - Update id=645436943 is handled. Duration 483 ms by bot id=8236074997
+2025-10-23 17:32:23,625 - aiogram.event - INFO - Update id=645436944 is handled. Duration 296 ms by bot id=8236074997
+2025-10-23 17:32:24,579 - aiogram.event - INFO - Update id=645436945 is handled. Duration 234 ms by bot id=8236074997
+2025-10-23 17:32:25,903 - aiogram.event - INFO - Update id=645436946 is handled. Duration 188 ms by bot id=8236074997
+2025-10-23 17:32:27,700 - aiogram.event - INFO - Update id=645436947 is handled. Duration 202 ms by bot id=8236074997
+2025-10-23 17:32:29,378 - aiogram.event - INFO - Update id=645436948 is handled. Duration 233 ms by bot id=8236074997
+2025-10-23 17:32:32,617 - aiogram.event - INFO - Update id=645436949 is handled. Duration 140 ms by bot id=8236074997
+2025-10-23 17:32:36,030 - aiogram.event - INFO - Update id=645436950 is handled. Duration 296 ms by bot id=8236074997
+2025-10-23 17:32:37,911 - aiogram.event - INFO - Update id=645436951 is handled. Duration 234 ms by bot id=8236074997
+2025-10-23 17:32:41,360 - aiogram.event - INFO - Update id=645436952 is handled. Duration 360 ms by bot id=8236074997
+2025-10-23 17:32:47,436 - aiogram.event - INFO - Update id=645436953 is handled. Duration 234 ms by bot id=8236074997
+2025-10-23 17:32:49,404 - aiogram.event - INFO - Update id=645436954 is handled. Duration 328 ms by bot id=8236074997
+2025-10-23 17:32:55,230 - aiogram.event - INFO - Update id=645436955 is handled. Duration 281 ms by bot id=8236074997
+2025-10-23 17:32:56,619 - aiogram.event - INFO - Update id=645436956 is handled. Duration 375 ms by bot id=8236074997
+2025-10-23 17:33:03,403 - aiogram.event - INFO - Update id=645436957 is handled. Duration 219 ms by bot id=8236074997
+2025-10-23 17:33:08,613 - aiogram.event - INFO - Update id=645436958 is handled. Duration 250 ms by bot id=8236074997
