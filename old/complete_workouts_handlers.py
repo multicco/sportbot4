@@ -8,9 +8,6 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from database import db_manager
 from states.workout_states import CreateWorkoutStates
 
-from aiogram import Router
-workouts_router = Router()
-
 # ===== ГЛАВНОЕ МЕНЮ ТРЕНИРОВОК =====
 async def workouts_menu(callback: CallbackQuery):
     """Главное меню тренировок"""
@@ -258,17 +255,17 @@ async def process_workout_description(message: Message, state: FSMContext):
     """Обработка описания тренировки"""
     description = message.text.strip()
     
-    if len(description) > 900:
+    if len(description) > 500:
         await message.answer("❌ Описание слишком длинное. Максимум 500 символов.")
         return
     
     await state.update_data(description=description)
-    await create_workout_constructor(message, state)  # ← ИСПРАВЛЕНО!
+    await create_workout_constructor(message, state)
 
 async def skip_workout_description(callback: CallbackQuery, state: FSMContext):
     """Пропуск описания и переход к конструктору"""
     await state.update_data(description="")
-    await create_workout_constructor(callback.message, state)  # ← ИСПРАВЛЕНО!
+    await create_workout_constructor(callback.message, state)
     await callback.answer()
 
 # ===== КОНСТРУКТОР ТРЕНИРОВКИ =====
@@ -620,184 +617,6 @@ async def process_workout_text_input(message: Message, state: FSMContext):
     else:
         await message.answer("🚧 Используйте кнопки для навигации")
 
-
-
-# === 1. Начало поиска упражнения ===
-@workouts_router.callback_query(F.data == "searchexerciseforblock")
-async def searchexerciseforblock(callback: CallbackQuery, state: FSMContext):
-    """Запрос названия упражнения для поиска"""
-    await callback.message.edit_text(
-        "🔍 **Поиск упражнения для блока**\n\n"
-        "Введите название упражнения:\n"
-        "_Например: жим, приседания, планка, растяжка_",
-        parse_mode="Markdown"
-    )
-    await state.set_state("searching_exercise_for_block")
-    await callback.answer()
-
-
-# === 2. Обработка текстового поиска ===
-@workouts_router.message(F.text)
-async def handleblockexercisesearch(message: Message, state: FSMContext):
-    """Поиск упражнений по названию, категории или группе мышц"""
-    current_state = await state.get_state()
-    if current_state != "searching_exercise_for_block":
-        return  # не перехватываем другие сообщения
-
-    search_term = message.text.strip().lower()
-    try:
-        async with db_manager.pool.acquire() as conn:
-            exercises = await conn.fetch(
-                """
-                SELECT id, name, category, muscle_group
-                FROM exercises
-                WHERE LOWER(name) LIKE $1
-                   OR LOWER(category) LIKE $1
-                   OR LOWER(muscle_group) LIKE $1
-                ORDER BY name
-                LIMIT 10
-                """,
-                f"%{search_term}%"
-            )
-
-        if not exercises:
-            await message.answer(f"❌ По запросу '{search_term}' ничего не найдено.")
-            await state.clear()
-            return
-
-        keyboard = InlineKeyboardBuilder()
-        for ex in exercises:
-            category = ex["category"] or "Без категории"
-            keyboard.button(
-                text=f"💪 {ex['name']} ({category})",
-                callback_data=f"add_block_ex_{ex['id']}"
-            )
-
-        keyboard.button(text="🔍 Новый поиск", callback_data="searchexerciseforblock")
-        keyboard.button(text="🔙 К упражнениям блока", callback_data="back_to_block_exercises")
-        keyboard.adjust(1)
-
-        await message.answer(
-            f"🔍 **Найдено упражнений: {len(exercises)}**",
-            reply_markup=keyboard.as_markup(),
-            parse_mode="Markdown"
-        )
-        await state.set_state("searching_exercise_for_block")
-
-    except Exception as e:
-        await message.answer(f"❌ Ошибка поиска: {e}")
-        await state.clear()
-
-
-# === 3. Просмотр категорий упражнений ===
-@workouts_router.callback_query(F.data == "browsecategoriesforblock")
-async def browsecategoriesforblock(callback: CallbackQuery):
-    """Выводит список всех категорий упражнений"""
-    try:
-        async with db_manager.pool.acquire() as conn:
-            categories = await conn.fetch("SELECT DISTINCT category FROM exercises ORDER BY category")
-
-        if not categories:
-            await callback.message.edit_text("❌ Категории упражнений не найдены.")
-            await callback.answer()
-            return
-
-        keyboard = InlineKeyboardBuilder()
-        for cat in categories:
-            name = cat["category"] or "Без категории"
-            keyboard.button(text=f"📂 {name}", callback_data=f"block_cat_{name}")
-        keyboard.button(text="🔙 К упражнениям блока", callback_data="back_to_block_exercises")
-        keyboard.adjust(2)
-
-        await callback.message.edit_text(
-            "📂 **Выберите категорию упражнений:**",
-            reply_markup=keyboard.as_markup(),
-            parse_mode="Markdown"
-        )
-        await callback.answer()
-
-    except Exception as e:
-        await callback.message.edit_text(f"❌ Ошибка: {e}")
-        await callback.answer()
-
-
-# === 4. Просмотр упражнений конкретной категории ===
-@workouts_router.callback_query(F.data.startswith("block_cat_"))
-async def showblockcategoryexercises(callback: CallbackQuery):
-    """Выводит упражнения выбранной категории"""
-    category = callback.data[10:]  # убираем "block_cat_"
-    try:
-        async with db_manager.pool.acquire() as conn:
-            exercises = await conn.fetch(
-                "SELECT id, name, muscle_group FROM exercises WHERE category = $1 ORDER BY name",
-                category
-            )
-
-        if not exercises:
-            await callback.message.edit_text(f"❌ Упражнения в категории '{category}' не найдены.")
-            await callback.answer()
-            return
-
-        keyboard = InlineKeyboardBuilder()
-        for ex in exercises:
-            mg = ex["muscle_group"] or "-"
-            keyboard.button(
-                text=f"{ex['name']} ({mg})",
-                callback_data=f"add_block_ex_{ex['id']}"
-            )
-        keyboard.button(text="🔙 К категориям", callback_data="browsecategoriesforblock")
-        keyboard.adjust(1)
-
-        await callback.message.edit_text(
-            f"📂 **{category} упражнения:**",
-            reply_markup=keyboard.as_markup(),
-            parse_mode="Markdown"
-        )
-        await callback.answer()
-
-    except Exception as e:
-        await callback.message.edit_text(f"❌ Ошибка: {e}")
-        await callback.answer()
-
-
-# === 5. Добавление выбранного упражнения в блок ===
-@workouts_router.callback_query(F.data.startswith("add_block_ex_"))
-async def add_block_exercise(callback: CallbackQuery, state: FSMContext):
-    """Добавляет выбранное упражнение в текущий блок"""
-    try:
-        ex_id = int(callback.data.split("_")[-1])
-
-        async with db_manager.pool.acquire() as conn:
-            exercise = await conn.fetchrow("SELECT name FROM exercises WHERE id = $1", ex_id)
-
-        if not exercise:
-            await callback.answer("❌ Упражнение не найдено.", show_alert=True)
-            return
-
-        data = await state.get_data()
-        current_block = data.get("current_block", "main")
-
-        selected_blocks = data.get("selected_blocks", {})
-        selected_blocks.setdefault(current_block, {"description": "", "exercises": []})
-        selected_blocks[current_block]["exercises"].append({
-            "id": ex_id,
-            "name": exercise["name"],
-            "sets": 3,
-            "reps_min": 8,
-            "reps_max": 12,
-            "one_rm_percent": None,
-            "rest_seconds": 90
-        })
-
-        await state.update_data(selected_blocks=selected_blocks)
-        await callback.message.edit_text(f"✅ Добавлено упражнение: *{exercise['name']}*", parse_mode="Markdown")
-        await callback.answer()
-
-    except Exception as e:
-        await callback.message.answer(f"❌ Ошибка при добавлении упражнения: {e}")
-        await callback.answer()
-
-
 # ===== РЕГИСТРАЦИЯ ОБРАБОТЧИКОВ =====
 def register_workout_handlers(dp):
     """Регистрация обработчиков тренировок"""
@@ -822,32 +641,23 @@ def register_workout_handlers(dp):
     dp.callback_query.register(back_to_constructor, F.data == "back_to_constructor")
     dp.callback_query.register(save_empty_workout, F.data == "save_empty_workout")
     
-    # # Добавление упражнений в блоки - заглушки
-    # dp.callback_query.register(search_exercise_for_block, F.data == "search_exercise_for_block")
-    # dp.callback_query.register(browse_categories_for_block, F.data == "browse_categories_for_block")
-    # dp.callback_query.register(browse_muscles_for_block, F.data == "browse_muscles_for_block")
-    # dp.callback_query.register(finish_current_block, F.data == "finish_current_block")
+    # Добавление упражнений в блоки - заглушки
+    dp.callback_query.register(search_exercise_for_block, F.data == "search_exercise_for_block")
+    dp.callback_query.register(browse_categories_for_block, F.data == "browse_categories_for_block")
+    dp.callback_query.register(browse_muscles_for_block, F.data == "browse_muscles_for_block")
+    dp.callback_query.register(finish_current_block, F.data == "finish_current_block")
     
     # Специальные упражнения для ЦНС
     dp.callback_query.register(explosive_exercises_for_cns, F.data == "explosive_exercises_for_cns")
     dp.callback_query.register(preparatory_exercises_for_cns, F.data == "preparatory_exercises_for_cns")
     dp.callback_query.register(back_to_adding_exercises, F.data == "back_to_adding_exercises")
     
-
-        # === Поиск упражнений (новая версия) ===
-    dp.callback_query.register(searchexerciseforblock, F.data == "searchexerciseforblock")
-    dp.message.register(handleblockexercisesearch)
-    dp.callback_query.register(browsecategoriesforblock, F.data == "browsecategoriesforblock")
-    dp.callback_query.register(showblockcategoryexercises, F.data.startswith("block_cat_"))
-    dp.callback_query.register(add_block_exercise, F.data.startswith("add_block_ex_"))
-
-
-    # # Остальные заглушки
-    # dp.callback_query.register(find_workout, F.data == "find_workout")
-    # dp.callback_query.register(workout_stats, F.data == "workout_stats")
-    # dp.callback_query.register(edit_workout, F.data.startswith("edit_workout_"))
-    # dp.callback_query.register(start_workout, F.data.startswith("start_workout_"))
-    # dp.callback_query.register(workout_blocks, F.data.startswith("workout_blocks_"))
+    # Остальные заглушки
+    dp.callback_query.register(find_workout, F.data == "find_workout")
+    dp.callback_query.register(workout_stats, F.data == "workout_stats")
+    dp.callback_query.register(edit_workout, F.data.startswith("edit_workout_"))
+    dp.callback_query.register(start_workout, F.data.startswith("start_workout_"))
+    dp.callback_query.register(workout_blocks, F.data.startswith("workout_blocks_"))
 
 __all__ = [
     'register_workout_handlers',
