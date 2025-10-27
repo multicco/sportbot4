@@ -23,6 +23,8 @@ from aiogram.enums import ParseMode
 from handlers.teams import get_teams_router, init_teams_module_async
 
 from handlers.player_workouts import get_player_workouts_router
+from handlers.workouts import workouts_router
+
 
 
 
@@ -131,8 +133,8 @@ async def main():
         player_workouts_router = get_player_workouts_router()
         dp.include_router(player_workouts_router)
         
-                # 2.1 Основной workouts router
-        from handlers.workouts import workouts_router
+        #         # 2.1 Основной workouts router
+        # from handlers.workouts import workouts_router
         dp.include_router(workouts_router)
 
         # 3. Остальные обработчики
@@ -140,9 +142,9 @@ async def main():
         register_all_handlers(dp)
         
         # 4. General router последним
-        logger.info("🔗 Регистрация универсального обработчика...")
-        from handlers import general_router
-        dp.include_router(general_router)
+        # logger.info("🔗 Регистрация универсального обработчика...")
+        # from handlers import general_router
+        # dp.include_router(general_router)
         
         # ===== КОНЕЦ ИСПРАВЛЕНИЙ =====
         

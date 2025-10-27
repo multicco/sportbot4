@@ -15,5 +15,16 @@ class CreateWorkoutStates(StatesGroup):
     waiting_name = waiting_workout_name
     waiting_description = waiting_workout_description
 
+     # ДОБАВЬТЕ ЭТИ СОСТОЯНИЯ:
+    searching_exercise_for_block = State()
+    waiting_rpe = State()
+    waiting_weight = State()
+    renaming_workout = State()
+    changing_workout_description = State()
+    manual_exercise_input = State()
+    
+
 
 __all__ = ['CreateWorkoutStates']
+
+

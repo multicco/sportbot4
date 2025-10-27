@@ -82,20 +82,16 @@ async def handle_all_text_messages(message: Message, state: FSMContext):
         logger.warning("Модуль exercise_states не найден")
 
     # Состояния тренировок
+    # Состояния тренировок
     try:
         from states.workout_states import CreateWorkoutStates
-        if current_state in [
-            CreateWorkoutStates.waiting_workout_name,
-            CreateWorkoutStates.waiting_workout_description,
-            CreateWorkoutStates.adding_block_description,
-            "simple_block_config",
-            "advanced_block_config",
-            "searching_exercise_for_block",
-        ]:
+        if current_state and "workout" in current_state:
+            # Все состояния, связанные с созданием/редактированием тренировки
             await workouts.process_workout_text_input(message, state)
             return
     except ImportError:
         logger.warning("Модуль workout_states не найден")
+
 
     # Батареи тестов
     try:
@@ -164,9 +160,10 @@ def register_all_handlers(dp):
     if player_tests:
         player_tests.register_player_test_handlers(dp)
 
-    # Регистрируем общий роутер с обработчиком текстов
-    #dp.include_router(general_router)
-
+    
+        workouts.register_workout_handlers(dp)
+        print("✅ workouts.register_workout_handlers(dp) выполнен")
+    
     logger.info("✅ Все обработчики успешно зарегистрированы")
 
 
