@@ -131,6 +131,10 @@ async def main():
         player_workouts_router = get_player_workouts_router()
         dp.include_router(player_workouts_router)
         
+                # 2.1 Основной workouts router
+        from handlers.workouts import workouts_router
+        dp.include_router(workouts_router)
+
         # 3. Остальные обработчики
         logger.info("🔗 Регистрация основных обработчиков...")
         register_all_handlers(dp)
