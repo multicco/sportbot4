@@ -5,6 +5,7 @@ import asyncio
 import logging
 import sys
 from pathlib import Path
+from handlers import general_router
 
 # Добавляем текущую директорию в путь для импортов
 sys.path.insert(0, str(Path(__file__).parent))
@@ -123,6 +124,8 @@ async def main():
         
         # ===== ИСПРАВЛЕНИЕ: ПРАВИЛЬНЫЙ ПОРЯДОК РЕГИСТРАЦИИ РОУТЕРОВ =====
         
+
+        
         # 1. Teams router
         logger.info("🏆 Регистрация роутера команд...")
         teams_router = get_teams_router()
@@ -141,10 +144,7 @@ async def main():
         logger.info("🔗 Регистрация основных обработчиков...")
         register_all_handlers(dp)
         
-        # 4. General router последним
-        # logger.info("🔗 Регистрация универсального обработчика...")
-        # from handlers import general_router
-        # dp.include_router(general_router)
+        dp.include_router(general_router)
         
         # ===== КОНЕЦ ИСПРАВЛЕНИЙ =====
         

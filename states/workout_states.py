@@ -23,6 +23,8 @@ class CreateWorkoutStates(StatesGroup):
     changing_workout_description = State()
     manual_exercise_input = State()
     
+    
+    
 
 
 __all__ = ['CreateWorkoutStates']
