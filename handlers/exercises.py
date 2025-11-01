@@ -54,6 +54,22 @@ async def _debug_all_messages(message: Message, state: FSMContext):
     # не отвечаем автоматически
 
 
+# === ПОИСК УПРАЖНЕНИЙ ===
+@exercises_router.callback_query(F.data == "search_exercise")
+async def search_exercise_menu(callback: CallbackQuery):
+    kb = InlineKeyboardBuilder()
+    kb.button(text="По названию", callback_data="search_by_name")
+    kb.button(text="По категории", callback_data="search_by_category")
+    kb.button(text="По группе мышц", callback_data="search_by_muscle")
+    kb.button(text="Главное меню", callback_data="main_menu")
+    kb.adjust(1)
+    await callback.message.edit_text(
+        "**Поиск упражнений**\n\nВыберите способ:",
+        reply_markup=kb.as_markup(),
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
 # -----------------------
 #  MENU: главная точка входа в меню тренировок
 # -----------------------
@@ -207,6 +223,8 @@ async def view_workout_details(callback: CallbackQuery):
     except Exception as e:
         logger.exception("Ошибка в view_workout_details: %s", e)
         await callback.answer("Ошибка при показе тренировки", show_alert=True)
+
+
 
 
 # -----------------------
