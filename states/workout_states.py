@@ -12,11 +12,7 @@ class CreateWorkoutStates(StatesGroup):
     selecting_exercises = State()
     configuring_exercise = State()
     searching_exercise_for_block = State()
-    # Алиасы для старого кода (совместимость)
-    #waiting_name = waiting_workout_name
     waiting_description = waiting_workout_description
-
-     # ДОБАВЬТЕ ЭТИ СОСТОЯНИЯ:
     searching_exercise_for_block = State()
     waiting_rpe = State()
     waiting_weight = State()

@@ -4,11 +4,13 @@ from aiogram import F
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-
+import logging
+logger = logging.getLogger(__name__)
 from states.exercise_states import CreateExerciseStates
 
 from database import db_manager
 from states.exercise_states import CreateExerciseStates
+from states.workout_states import CreateWorkoutStates
 from keyboards.exercise_keyboards import (
     get_exercise_search_keyboard, get_categories_keyboard, 
     get_equipment_keyboard, get_difficulty_keyboard
@@ -18,6 +20,9 @@ from utils.validators import (
     validate_exercise_instructions
 )
 from utils.formatters import format_exercise_info
+#from handlers.workouts import _safe_edit_or_send
+
+from utils.helpers import _safe_edit_or_send
 
 def register_exercise_handlers(dp):
     """Регистрация обработчиков упражнений"""
@@ -54,7 +59,7 @@ def register_exercise_handlers(dp):
     dp.callback_query.register(choose_difficulty, F.data.startswith("diff_"))
 
 # ===== ПОИСК УПРАЖНЕНИЙ =====
-async def search_exercise_menu(callback: CallbackQuery):
+async def search_exercise_menu(callback: CallbackQuery,state: FSMContext = None):
     user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
     keyboard = get_exercise_search_keyboard(user['role'])
     
@@ -78,6 +83,10 @@ async def search_exercise_menu(callback: CallbackQuery):
         parse_mode="Markdown"
     )
     await callback.answer()
+    if state:
+        current_data = await state.get_data()
+        if current_data.get("searching_in_block"):
+            await state.update_data(searching_in_block=current_data["searching_in_block"])
 
 async def search_exercise_by_name(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
@@ -742,109 +751,110 @@ async def process_exercise_text_input(message: Message, state: FSMContext):
 
 
 
-#@workouts_router.callback_query(F.data.startswith("use_in_workout_"))
-async def use_in_workout_with_params(callback: CallbackQuery, state: FSMContext):
-    ex_id = int(callback.data.split("_")[-1])
+# #@workouts_router.callback_query(F.data.startswith("use_in_workout_"))
+# async def use_in_workout_with_params(callback: CallbackQuery, state: FSMContext):
+#     logger.info("use_in_workout_with_params: START")
+#     ex_id = int(callback.data.split("_")[-1])
     
-    # Проверяем, что мы в создании тренировки
-    if (await state.get_state()) != CreateWorkoutStates.searching_exercise_for_block:
-        await callback.answer("Только при создании тренировки.", show_alert=True)
-        return
+#     # Проверяем, что мы в создании тренировки
+#     if (await state.get_state()) != CreateWorkoutStates.searching_exercise_for_block:
+#         await callback.answer("Только при создании тренировки.", show_alert=True)
+#         return
 
-    data = await state.get_data()
-    block = data.get("searching_in_block")
-    if not block:
-        await callback.answer("Ошибка: блок не выбран.", show_alert=True)
-        return
+#     data = await state.get_data()
+#     block = data.get("searching_in_block")
+#     if not block:
+#         await callback.answer("Ошибка: блок не выбран.", show_alert=True)
+#         return
 
-    async with db_manager.pool.acquire() as conn:
-        ex = await conn.fetchrow("SELECT name, test_type FROM exercises WHERE id = $1", ex_id)
-    if not ex:
-        await callback.answer("Упражнение не найдено.", show_alert=True)
-        return
+#     async with db_manager.pool.acquire() as conn:
+#         ex = await conn.fetchrow("SELECT name, test_type FROM exercises WHERE id = $1", ex_id)
+#     if not ex:
+#         await callback.answer("Упражнение не найдено.", show_alert=True)
+#         return
 
-    # Сохраняем данные для ввода
-    await state.update_data(
-        pending_ex_id=ex_id,
-        pending_ex_name=ex["name"],
-        pending_ex_block=block
-    )
+#     # Сохраняем данные для ввода
+#     await state.update_data(
+#         pending_ex_id=ex_id,
+#         pending_ex_name=ex["name"],
+#         pending_ex_block=block
+#     )
 
-    await callback.message.edit_text(
-        f"**Добавление: {ex['name']}**\n\n"
-        "Введите параметры:\n"
-        "`подходы повторы %1ПМ отдых`\n\n"
-        "Пример: `3 10 75 90`\n"
-        "Или без %: `3 10 - 90`",
-        parse_mode="Markdown"
-    )
-    await state.set_state(CreateWorkoutStates.configuring_exercise)
-    await callback.answer()
+#     await callback.message.edit_text(
+#         f"**Добавление: {ex['name']}**\n\n"
+#         "Введите параметры:\n"
+#         "`подходы повторы %1ПМ отдых`\n\n"
+#         "Пример: `3 10 75 90`\n"
+#         "Или без %: `3 10 - 90`",
+#         parse_mode="Markdown"
+#     )
+#     await state.set_state(CreateWorkoutStates.configuring_exercise)
+#     await callback.answer()
 
-async def _show_exercises_for_block(message: Message, state: FSMContext):
-    data = await state.get_data()
-    current_block = data.get("current_block")
-    # Query exercises for this block, создаём меню
-    kb = InlineKeyboardBuilder()
-    # Добавляем кнопки упражнений, например:
-    kb.button(text="Жим лёжа", callback_data="create_add_ex_1")
-    kb.button(text="Отмена", callback_data="back_to_constructor")
-    kb.adjust(1)
-    await _safe_edit_or_send(message, f"Выберите упражнение для блока {current_block}:", reply_markup=kb.as_markup(), parse_mode="Markdown")
+# async def _show_exercises_for_block(message: Message, state: FSMContext):
+#     data = await state.get_data()
+#     current_block = data.get("current_block")
+#     # Query exercises for this block, создаём меню
+#     kb = InlineKeyboardBuilder()
+#     # Добавляем кнопки упражнений, например:
+#     kb.button(text="Жим лёжа", callback_data="create_add_ex_1")
+#     kb.button(text="Отмена", callback_data="back_to_constructor")
+#     kb.adjust(1)
+#     await _safe_edit_or_send(message, f"Выберите упражнение для блока {current_block}:", reply_markup=kb.as_markup(), parse_mode="Markdown")
 
 
-async def process_param_input(message: Message, state: FSMContext):
-    text = message.text.strip()
-    data = await state.get_data()
-    ex_id = data.get("pending_ex_id")
-    ex_name = data.get("pending_ex_name")
-    block = data.get("pending_ex_block")
+# async def process_param_input(message: Message, state: FSMContext):
+#     text = message.text.strip()
+#     data = await state.get_data()
+#     ex_id = data.get("pending_ex_id")
+#     ex_name = data.get("pending_ex_name")
+#     block = data.get("pending_ex_block")
 
-    if not all([ex_id, ex_name, block]):
-        await message.answer("Ошибка. Начните заново.")
-        await state.clear()
-        return
+#     if not all([ex_id, ex_name, block]):
+#         await message.answer("Ошибка. Начните заново.")
+#         await state.clear()
+#         return
 
-    parts = text.split()
-    if len(parts) != 4:
-        await message.answer("Нужно 4 значения: `3 10 75 90`")
-        return
+#     parts = text.split()
+#     if len(parts) != 4:
+#         await message.answer("Нужно 4 значения: `3 10 75 90`")
+#         return
 
-    try:
-        sets = int(parts[0])
-        reps = int(parts[1])
-        percent = parts[2]
-        rest = int(parts[3])
-        if sets <= 0 or reps <= 0 or rest < 0:
-            raise ValueError
-        one_rm_percent = None if percent == "-" else int(percent)
-        if one_rm_percent and not (1 <= one_rm_percent <= 200):
-            raise ValueError
-    except:
-        await message.answer("Неверный формат. Пример: `3 10 75 90`")
-        return
+#     try:
+#         sets = int(parts[0])
+#         reps = int(parts[1])
+#         percent = parts[2]
+#         rest = int(parts[3])
+#         if sets <= 0 or reps <= 0 or rest < 0:
+#             raise ValueError
+#         one_rm_percent = None if percent == "-" else int(percent)
+#         if one_rm_percent and not (1 <= one_rm_percent <= 200):
+#             raise ValueError
+#     except:
+#         await message.answer("Неверный формат. Пример: `3 10 75 90`")
+#         return
 
-    # Добавляем в блок
-    selected = data.get("selected_blocks", {})
-    selected.setdefault(block, {"description": "", "exercises": []})
-    selected[block]["exercises"].append({
-        "id": ex_id,
-        "name": ex_name,
-        "sets": sets,
-        "reps_min": reps,
-        "reps_max": reps,
-        "one_rm_percent": one_rm_percent,
-        "rest_seconds": rest
-    })
-    await state.update_data(selected_blocks=selected)
+#     # Добавляем в блок
+#     selected = data.get("selected_blocks", {})
+#     selected.setdefault(block, {"description": "", "exercises": []})
+#     selected[block]["exercises"].append({
+#         "id": ex_id,
+#         "name": ex_name,
+#         "sets": sets,
+#         "reps_min": reps,
+#         "reps_max": reps,
+#         "one_rm_percent": one_rm_percent,
+#         "rest_seconds": rest
+#     })
+#     await state.update_data(selected_blocks=selected)
 
-    param_text = f"{sets}×{reps}"
-    if one_rm_percent:
-        param_text += f" ({one_rm_percent}%)"
-    if rest > 0:
-        param_text += f", отдых {rest}с"
+#     param_text = f"{sets}×{reps}"
+#     if one_rm_percent:
+#         param_text += f" ({one_rm_percent}%)"
+#     if rest > 0:
+#         param_text += f", отдых {rest}с"
 
-    await message.answer(f"**{ex_name}** добавлено: {param_text}")
-    await _show_exercises_for_block(message, state)
-    await state.clear()
+#     await message.answer(f"**{ex_name}** добавлено: {param_text}")
+#     await _show_exercises_for_block(message, state)
+#     await state.clear()
 __all__ = ['register_exercise_handlers', 'process_exercise_text_input']

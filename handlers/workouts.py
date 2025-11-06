@@ -10,13 +10,13 @@ from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.filters import StateFilter
 from aiogram.enums import ParseMode
-
+from utils.helpers import _safe_edit_or_send
 from database import db_manager
 from states.workout_states import CreateWorkoutStates
 
 logger = logging.getLogger(__name__)
 workouts_router = Router()
-from handlers.exercises import search_exercise_menu
+#from handlers.exercises import search_exercise_menu
 #........................nazaz.....................
 
 @workouts_router.callback_query(F.data == "back_to_constructor")
@@ -375,6 +375,7 @@ async def workout_add_exercise(callback: CallbackQuery, state: FSMContext):
 async def workout_start_ex_search(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     block = data.get("current_block")
+    logger.info("workout_start_ex_search: current_block = %s", block)
     if not block:
         await callback.answer("Ошибка: блок не выбран.", show_alert=True)
         return
@@ -385,7 +386,8 @@ async def workout_start_ex_search(callback: CallbackQuery, state: FSMContext):
 
     # Открываем ТО ЖЕ МЕНЮ, что и в главном меню
     
-    await search_exercise_menu(callback)
+    from handlers import exercises
+    await exercises.search_exercise_menu(callback, state)
 
 @workouts_router.callback_query(F.data == "create_back_to_blocks")
 async def create_back_to_blocks(callback: CallbackQuery, state: FSMContext):
@@ -406,7 +408,8 @@ async def workout_start_search(callback: CallbackQuery, state: FSMContext):
 
     # Показываем ТО ЖЕ МЕНЮ, что и в главном меню!
     
-    await search_exercise_menu(callback)
+    from handlers import exercises
+    await exercises.search_exercise_menu(callback, state)
 
     await callback.answer()
 
@@ -462,28 +465,28 @@ async def create_search_ex(callback: CallbackQuery, state: FSMContext):
 
 @workouts_router.callback_query(F.data.startswith("create_add_ex_"))
 async def create_add_ex(callback: CallbackQuery, state: FSMContext):
-    """
-    Когда пользователь выбирает упражнение - показываем меню для ввода параметров.
-    НЕ добавляем сразу, а ждём ввода параметров в формате: 4 10 75 120
-    """
     ex_id = _parse_int_suffix(callback.data)
-    
     if ex_id is None:
         await callback.answer("Некорректный ID", show_alert=True)
         return
-    
+
+    data = await state.get_data()
+    current_block = data.get("searching_in_block")
+    if not current_block:
+        await callback.answer("Ошибка: блок не выбран.", show_alert=True)
+        return
+
     try:
         async with db_manager.pool.acquire() as conn:
             row = await conn.fetchrow(
                 "SELECT id, name, muscle_group, category, default_sets, default_reps_min, default_reps_max, one_rm_kg FROM exercises WHERE id = $1",
                 ex_id
             )
-        
         if not row:
             await callback.answer("Упражнение не найдено", show_alert=True)
             return
-        
-        # Сохраняем выбранное упражнение во временное хранилище
+
+        # Сохраняем ВСЕ нужные данные
         await state.update_data(
             selected_exercise_id=ex_id,
             selected_exercise_name=row['name'],
@@ -493,7 +496,8 @@ async def create_add_ex(callback: CallbackQuery, state: FSMContext):
                 'reps': row.get('default_reps_min') or 8,
                 'percent': 75,
                 'rest': 120,
-            }
+            },
+            current_block=current_block  # ← КРИТИЧНО!
         )
         
         # Показываем информацию об упражнении и запрашиваем параметры
@@ -570,6 +574,7 @@ async def create_ex_quick(callback: CallbackQuery, state: FSMContext):
 
 @workouts_router.message(StateFilter(CreateWorkoutStates.configuring_exercise))
 async def handle_create_exercise_params_input(message: Message, state: FSMContext):
+    logger.info("handle_create_exercise_params_input: START")
     """
     Обрабатывает ввод параметров упражнения в формате: "4 10 75 120"
     """
@@ -696,7 +701,14 @@ async def _finalize_exercise_for_create(message, state: FSMContext, sets: int, r
     kb.adjust(1)
     
     await message.answer(text, reply_markup=kb.as_markup(), parse_mode="Markdown")
-    await state.clear()
+    
+    
+    for key in ["selected_exercise_id", "selected_exercise_name", "selected_exercise_1rm", "selected_exercise_defaults"]:
+        await state.update_data({key: None})
+
+    # Оставляем current_block, selected_blocks и т.д.
+    # Переводим FSM в режим добавления/выбора упражнений в блоке
+    await state.set_state(CreateWorkoutStates.adding_exercises)
 
 
 # Редактирование параметров для только что выбранного упражнения
@@ -957,17 +969,22 @@ async def create_finish(callback: CallbackQuery, state: FSMContext):
         if not name:
             await callback.answer("Нет названия тренировки", show_alert=True)
             return
+
         selected = data.get('selected_blocks', {})
         total_exs = sum(len(b.get('exercises', [])) for b in selected.values())
         if total_exs == 0:
             await callback.answer("Добавьте хотя бы одно упражнение!", show_alert=True)
             return
+
         user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
+
         async with db_manager.pool.acquire() as conn:
             wid = await conn.fetchval("""
                 INSERT INTO workouts (name, description, created_by, created_at, is_active)
-                VALUES ($1,$2,$3, now(), true) RETURNING id
-            """, name, data.get('description', ''))
+                VALUES ($1, $2, $3, now(), true)
+                RETURNING id
+            """, name, data.get('description', ''), user['id'])
+
             order = 0
             for phase, block in selected.items():
                 for ex in block.get('exercises', []):
@@ -975,12 +992,20 @@ async def create_finish(callback: CallbackQuery, state: FSMContext):
                     await conn.execute("""
                         INSERT INTO workout_exercises 
                         (workout_id, exercise_id, phase, order_in_phase, sets, reps_min, reps_max, one_rm_percent, rest_seconds, notes)
-                        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-                    """, wid, ex['id'], phase, order, ex.get('sets'), ex.get('reps_min'), ex.get('reps_max'), ex.get('one_rm_percent'), ex.get('rest_seconds'), ex.get('notes'))
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                    """, wid, ex['id'], phase, order,
+                         ex.get('sets'), ex.get('reps_min'), ex.get('reps_max'),
+                         ex.get('one_rm_percent'), ex.get('rest_seconds'), ex.get('notes'))
+
             unique = await conn.fetchval("SELECT unique_id FROM workouts WHERE id = $1", wid)
-        await callback.message.edit_text(f"🎉 Тренировка создана! Код: `{unique}`\nУпражнений: {total_exs}", parse_mode="Markdown")
+
+        await callback.message.edit_text(
+            f"🎉 Тренировка создана! Код: `{unique}`\nУпражнений: {total_exs}",
+            parse_mode="Markdown"
+        )
         await state.clear()
         await callback.answer()
+
     except Exception as e:
         logger.exception("create_finish error: %s", e)
         await callback.answer("Ошибка при сохранении", show_alert=True)
@@ -1531,42 +1556,36 @@ async def process_param_input(message: Message, state: FSMContext):
 #     await state.clear()  # очищаем pending
 
 
-# === НОВЫЙ ОБРАБОТЧИК: Добавление упражнения с параметрами ===
 @workouts_router.callback_query(F.data.startswith("use_in_workout_"))
 async def add_exercise_with_params_start(callback: CallbackQuery, state: FSMContext):
     ex_id = int(callback.data.split("_")[-1])
-    
-    # Проверяем контекст
+
+    # Проверяем, что мы в контексте создания тренировки и добавления упражнений в блок
     current_state = await state.get_state()
     if current_state != CreateWorkoutStates.searching_exercise_for_block:
         await callback.answer("Добавление возможно только при создании тренировки.", show_alert=True)
         return
 
     data = await state.get_data()
-    block = data.get("searching_in_block")
+    # ищем откуда добавляем: ожидается, что при выборе блока был установлен searching_in_block или current_block
+    block = data.get("searching_in_block") or data.get("current_block")
     if not block:
-        await callback.answer("Контекст потерян.", show_alert=True)
+        await callback.answer("Контекст блока потерян.", show_alert=True)
         return
 
     # Получаем данные упражнения
     async with db_manager.pool.acquire() as conn:
-        ex = await conn.fetchrow("SELECT name, test_type FROM exercises WHERE id = $1", ex_id)
+        ex = await conn.fetchrow("SELECT id, name, test_type FROM exercises WHERE id = $1", ex_id)
     if not ex:
         await callback.answer("Упражнение не найдено.", show_alert=True)
         return
 
-    # Сохраняем временные данные
-    await state.update_data(
-        pending_ex_id=ex_id,
-        pending_ex_name=ex["name"],
-        pending_ex_block=block,
-        param_step="sets"  # начинаем с подходов
-    )
-
-    # Проверяем 1ПМ
+    # Проверяем есть ли 1ПМ (для силовых)
     user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
     one_rm = None
-    if ex["test_type"] == "strength":  # только для силовых
+    one_rm_method = None
+    one_rm_tested_at = None
+    if ex["test_type"] == "strength":
         async with db_manager.pool.acquire() as conn:
             orm = await conn.fetchrow(
                 """
@@ -1582,16 +1601,33 @@ async def add_exercise_with_params_start(callback: CallbackQuery, state: FSMCont
             )
         if orm:
             one_rm = orm["formula_average"]
+            one_rm_method = orm["calculation_method"]
+            one_rm_tested_at = orm["tested_at"]
             logger.info(
-                f"✅ Найден 1ПМ={one_rm} (метод={orm['calculation_method']}, дата={orm['tested_at']}) "
-                f"для user_id={user['id']}, exercise_id={ex_id}"
+                "Найден 1ПМ=%s (метод=%s, дата=%s) для user_id=%s, exercise_id=%s",
+                one_rm, one_rm_method, one_rm_tested_at, user["id"], ex_id
             )
         else:
-            logger.info(f"⚠️ 1ПМ не найден для user_id={user['id']}, exercise_id={ex_id}")
+            logger.info("1ПМ не найден для user_id=%s, exercise_id=%s", user["id"], ex_id)
 
-    await state.update_data(pending_one_rm=one_rm)
+    # --- ВАЖНО: сохраняем и pending_* (туда куда привыкла логика),
+    # --- и selected_*/current_block (чтобы работал _finalize_exercise_for_create)
+    await state.update_data(
+        pending_ex_id=ex_id,
+        pending_ex_name=ex["name"],
+        pending_ex_block=block,
+        pending_one_rm=one_rm,
+        pending_one_rm_method=one_rm_method,
+        pending_one_rm_tested_at=one_rm_tested_at,
+        # записываем ключи, которые ждёт финализатор:
+        selected_exercise_id=ex_id,
+        selected_exercise_name=ex["name"],
+        selected_exercise_1rm=one_rm,
+        # current_block используется в _finalize_exercise_for_create
+        current_block=block,
+    )
 
-    # Начинаем ввод
+    # Просим пользователя ввести параметры
     await callback.message.edit_text(
         f"**Добавление: {ex['name']}**\n\n"
         "Введите параметры в формате:\n"
@@ -1599,11 +1635,13 @@ async def add_exercise_with_params_start(callback: CallbackQuery, state: FSMCont
         "Пример: `3 10 75 90`\n"
         "• 3 подхода\n"
         "• 10 повторов\n"
-        f"• 75% от 1ПМ ({one_rm or '—'} кг если пройден тест)\n"
+        f"• 75% от 1ПМ ({one_rm if one_rm is not None else '—'} кг если пройден тест)\n"
         "• 90 сек отдыха\n\n"
         "Или пропустите %1ПМ: `3 10 - 90`",
         parse_mode="Markdown"
     )
+
+    # Переводим FSM в состояние ввода параметров
     await state.set_state(CreateWorkoutStates.configuring_exercise)
     await callback.answer()
 
@@ -1690,10 +1728,10 @@ async def handle_params_input(message: Message, state: FSMContext):
     text = message.text.strip()
     data = await state.get_data()
     
-    ex_id = data.get("pending_ex_id")
-    ex_name = data.get("pending_ex_name")
-    block = data.get("pending_ex_block")
-    one_rm = data.get("pending_one_rm")
+    ex_id = data.get("selected_exercise_id")  # ← Changed from pending_ex_id
+    ex_name = data.get("selected_exercise_name")  # ← Changed from pending_ex_name
+    block = data.get("current_block")  # ← Changed from pending_ex_block
+    one_rm = data.get("pending_one_rm")  # Keep this if needed, or remove if not used
     
     if not all([ex_id, ex_name, block]):
         await message.answer("Контекст потерян. Начните заново.")
@@ -1761,7 +1799,107 @@ async def handle_params_input(message: Message, state: FSMContext):
     await _show_exercises_for_block(message, state)
     await state.clear()
 
-# ----------------- REGISTER -----------------
+
+
+
+@workouts_router.callback_query(F.data.startswith("use_in_workout_"))
+async def use_in_workout_with_params(callback: CallbackQuery, state: FSMContext):
+    logger.info("=== use_in_workout_with_params: START ===")
+    logger.info("callback.data = %s", callback.data)
+    logger.info("state = %s", await state.get_state())
+    ex_id = int(callback.data.split("_")[-1])
+    
+    if (await state.get_state()) != CreateWorkoutStates.searching_exercise_for_block:
+        await callback.answer("Только при создании тренировки.", show_alert=True)
+        return
+
+    data = await state.get_data()
+    block = data.get("searching_in_block")
+    if not block:
+        await callback.answer("Ошибка: блок не выбран.", show_alert=True)
+        return
+
+    async with db_manager.pool.acquire() as conn:
+        ex = await conn.fetchrow("SELECT name, test_type FROM exercises WHERE id = $1", ex_id)
+    if not ex:
+        await callback.answer("Упражнение не найдено.", show_alert=True)
+        return
+
+    # ← ИСПРАВЛЕНО: правильные ключи
+    await state.update_data(
+        selected_exercise_id=ex_id,
+        selected_exercise_name=ex["name"],
+        current_block=block
+    )
+
+    await callback.message.edit_text(
+        f"**Добавление: {ex['name']}**\n\n"
+        "Введите параметры:\n"
+        "`подходы повторы %1ПМ отдых`\n\n"
+        "Пример: `3 10 75 90`\n"
+        "Или без %: `3 10 - 90`",
+        parse_mode="Markdown"
+    )
+    await state.set_state(CreateWorkoutStates.configuring_exercise)
+    await callback.answer()
+
+
+
+async def process_param_input(message: Message, state: FSMContext):
+    text = message.text.strip()
+    data = await state.get_data()
+    ex_id = data.get("pending_ex_id")
+    ex_name = data.get("pending_ex_name")
+    block = data.get("pending_ex_block")
+
+    if not all([ex_id, ex_name, block]):
+        await message.answer("Ошибка. Начните заново.")
+        await state.clear()
+        return
+
+    parts = text.split()
+    if len(parts) != 4:
+        await message.answer("Нужно 4 значения: `3 10 75 90`")
+        return
+
+    try:
+        sets = int(parts[0])
+        reps = int(parts[1])
+        percent = parts[2]
+        rest = int(parts[3])
+        if sets <= 0 or reps <= 0 or rest < 0:
+            raise ValueError
+        one_rm_percent = None if percent == "-" else int(percent)
+        if one_rm_percent and not (1 <= one_rm_percent <= 200):
+            raise ValueError
+    except:
+        await message.answer("Неверный формат. Пример: `3 10 75 90`")
+        return
+
+    # Добавляем в блок
+    selected = data.get("selected_blocks", {})
+    selected.setdefault(block, {"description": "", "exercises": []})
+    selected[block]["exercises"].append({
+        "id": ex_id,
+        "name": ex_name,
+        "sets": sets,
+        "reps_min": reps,
+        "reps_max": reps,
+        "one_rm_percent": one_rm_percent,
+        "rest_seconds": rest
+    })
+    await state.update_data(selected_blocks=selected)
+
+    param_text = f"{sets}×{reps}"
+    if one_rm_percent:
+        param_text += f" ({one_rm_percent}%)"
+    if rest > 0:
+        param_text += f", отдых {rest}с"
+
+    await message.answer(f"**{ex_name}** добавлено: {param_text}")
+    await _show_exercises_for_block(message, state)
+    await state.clear()
+#----------------- REGISTER -----------------
 def register_workout_handlers(dp):
     #dp.include_router(workouts_router)
     logger.info("🏋️ Обработчики тренировок зарегистрированы")
