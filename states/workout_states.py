@@ -19,6 +19,8 @@ class CreateWorkoutStates(StatesGroup):
     renaming_workout = State()
     changing_workout_description = State()
     manual_exercise_input = State()
+    searching_by_code = State()      # Поиск по коду
+    searching_by_name = State()      # Поиск по названию
     
     
     

@@ -18,7 +18,7 @@ logger.info("Импорт teams_db в player_workouts.py: %s", teams )
 
 
 @player_workouts_router.message(Command("myworkouts"))
-@player_workouts_router.callback_query(F.data == "my_workouts")
+@player_workouts_router.callback_query(F.data == "assigned_workouts")
 async def show_my_workouts(update: Message | CallbackQuery, state: FSMContext):
     """Показать тренировки игрока"""
     await state.clear()
@@ -154,7 +154,7 @@ async def start_workout(callback: CallbackQuery, state: FSMContext):
     
     keyboard = InlineKeyboardBuilder()
     keyboard.button(text="✅ Завершить тренировку", callback_data=f"finish_workout_{workout_id}")
-    keyboard.button(text="📋 Мои тренировки", callback_data="my_workouts")
+    keyboard.button(text="📋 Мои тренировки", callback_data="assigned_workouts")
     keyboard.adjust(1)
     
     await callback.message.edit_text(
@@ -219,7 +219,7 @@ async def process_rpe_rating(callback: CallbackQuery, state: FSMContext):
     
     if success:
         keyboard = InlineKeyboardBuilder()
-        keyboard.button(text="📋 Мои тренировки", callback_data="my_workouts")
+        keyboard.button(text="📋 Мои тренировки", callback_data="assigned_workouts")
         keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
         keyboard.adjust(1)
         
