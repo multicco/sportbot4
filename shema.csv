@@ -1,0 +1,440 @@
+"?column?"
+"CREATE TABLE coach_students
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('coach_students_id_seq'::regclass),
+    coach_id integer(32,0),
+    student_id integer(32,0),
+    invite_code character varying(20) NOT NULL,
+    status character varying(20) DEFAULT 'active'::character varying,
+    relationship_type character varying(20) DEFAULT 'personal'::character varying,
+    started_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    ended_at timestamp without time zone,
+    coach_notes text,
+    student_goals text
+);
+"
+"CREATE TABLE exercises
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('exercises_id_seq'::regclass),
+    name character varying(255) NOT NULL,
+    category character varying(100) NOT NULL,
+    muscle_group character varying(100) NOT NULL,
+    equipment character varying(100),
+    difficulty_level character varying(20) DEFAULT 'beginner'::character varying,
+    description text,
+    instructions text,
+    video_url character varying(500),
+    image_url character varying(500),
+    created_by integer(32,0),
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    is_active boolean DEFAULT true,
+    test_type character varying(50) DEFAULT 'none'::character varying,
+    measurement_unit character varying(20) DEFAULT 'kg'::character varying
+);
+"
+"CREATE TABLE individual_students
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('individual_students_id_seq'::regclass),
+    coach_telegram_id bigint(64,0) NOT NULL,
+    first_name character varying(100) NOT NULL,
+    last_name character varying(100),
+    telegram_id bigint(64,0),
+    phone character varying(20),
+    birth_date date,
+    specialization character varying(100),
+    level character varying(20) DEFAULT 'beginner'::character varying,
+    notes text,
+    is_active boolean DEFAULT true,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+"
+"CREATE TABLE one_rep_max
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('one_rep_max_id_seq'::regclass),
+    user_id integer(32,0),
+    exercise_id integer(32,0),
+    weight numeric(6,2) NOT NULL,
+    reps integer(32,0) NOT NULL,
+    test_weight numeric(6,2) NOT NULL,
+    weight_type character varying(20) DEFAULT 'external_weight'::character varying,
+    formula_brzycki numeric(6,2),
+    formula_epley numeric(6,2),
+    formula_alternative numeric(6,2),
+    formula_average numeric(6,2),
+    calculation_method character varying(20) DEFAULT 'average'::character varying,
+    tested_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    notes text,
+    is_active boolean DEFAULT true
+);
+"
+"CREATE TABLE players
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('players_id_seq'::regclass),
+    team_id integer(32,0) NOT NULL,
+    name character varying(255) NOT NULL,
+    position character varying(100),
+    telegram_user_id bigint(64,0),
+    added_at timestamp without time zone DEFAULT now(),
+    added_by bigint(64,0) NOT NULL
+);
+"
+"CREATE TABLE students
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('students_id_seq'::regclass),
+    team_id integer(32,0) NOT NULL,
+    name character varying(255) NOT NULL,
+    position character varying(100),
+    telegram_user_id bigint(64,0),
+    added_at timestamp without time zone DEFAULT now(),
+    added_by bigint(64,0) NOT NULL
+);
+"
+"CREATE TABLE team_announcements
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('team_announcements_id_seq'::regclass),
+    team_id integer(32,0),
+    author_id integer(32,0),
+    title character varying(255) NOT NULL,
+    content text NOT NULL,
+    is_important boolean DEFAULT false,
+    is_pinned boolean DEFAULT false,
+    expires_at timestamp without time zone,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+"
+"CREATE TABLE team_members
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('team_members_id_seq'::regclass),
+    team_id integer(32,0),
+    user_id integer(32,0),
+    role character varying(20) DEFAULT 'player'::character varying,
+    joined_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    left_at timestamp without time zone,
+    is_active boolean DEFAULT true,
+    member_notes text
+);
+"
+"CREATE TABLE team_players
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('team_players_id_seq'::regclass),
+    team_id integer(32,0),
+    first_name character varying(100) NOT NULL,
+    last_name character varying(100),
+    position character varying(50),
+    jersey_number integer(32,0),
+    telegram_id bigint(64,0),
+    phone character varying(20),
+    birth_date date,
+    is_active boolean DEFAULT true,
+    joined_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+"
+"CREATE TABLE team_stats_visibility
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('team_stats_visibility_id_seq'::regclass),
+    team_id integer(32,0),
+    stat_type character varying(50) NOT NULL,
+    is_public boolean DEFAULT false,
+    updated_by integer(32,0),
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+"
+"CREATE TABLE teams
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('teams_id_seq'::regclass),
+    name character varying(100) NOT NULL,
+    description text,
+    coach_telegram_id bigint(64,0) NOT NULL,
+    sport_type character varying(50) DEFAULT 'general'::character varying,
+    max_players integer(32,0) DEFAULT 25,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    access_code character varying(20)
+);
+"
+"CREATE TABLE test_batteries
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('test_batteries_id_seq'::regclass),
+    name character varying(200) NOT NULL,
+    description text,
+    created_by integer(32,0) NOT NULL,
+    is_active boolean DEFAULT true,
+    created_at timestamp without time zone NOT NULL DEFAULT now(),
+    updated_at timestamp without time zone NOT NULL DEFAULT now()
+);
+"
+"CREATE TABLE test_battery_exercises
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('test_battery_exercises_id_seq'::regclass),
+    battery_id integer(32,0) NOT NULL,
+    exercise_id integer(32,0) NOT NULL,
+    order_position integer(32,0) NOT NULL DEFAULT 1,
+    added_at timestamp without time zone NOT NULL DEFAULT now()
+);
+"
+"CREATE TABLE test_battery_participants
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('test_battery_participants_id_seq'::regclass),
+    battery_id integer(32,0) NOT NULL,
+    user_id integer(32,0) NOT NULL,
+    assigned_at timestamp without time zone NOT NULL DEFAULT now()
+);
+"
+"CREATE TABLE test_battery_results
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('test_battery_results_id_seq'::regclass),
+    participant_id integer(32,0) NOT NULL,
+    exercise_id integer(32,0) NOT NULL,
+    battery_id integer(32,0) NOT NULL,
+    test_type character varying(20) NOT NULL,
+    result_value numeric(10,2) NOT NULL,
+    result_unit character varying(20) NOT NULL,
+    test_weight numeric(6,2),
+    test_reps integer(32,0),
+    distance numeric(8,2),
+    time_seconds numeric(8,2),
+    duration_seconds integer(32,0),
+    max_reps integer(32,0),
+    tested_at timestamp without time zone NOT NULL DEFAULT now()
+);
+"
+"CREATE TABLE test_set_exercises
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('test_set_exercises_id_seq'::regclass),
+    test_set_id integer(32,0) NOT NULL,
+    exercise_id integer(32,0) NOT NULL,
+    added_at timestamp without time zone DEFAULT now()
+);
+"
+"CREATE TABLE test_set_participants
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('test_set_participants_id_seq'::regclass),
+    test_set_id integer(32,0) NOT NULL,
+    user_id integer(32,0) NOT NULL,
+    joined_at timestamp without time zone DEFAULT now()
+);
+"
+"CREATE TABLE test_set_results
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('test_set_results_id_seq'::regclass),
+    test_set_id integer(32,0) NOT NULL,
+    participant_id integer(32,0) NOT NULL,
+    exercise_id integer(32,0) NOT NULL,
+    result_value numeric(10,2) NOT NULL,
+    result_unit character varying(20) NOT NULL,
+    test_type character varying(50) NOT NULL,
+    test_weight numeric(8,2),
+    test_reps integer(32,0),
+    distance numeric(8,2),
+    time_seconds numeric(8,3),
+    duration_seconds integer(32,0),
+    max_reps integer(32,0),
+    attempt_number integer(32,0) DEFAULT 1,
+    is_passed boolean DEFAULT false,
+    notes text,
+    tested_at timestamp without time zone NOT NULL DEFAULT now()
+);
+"
+"CREATE TABLE test_sets
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('test_sets_id_seq'::regclass),
+    name character varying(200) NOT NULL,
+    description text,
+    created_by integer(32,0) NOT NULL,
+    visibility character varying(20) DEFAULT 'private'::character varying,
+    access_code character varying(10) NOT NULL DEFAULT upper(""substring""(md5((random())::text), 1, 8)),
+    is_active boolean DEFAULT true,
+    created_at timestamp without time zone NOT NULL DEFAULT now(),
+    updated_at timestamp without time zone NOT NULL DEFAULT now()
+);
+"
+"CREATE TABLE user_tests
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('user_tests_id_seq'::regclass),
+    user_id integer(32,0) NOT NULL,
+    exercise_id integer(32,0) NOT NULL,
+    test_type character varying(50) NOT NULL,
+    result_value numeric(10,2) NOT NULL,
+    result_unit character varying(20) NOT NULL,
+    test_weight numeric(8,2),
+    test_reps integer(32,0),
+    distance numeric(8,2),
+    time_seconds numeric(8,3),
+    duration_seconds integer(32,0),
+    max_reps integer(32,0),
+    notes text,
+    conditions character varying(200),
+    tested_at timestamp without time zone NOT NULL DEFAULT now(),
+    created_at timestamp without time zone NOT NULL DEFAULT now()
+);
+"
+"CREATE TABLE users
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('users_id_seq'::regclass),
+    telegram_id bigint(64,0) NOT NULL,
+    first_name character varying(255) NOT NULL,
+    last_name character varying(255),
+    username character varying(255),
+    role character varying(20) DEFAULT 'player'::character varying,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    body_weight numeric(5,2) DEFAULT 70.0,
+    age integer(32,0),
+    gender character varying(10),
+    experience_level character varying(20) DEFAULT 'beginner'::character varying,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    is_active boolean DEFAULT true
+);
+"
+"CREATE TABLE workout_block_exercises
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('workout_block_exercises_id_seq'::regclass),
+    workout_block_id integer(32,0) NOT NULL,
+    exercise_id integer(32,0) NOT NULL,
+    exercise_order integer(32,0) NOT NULL DEFAULT 1,
+    sets integer(32,0),
+    reps integer(32,0),
+    weight numeric(6,2),
+    duration_seconds integer(32,0),
+    distance numeric(8,2),
+    rest_seconds integer(32,0) DEFAULT 60,
+    rpe_target integer(32,0),
+    notes text,
+    created_at timestamp without time zone NOT NULL DEFAULT now()
+);
+"
+"CREATE TABLE workout_blocks
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('workout_blocks_id_seq'::regclass),
+    workout_id integer(32,0) NOT NULL,
+    name character varying(100) NOT NULL,
+    description text,
+    block_type character varying(20) DEFAULT 'main'::character varying,
+    block_order integer(32,0) NOT NULL DEFAULT 1,
+    rest_between_exercises integer(32,0) DEFAULT 60,
+    created_at timestamp without time zone NOT NULL DEFAULT now()
+);
+"
+"CREATE TABLE workout_exercises
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('workout_exercises_id_seq'::regclass),
+    workout_id integer(32,0),
+    exercise_id integer(32,0),
+    phase character varying(50) DEFAULT 'main'::character varying,
+    order_in_phase integer(32,0) NOT NULL,
+    sets integer(32,0) NOT NULL,
+    reps_min integer(32,0),
+    reps_max integer(32,0),
+    one_rm_percent numeric(5,2),
+    fixed_weight numeric(6,2),
+    rest_seconds integer(32,0) DEFAULT 60,
+    tempo character varying(20),
+    notes text,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    test_percent integer(32,0),
+    target_value numeric(10,2),
+    target_unit character varying(20)
+);
+"
+"CREATE TABLE workout_individual_students
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('workout_individual_students_id_seq'::regclass),
+    workout_id integer(32,0),
+    student_id integer(32,0),
+    assigned_by bigint(64,0) NOT NULL,
+    assigned_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    deadline timestamp without time zone,
+    notes text,
+    is_active boolean DEFAULT true
+);
+"
+"CREATE TABLE workout_session_exercises
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('workout_session_exercises_id_seq'::regclass),
+    session_id integer(32,0),
+    workout_exercise_id integer(32,0),
+    exercise_id integer(32,0),
+    sets_completed integer(32,0) DEFAULT 0,
+    sets_total integer(32,0) NOT NULL,
+    status character varying(20) DEFAULT 'pending'::character varying,
+    started_at timestamp without time zone,
+    completed_at timestamp without time zone,
+    exercise_rpe integer(32,0),
+    notes text
+);
+"
+"CREATE TABLE workout_session_sets
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('workout_session_sets_id_seq'::regclass),
+    session_exercise_id integer(32,0),
+    set_number integer(32,0) NOT NULL,
+    planned_reps integer(32,0),
+    actual_reps integer(32,0),
+    planned_weight numeric(6,2),
+    actual_weight numeric(6,2),
+    rpe integer(32,0),
+    rest_seconds integer(32,0),
+    completed_at timestamp without time zone,
+    form_notes text,
+    notes text
+);
+"
+"CREATE TABLE workout_sessions
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('workout_sessions_id_seq'::regclass),
+    user_id integer(32,0),
+    workout_id integer(32,0),
+    status character varying(20) DEFAULT 'created'::character varying,
+    started_at timestamp without time zone,
+    completed_at timestamp without time zone,
+    paused_at timestamp without time zone,
+    total_duration_minutes integer(32,0),
+    rpe integer(32,0),
+    rpe_description text,
+    notes text,
+    session_rating integer(32,0),
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+"
+"CREATE TABLE workout_team_player_assignments
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('workout_team_player_assignments_id_seq'::regclass),
+    workout_team_id integer(32,0),
+    team_player_id integer(32,0),
+    status character varying(20) DEFAULT 'pending'::character varying,
+    started_at timestamp without time zone,
+    completed_at timestamp without time zone,
+    session_id integer(32,0),
+    rpe numeric(3,1),
+    notes text
+);
+"
+"CREATE TABLE workout_teams
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('workout_teams_id_seq'::regclass),
+    workout_id integer(32,0),
+    team_id integer(32,0),
+    assigned_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    assigned_by integer(32,0),
+    deadline timestamp without time zone,
+    notes text,
+    is_active boolean DEFAULT true
+);
+"
+"CREATE TABLE workouts
+(
+    id integer(32,0) NOT NULL DEFAULT nextval('workouts_id_seq'::regclass),
+    unique_id character varying(20) NOT NULL,
+    name character varying(255) NOT NULL,
+    description text,
+    created_by integer(32,0),
+    assigned_to integer(32,0),
+    visibility character varying(20) DEFAULT 'private'::character varying,
+    is_template boolean DEFAULT false,
+    difficulty_level character varying(20) DEFAULT 'beginner'::character varying,
+    estimated_duration_minutes integer(32,0),
+    tags ARRAY,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    is_active boolean DEFAULT true
+);
+"

@@ -1,5 +1,5 @@
 import logging
-from aiogram import Router, F
+from aiogram import Router, F,Dispatcher
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 #from . import exercise_params
 from aiogram.filters import StateFilter
 
-
+from .trainees_menu import trainees_router
 # Общий роутер для текстовых сообщений
 general_router = Router(name="general")
 
@@ -304,14 +304,19 @@ def register_all_handlers(dp):
     workouts.register_workout_handlers(dp)
     tests.register_test_handlers(dp)
     test_batteries.register_battery_handlers(dp)
+    dp.include_router(trainees_router)
+    logger.info("👤 Trainees router registered")
     
-
-    # Регистрация опциональных модулей (командные тесты)
     if team_tests:
         team_tests.register_team_test_handlers(dp)
+    
     if player_tests:
         player_tests.register_player_test_handlers(dp)
+    
+    logger.info("✅ Все обработчики успешно зарегистрированы")
 
+   
+    
     logger.info("Все обработчики успешно зарегистрированы")
 
 __all__ = ["register_all_handlers", "handle_all_text_messages", "general_router"]

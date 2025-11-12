@@ -391,7 +391,7 @@ def build_main_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="🏆 Команды", callback_data="teams_menu")],
-            [InlineKeyboardButton(text="👤 Подопечные", callback_data="students_menu")],
+            [InlineKeyboardButton(text="👤 Подопечные", callback_data="my_trainees")],
             [InlineKeyboardButton(text="📊 Статистика", callback_data="stats_menu")]
         ]
     )
@@ -1176,25 +1176,31 @@ async def finalize_player_creation(update: Message | CallbackQuery, state: FSMCo
             await update.answer("❌ Внутренняя ошибка")
 
 
-@teams_router.callback_query(F.data == "students_menu")
-async def cb_students_menu(callback: CallbackQuery, state: FSMContext) -> None:
-    """Обработчик открытия меню подопечных."""
-    await state.clear()
-    students = await get_individual_students(callback.from_user.id)
-    text = (
-        f"👤 <b>Индивидуальные подопечные</b>\n\n"
-        f"📊 У вас {len(students)} подопечных\n\n"
-        "Подопечные для персональных тренировок."
-    )
-    kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="➕ Добавить подопечного", callback_data="add_student")],
-            [InlineKeyboardButton(text="👥 Мои подопечные", callback_data="my_students")],
-            [InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]
-        ]
-    )
-    await safe_edit_text(callback.message, text, reply_markup=kb)
-    await callback.answer()
+# @teams_router.callback_query(F.data == "students_menu")
+# async def cb_students_menu(callback: CallbackQuery, state: FSMContext) -> None:
+#     """Обработчик открытия меню подопечных."""
+#     await state.clear()
+#     students = await get_individual_students(callback.from_user.id)
+#     text = (
+#         f"👤 <b>Индивидуальные подопечные</b>\n\n"
+#         f"📊 У вас {len(students)} подопечных\n\n"
+#         "Подопечные для персональных тренировок."
+#     )
+#     kb = InlineKeyboardMarkup(
+#         inline_keyboard=[
+#             [InlineKeyboardButton(text="➕ Добавить подопечного", callback_data="add_student")],
+#             [InlineKeyboardButton(text="👥 Мои подопечные", callback_data="my_trainees")],
+#             [InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]
+#         ]
+#     )
+#     await safe_edit_text(callback.message, text, reply_markup=kb)
+#     await callback.answer()1
+
+# @teams_router.callback_query()  # БЕЗ ФИЛЬТРА - ловит ВСЕ!
+# async def debug_all_callbacks(callback: CallbackQuery):
+#     logger.info(f"🔴 DEBUG teams_router ловит: callback.data={callback.data}")
+#     # Не обрабатываем, просто логируем и выходим
+#     await callback.answer()
 
 
 @teams_router.callback_query(F.data == "add_student")
@@ -1328,7 +1334,7 @@ async def cb_student_level(callback: CallbackQuery, state: FSMContext) -> None:
             kb = InlineKeyboardMarkup(
                 inline_keyboard=[
                     [InlineKeyboardButton(text="➕ Добавить еще подопечного", callback_data="add_student")],
-                    [InlineKeyboardButton(text="👥 Посмотреть всех подопечных", callback_data="my_students")],
+                    [InlineKeyboardButton(text="👥 Посмотреть всех подопечных", callback_data="my_trainees")],
                     [InlineKeyboardButton(text="🔙 К подопечным", callback_data="students_menu")]
                 ]
             )
@@ -1343,33 +1349,6 @@ async def cb_student_level(callback: CallbackQuery, state: FSMContext) -> None:
         await callback.answer("❌ Внутренняя ошибка", show_alert=True)
 
 
-@teams_router.callback_query(F.data == "my_students")
-async def cb_my_students(callback: CallbackQuery, state: FSMContext) -> None:
-    """Обработчик просмотра списка подопечных."""
-    await state.clear()
-    students = await get_individual_students(callback.from_user.id)
-    if not students:
-        kb = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text="➕ Добавить подопечного", callback_data="add_student")],
-                [InlineKeyboardButton(text="🔙 Назад", callback_data="students_menu")]
-            ]
-        )
-        await safe_edit_text(callback.message, "📭 <b>У вас пока нет подопечных</b>\n\nДобавьте первого подопечного!", reply_markup=kb)
-        await callback.answer()
-        return
-
-    text = ""
-    for i, s in enumerate(students, 1):
-        text += f"{i}. {s.first_name} {s.last_name or ''} — {s.level}\n"
-    kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="➕ Добавить подопечного", callback_data="add_student")],
-            [InlineKeyboardButton(text="🔙 Назад", callback_data="students_menu")]
-        ]
-    )
-    await safe_edit_text(callback.message, f"👥 <b>Мои подопечные ({len(students)})</b>\n\n{text}", reply_markup=kb)
-    await callback.answer()
 
 
 @teams_router.callback_query(F.data == "stats_menu")

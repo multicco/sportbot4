@@ -146,6 +146,8 @@ async def main():
         
         dp.include_router(general_router)
         
+
+        #dp.include_router(trainees_router)
         # ===== КОНЕЦ ИСПРАВЛЕНИЙ =====
         
         # Настройка команд бота
