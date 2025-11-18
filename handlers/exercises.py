@@ -7,7 +7,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 import logging
 logger = logging.getLogger(__name__)
 from states.exercise_states import CreateExerciseStates
-
+from aiogram import Router
 from database import db_manager
 from states.exercise_states import CreateExerciseStates
 from states.workout_states import CreateWorkoutStates
@@ -23,6 +23,8 @@ from utils.formatters import format_exercise_info
 #from handlers.workouts import _safe_edit_or_send
 
 from utils.helpers import _safe_edit_or_send
+
+exercises_router = Router()
 
 def register_exercise_handlers(dp):
     """Регистрация обработчиков упражнений"""

@@ -579,12 +579,12 @@ class TeamsDatabase:
                 return False
 
     async def assign_workout_to_student(self, workout_id: int, student_id: int,
-                                      assigned_by: int, notes: str = None,
-                                      deadline: datetime = None) -> bool:
+                                  assigned_by: int, notes: str = None,
+                                  deadline: datetime = None) -> Dict:
         """Назначить тренировку индивидуальному подопечному"""
         async with self.pool.acquire() as conn:
             try:
-                await conn.execute("""
+                row = await conn.fetchrow("""
                 INSERT INTO workout_individual_students
                 (workout_id, student_id, assigned_by, notes, deadline)
                 VALUES ($1, $2, $3, $4, $5)
@@ -594,14 +594,16 @@ class TeamsDatabase:
                     is_active = TRUE,
                     notes = $4,
                     deadline = $5
+                RETURNING *
                 """, workout_id, student_id, assigned_by, notes, deadline)
 
                 logger.info(f"✅ Assigned workout {workout_id} to student {student_id}")
-                return True
+                return dict(row)
 
             except Exception as e:
                 logger.error(f"Error assigning workout to student: {e}")
-                return False
+                return None
+
 
     async def get_team_workouts(self, team_id: int) -> List[WorkoutAssignment]:
         """Получить назначенные тренировки команды с прогрессом"""
@@ -775,7 +777,7 @@ class TeamsDatabase:
                 w.created_by,
                 w.difficulty_level,
                 w.estimated_duration_minutes,
-                w.category,
+                
                 u.first_name as creator_name,
                 u.last_name as creator_last_name
             FROM workouts w

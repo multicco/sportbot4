@@ -92,7 +92,8 @@ async def check_database_connection():
         return False
 
 
-
+# # from handlers.teams import init_teams_database_instance
+# teams_database = init_teams_database_instance(db_manager.pool)
 
 async def main():
     """Главная функция запуска бота"""
@@ -128,23 +129,23 @@ async def main():
         
         # 1. Teams router
         logger.info("🏆 Регистрация роутера команд...")
-        teams_router = get_teams_router()
-        dp.include_router(teams_router)
+        # teams_router = get_teams_router()
+        # dp.include_router(teams_router)
         
         # 2. Player workouts router (НОВЫЙ)
         logger.info("💪 Регистрация роутера тренировок игроков...")
         player_workouts_router = get_player_workouts_router()
-        dp.include_router(player_workouts_router)
+        # dp.include_router(player_workouts_router)
         
         #         # 2.1 Основной workouts router
         # from handlers.workouts import workouts_router
-        dp.include_router(workouts_router)
+        # dp.include_router(workouts_router)
 
         # 3. Остальные обработчики
         logger.info("🔗 Регистрация основных обработчиков...")
         register_all_handlers(dp)
         
-        dp.include_router(general_router)
+        # dp.include_router(general_router)
         
 
         #dp.include_router(trainees_router)

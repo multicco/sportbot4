@@ -10,14 +10,16 @@ from aiogram.filters import Command
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from states.team_states import JoinTeamStates
-from database.teams_database import teams_database
+
 from states.workout_assignment_states import AssignWorkoutStates
 from typing import Dict, List, Optional, Tuple
 
+from database import db_manager
 
 # Импортируем реализацию БД из папки database
 try:
     from database.teams_database import init_teams_database, TeamsDatabase
+    teams_db: TeamsDatabase | None = None
 except Exception as e:
     init_teams_database = None
     TeamsDatabase = None
@@ -35,15 +37,28 @@ from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from states.team_states import JoinTeamStates
 from database.teams_database import teams_database
-import logging
+# from database.teams_database import TeamsDatabase
+# logger.info(f"🔍 Импорт teams_database: {teams_database} (тип {type(teams_database)})")
+
 
 # ИСПРАВЛЕНИЕ: Импортируйте оба класса состояний
 from states.team_states import JoinTeamStates, AddMemberStates
 
 logger = logging.getLogger(__name__)
+async def workout_method_my_workouts(callback: CallbackQuery, state: FSMContext):
+    """Заглушка — перенаправляем на существующий обработчик"""
+    await workout_method_my_for_trainee(callback, state)
 
+async def select_workout(callback: CallbackQuery, state: FSMContext):
+    """Заглушка — перенаправляем на существующий обработчик"""
+    await select_workout_for_trainee(callback, state)
 # Добавить к существующему teams_router
 
+# #ловля колбаков
+# @teams_router.callback_query()  # без фильтра – ловит ВСЁ
+# async def debug_all_callbacks(callback: CallbackQuery):
+#     logger.info(f"🔴 DEBUG: callback.data={callback.data}")
+#     await callback.answer() 
 
 @teams_router.message(Command("join"))
 async def cmd_join_team(message: Message, state: FSMContext):
@@ -353,7 +368,7 @@ async def join_new_team_button(callback: CallbackQuery):
 
 
 # Глобальный экземпляр БД для модуля
-teams_db: TeamsDatabase | None = None
+#teams_db: TeamsDatabase | None = None
 
 
 
@@ -419,6 +434,8 @@ async def init_teams_module_async(db_manager) -> bool:
         if not hasattr(db_manager, 'pool') or db_manager.pool is None:
             raise RuntimeError("db_manager.pool is not initialized")
         teams_db = init_teams_database(db_manager.pool)
+        global teams_database
+        teams_database = teams_db
         logger.info("teams_db после init_teams_database: %s", teams_db)
         await teams_db.init_tables()
         logger.info("✅ Модуль команд успешно инициализирован, teams_db: %s", teams_db)
@@ -1807,6 +1824,643 @@ async def show_workout_progress(callback: CallbackQuery):
     
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
     await callback.answer()
+
+# ===== ДОБАВЛЕНИЕ ПОДОПЕЧНОГО (через выбор метода) =====
+
+@teams_router.callback_query(F.data == "add_trainee")
+async def start_add_trainee_flow(callback: CallbackQuery, state: FSMContext):
+    """Начало процесса добавления подопечного с выбором метода"""
+    
+    logger.info(f"🟢 Начало добавления подопечного для {callback.from_user.id}")
+    
+    await state.clear()
+    await state.update_data(assignment_type='trainee')  # Отметим что это подопечный
+    await state.set_state(AddMemberStates.choosing_method)
+    
+    # ПЕРЕИСПОЛЬЗУЕМ то же красивое меню как для игроков
+    keyboard = InlineKeyboardBuilder()
+    
+    keyboard.button(
+        text="🆔 По Telegram ID",
+        callback_data=f"add_method_telegram_id"
+    )
+    keyboard.button(
+        text="✍️ Ввести вручную",
+        callback_data=f"add_method_manual"
+    )
+    keyboard.button(
+        text="📋 Пригласительная ссылка",
+        callback_data=f"generate_trainee_invite"
+    )
+    keyboard.button(
+        text="❌ Отмена",
+        callback_data="my_trainees"
+    )
+    
+    keyboard.adjust(1)
+    
+    await callback.message.edit_text(
+        f"🆕 **Добавление подопечного**\n\n"
+        f"Выберите способ добавления:\n\n"
+        f"🆔 **По Telegram ID** - если знаете ID пользователя\n"
+        f"✍️ **Ввести вручную** - имя, фамилия, специализация\n"
+        f"📋 **Пригласительная ссылка** - подопечный сам присоединится\n\n"
+        f"💡 *Telegram ID можно узнать, попросив подопечного написать боту @userinfobot*",
+        reply_markup=keyboard.as_markup(),
+        parse_mode="Markdown"
+    )
+    
+    await callback.answer()
+
+# ===== НАЗНАЧЕНИЕ ТРЕНИРОВОК ПОДОПЕЧНОМУ (аналогия teams) =====
+
+@teams_router.callback_query(F.data.startswith("assign_workout_trainee_"))
+async def start_assign_workout_to_trainee(callback: CallbackQuery, state: FSMContext) -> None:
+    """Начать процесс назначения тренировки подопечному"""
+    
+    logger.info(f"🟢 Начало назначения тренировки подопечному для {callback.from_user.id}")
+    
+    trainee_id = int(callback.data.split("_")[-1])
+    
+    # Получить подопечного
+    try:
+        trainee = await teams_database.get_individual_student_by_id(trainee_id)
+        
+        if not trainee:
+            await callback.answer("❌ Подопечный не найден")
+            return
+        
+        # Проверить что это подопечный текущего тренера
+        if trainee.coach_telegram_id != callback.from_user.id:
+            await callback.answer("❌ Это не ваш подопечный")
+            return
+        
+        # Сохраняем в состояние
+        await state.update_data(
+            trainee_id=trainee_id,
+            trainee_name=f"{trainee.first_name} {trainee.last_name or ''}".strip(),
+            assignment_type='trainee'
+        )
+        await state.set_state(AssignWorkoutStates.choosing_workout_method)
+        
+        # Красивое меню выбора способа
+        keyboard = InlineKeyboardBuilder()
+        keyboard.button(text="💪 Мои тренировки", callback_data="workout_method_my")
+        keyboard.button(text="🔗 По коду", callback_data="workout_method_code")
+        keyboard.button(text="🔍 Поиск публичных", callback_data="workout_method_search")
+        keyboard.button(text="🆕 Создать новую", callback_data="workout_method_create")
+        keyboard.button(text="❌ Отмена", callback_data=f"view_trainee_{trainee_id}")
+        keyboard.adjust(1)
+        
+        text = f"""➕ **Назначение тренировки подопечному**
+
+👤 **Подопечный:** {trainee.first_name} {trainee.last_name or ''}
+🎯 **Специализация:** {trainee.specialization or 'не указана'}
+📊 **Уровень:** {trainee.level}
+
+Выберите способ добавления тренировки:
+
+💪 **Мои тренировки** - из созданных вами
+🔗 **По коду** - если знаете код тренировки
+🔍 **Поиск** - найти публичную тренировку
+🆕 **Создать** - новую тренировку"""
+        
+        await safe_edit_text(
+            callback.message,
+            text,
+            reply_markup=keyboard.as_markup(),
+            parse_mode="Markdown"
+        )
+        
+        await callback.answer()
+        
+    except Exception as e:
+        logger.error(f"🔴 Ошибка при назначении тренировки подопечному: {e}")
+        await callback.answer("❌ Ошибка при загрузке подопечного", show_alert=True)
+
+
+@teams_router.callback_query(F.data == "workout_method_my", AssignWorkoutStates.choosing_workout_method)
+async def workout_method_my_workouts_trainee(callback: CallbackQuery, state: FSMContext) -> None:
+    """Выбрать тренировку из моих для подопечного"""
+    
+    logger.info(f"🟢 Выбор метода: мои тренировки для подопечного")
+    
+    data = await state.get_data()
+    assignment_type = data.get('assignment_type', 'team')
+    
+    # Если это для подопечного
+    if assignment_type == 'trainee':
+        trainee_id = data.get('trainee_id')
+        trainee_name = data.get('trainee_name')
+        
+        # Получить мои тренировки
+        workouts = await teams_database.get_coach_workouts(callback.from_user.id)
+        
+        if not workouts:
+            keyboard = InlineKeyboardBuilder()
+            keyboard.button(text="🆕 Создать тренировку", callback_data="workout_method_create")
+            keyboard.button(text="🔙 Назад", callback_data=f"assign_workout_trainee_{trainee_id}")
+            keyboard.adjust(1)
+            
+            await safe_edit_text(
+                callback.message,
+                f"❌ **У вас нет созданных тренировок**\n\n"
+                f"Подопечный: {trainee_name}",
+                reply_markup=keyboard.as_markup(),
+                parse_mode="Markdown"
+            )
+            await callback.answer()
+            return
+        
+        # Показать список тренировок
+        await state.set_state(AssignWorkoutStates.selecting_workout)
+        
+        keyboard = InlineKeyboardBuilder()
+        for workout in workouts:
+            keyboard.button(
+                text=f"💪 {workout.name[:30]}",
+                callback_data=f"select_workout_{workout.id}"
+            )
+        
+        keyboard.button(text="🔙 Назад", callback_data=f"assign_workout_trainee_{trainee_id}")
+        keyboard.adjust(1)
+        
+        workout_list = "\n".join([f"• {w.name}" for w in workouts])
+        
+        await safe_edit_text(
+            callback.message,
+            f"💪 **Ваши тренировки**\n\n"
+            f"Подопечный: {trainee_name}\n\n"
+            f"{workout_list}",
+            reply_markup=keyboard.as_markup(),
+            parse_mode="Markdown"
+        )
+        
+        await callback.answer()
+    else:
+        # Для команды используем существующий хэндлер
+        await workout_method_my_workouts(callback, state)
+
+
+@teams_router.callback_query(F.data == "workout_method_code", AssignWorkoutStates.choosing_workout_method)
+async def workout_method_code_trainee(callback: CallbackQuery, state: FSMContext) -> None:
+    """Ввести код тренировки для подопечного"""
+    
+    logger.info(f"🟢 Выбор метода: ввод кода тренировки для подопечного")
+    
+    data = await state.get_data()
+    assignment_type = data.get('assignment_type', 'team')
+    
+    # Если это для подопечного
+    if assignment_type == 'trainee':
+        trainee_id = data.get('trainee_id')
+        
+        await state.set_state(AssignWorkoutStates.entering_workout_code)
+        
+        keyboard = InlineKeyboardBuilder()
+        keyboard.button(text="🔙 Назад", callback_data=f"assign_workout_trainee_{trainee_id}")
+        keyboard.adjust(1)
+        
+        await safe_edit_text(
+            callback.message,
+            f"🔗 **Введите код тренировки**\n\n"
+            f"Код состоит из 8 символов (например: abc12345)",
+            reply_markup=keyboard.as_markup(),
+            parse_mode="Markdown"
+        )
+        
+        await callback.answer()
+    else:
+        # Для команды используем существующий хэндлер
+        await workout_method_code(callback, state)
+
+
+@teams_router.callback_query(F.data.startswith("select_workout_"))
+async def select_workout_for_trainee(callback: CallbackQuery, state: FSMContext) -> None:
+    """Выбрать тренировку и показать её для подопечного"""
+    
+    logger.info(f"🟢 Выбор тренировки для подопечного")
+    
+    try:
+        workout_id = int(callback.data.split("_")[-1])
+        
+        data = await state.get_data()
+        assignment_type = data.get('assignment_type', 'team')
+        
+        # Если это для подопечного
+        if assignment_type == 'trainee':
+            trainee_id = data.get('trainee_id')
+            trainee_name = data.get('trainee_name')
+            
+            # Получить тренировку
+            workout = await teams_database.get_workout_by_id(workout_id)
+            
+            if not workout or workout.created_by != callback.from_user.id:
+                await callback.answer("❌ Тренировка не найдена или не ваша")
+                return
+            
+            # Сохранить выбранную тренировку
+            await state.update_data(selected_workout=workout)
+            await state.set_state(AssignWorkoutStates.confirming_assignment)
+            
+            # Показать детали тренировки
+            keyboard = InlineKeyboardBuilder()
+            keyboard.button(text="✅ Назначить", callback_data="confirm_assign_workout_trainee")
+            keyboard.button(text="📝 Добавить примечание", callback_data="add_assignment_notes")
+            keyboard.button(text="📅 Установить срок", callback_data="set_assignment_deadline")
+            keyboard.button(text="🔙 Назад", callback_data="workout_method_my")
+            keyboard.adjust(1)
+            
+            text = f"""💪 **Выбрана тренировка**
+
+📋 **Название:** {workout.name}
+📝 **Описание:** {workout.description or 'не указано'}
+📊 **Сложность:** {workout.difficulty_level}
+⏱️ **Длительность:** ~{workout.estimated_duration_minutes or 60} минут
+👤 **Подопечный:** {trainee_name}
+
+✅ Готово к назначению?"""
+            
+            await safe_edit_text(
+                callback.message,
+                text,
+                reply_markup=keyboard.as_markup(),
+                parse_mode="Markdown"
+            )
+            
+            await callback.answer()
+        else:
+            # Для команды используем существующий хэндлер
+            await select_workout(callback, state)
+            
+    except Exception as e:
+        logger.error(f"🔴 Ошибка при выборе тренировки: {e}")
+        await callback.answer("❌ Ошибка при выборе тренировки", show_alert=True)
+
+
+@teams_router.callback_query(F.data == "confirm_assign_workout_trainee")
+async def confirm_assign_workout_trainee(callback: CallbackQuery, state: FSMContext) -> None:
+    """Подтвердить назначение тренировки подопечному"""
+
+    logger.info("🟢 Подтверждение назначения тренировки подопечному")
+
+    try:
+        data = await state.get_data()
+        logger.info(f"🔍 state data: {data}")
+
+        trainee_id   = data.get('trainee_id')
+        trainee_name = data.get('trainee_name')
+        workout      = data.get('selected_workout')
+        notes        = data.get('assignment_notes')
+        deadline     = data.get('assignment_deadline')
+
+        workout_id = data.get('selected_workout_id')
+        if not workout_id:
+            await callback.answer("❌ Ошибка: тренировка не выбрана")
+            return
+
+        logger.info(f"🔍 teams_database = {teams_database} (тип {type(teams_database)})")
+
+        # получаем объект тренировки из БД
+        async with db_manager.pool.acquire() as conn:
+            workout = dict(await conn.fetchrow(
+                "SELECT id, name, description, estimated_duration_minutes "
+                "FROM workouts WHERE id = $1",
+                workout_id
+            ))
+        if not workout:
+            await callback.answer("❌ Тренировка не найдена", show_alert=True)
+            return
+
+        logger.info(f"🔍 перед assign: workout_id={workout_id}, trainee_id={trainee_id}")
+
+        # Назначить тренировку подопечному
+        
+        success = await teams_database.assign_workout_to_student(
+            workout_id=workout_id,
+            student_id=trainee_id,
+            assigned_by=callback.from_user.id,
+            notes=notes,
+            deadline=deadline
+        )
+
+        if success:
+            await state.clear()
+
+            keyboard = InlineKeyboardBuilder()
+            keyboard.button(text="👤 К подопечному", callback_data=f"view_trainee_{trainee_id}")
+            keyboard.button(text="👥 Мои подопечные", callback_data="my_trainees")
+            keyboard.adjust(1)
+
+            text = f"""🎉 **Тренировка назначена!**
+
+💪 **Тренировка:** {workout["name"]}
+👤 **Подопечный:** {trainee_name}
+
+✅ Подопечный получит уведомление и сможет начать тренировку!"""
+
+            await safe_edit_text(
+                callback.message,
+                text,
+                reply_markup=keyboard.as_markup(),
+                parse_mode="Markdown"
+            )
+
+            await callback.answer("✅ Тренировка назначена подопечному!")
+
+            # Уведомить подопечного, если у него есть Telegram ID
+            trainee = await teams_database.get_individual_student_by_id(trainee_id)
+            if trainee and trainee.telegram_id:
+                try:
+                    from main import bot
+
+                    keyboard_notify = InlineKeyboardBuilder()
+                    keyboard_notify.button(text="▶️ Начать тренировку", callback_data=f"start_workout_{workout_id}")
+                    keyboard_notify.button(text="📋 Мои тренировки", callback_data="my_workouts")
+                    keyboard_notify.adjust(1)
+
+                    notification_text = f"""📬 **Вам назначена новая тренировка!**
+
+💪 **{workout["name"]}**
+📝 {workout["description"] or ''}
+⏱️ Примерная длительность: ~{workout["estimated_duration_minutes"] or 60} минут"""
+
+                    if notes:
+                        notification_text += f"\n\n📌 **Примечание от тренера:** {notes}"
+
+                    await bot.send_message(
+                        trainee.telegram_id,
+                        notification_text,
+                        reply_markup=keyboard_notify.as_markup(),
+                        parse_mode="Markdown"
+                    )
+                    logger.info(f"✅ Уведомление отправлено подопечному {trainee.telegram_id}")
+                except Exception as e:
+                    logger.error(f"🔴 Ошибка при отправке уведомления подопечному: {e}")
+        else:
+            await callback.answer("❌ Ошибка при назначении тренировки", show_alert=True)
+            logger.error("Ошибка при вызове assign_workout_to_student")
+
+    except Exception as e:
+        logger.error(f"🔴 Ошибка при подтверждении назначения: {e}")
+        await callback.answer("❌ Ошибка при назначении тренировки", show_alert=True)
+
+
+@teams_router.callback_query(F.data.startswith("view_trainee_"))
+async def view_trainee_profile(callback: CallbackQuery, state: FSMContext) -> None:
+    """Показать профиль подопечного"""
+    
+    logger.info(f"🟢 Просмотр профиля подопечного")
+    
+    try:
+        await state.clear()
+        
+        trainee_id = int(callback.data.split("_")[-1])
+        
+        # Получить подопечного
+        trainee = await teams_database.get_individual_student_by_id(trainee_id)
+        
+        if not trainee or trainee.coach_telegram_id != callback.from_user.id:
+            await callback.answer("❌ Подопечный не найден")
+            return
+        
+        # Получить количество назначенных тренировок
+        workouts = await teams_database.get_student_workouts(trainee_id)
+        workouts_count = len(workouts) if workouts else 0
+        
+        keyboard = InlineKeyboardBuilder()
+        keyboard.button(text="➕ Назначить тренировку", callback_data=f"assign_workout_trainee_{trainee_id}")
+        keyboard.button(text="📋 Тренировки ({})".format(workouts_count), callback_data=f"trainee_workouts_{trainee_id}")
+        keyboard.button(text="📊 Статистика", callback_data=f"trainee_stats_{trainee_id}")
+        keyboard.button(text="🔙 К подопечным", callback_data="my_trainees")
+        keyboard.adjust(1)
+        
+        text = f"""👤 **{trainee.first_name} {trainee.last_name or ''}**
+
+🎯 **Специализация:** {trainee.specialization or 'не указана'}
+📊 **Уровень:** {trainee.level}
+📱 **Телефон:** {trainee.phone or 'не указан'}
+📅 **Добавлен:** {trainee.created_at.strftime('%d.%m.%Y')}
+📈 **Тренировок назначено:** {workouts_count}
+
+Что вы хотите сделать?"""
+        
+        await safe_edit_text(
+            callback.message,
+            text,
+            reply_markup=keyboard.as_markup(),
+            parse_mode="Markdown"
+        )
+        
+        await callback.answer()
+        
+    except Exception as e:
+        logger.error(f"🔴 Ошибка при просмотре профиля подопечного: {e}")
+        await callback.answer("❌ Ошибка при загрузке профиля", show_alert=True)
+
+
+# ===== НАЗНАЧЕНИЕ ТРЕНИРОВОК ПОДОПЕЧНЫМ (из trainees_menu) =====
+
+@teams_router.callback_query(F.data == "workout_method_my", AssignWorkoutStates.choosing_workout_method)
+async def workout_method_my_for_trainee(callback: CallbackQuery, state: FSMContext):
+    """Выбор тренировки из моих (для подопечного или команды)"""
+    
+    logger.info("🟢 workout_method_my вызван")
+    
+    data = await state.get_data()
+    assignment_type = data.get('assignment_type', 'team')
+    
+    if assignment_type == 'trainee':
+        trainee_id = data.get('trainee_id')
+        trainee_name = data.get('trainee_name')
+        
+        # Получить мои тренировки
+        async with db_manager.pool.acquire() as conn:
+            workouts = await conn.fetch("""
+                SELECT id, name, description, difficulty_level, estimated_duration_minutes
+                FROM workouts
+                WHERE created_by = $1 AND is_active = true
+                ORDER BY created_at DESC
+            """, callback.from_user.id)
+        
+        if not workouts:
+            kb = InlineKeyboardBuilder()
+            kb.button(text="🆕 Создать тренировку", callback_data="workout_method_create")
+            kb.button(text="🔙 Назад", callback_data=f"assign_workout_trainee_{trainee_id}")
+            kb.adjust(1)
+            
+            await callback.message.edit_text(
+                f"❌ **У вас нет созданных тренировок**\n\n"
+                f"Подопечный: {trainee_name}",
+                reply_markup=kb.as_markup(),
+                parse_mode="Markdown"
+            )
+            await callback.answer()
+            return
+        
+        # Показать список тренировок
+        kb = InlineKeyboardBuilder()
+        for workout in workouts:
+            kb.button(
+                text=f"💪 {workout['name'][:30]}",
+                callback_data=f"select_workout_trainee_{workout['id']}"
+            )
+        
+        kb.button(text="🔙 Назад", callback_data=f"assign_workout_trainee_{trainee_id}")
+        kb.adjust(1)
+        
+        workout_list = "\n".join([f"• {w['name']}" for w in workouts])
+        
+        await callback.message.edit_text(
+            f"💪 **Ваши тренировки**\n\n"
+            f"Подопечный: {trainee_name}\n\n"
+            f"{workout_list}",
+            reply_markup=kb.as_markup(),
+            parse_mode="Markdown"
+        )
+        
+        await callback.answer()
+    else:
+        # Для команды - используй существующий хэндлер
+        # (если он есть в teams.py)
+        await callback.answer("Функция для команд в разработке")
+
+from aiogram.filters import StateFilter
+
+# @teams_router.callback_query(F.data == "trainee_workout_method_my", StateFilter(AssignWorkoutStates.choosing_workout_method))
+# async def trainee_workout_method_my(callback: CallbackQuery, state: FSMContext):
+#     """Для подопечных - мои тренировки"""
+#     return await workout_method_my_for_trainee(callback, state)
+
+@teams_router.callback_query(F.data == "trainee_workout_method_my", StateFilter(AssignWorkoutStates.choosing_workout_method))
+async def trainee_workout_method_my(callback: CallbackQuery, state: FSMContext):
+    """Выбор своих тренировок для подопечного"""
+    data = await state.get_data()
+    trainee_id = data.get('trainee_id')
+    user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
+    if not user:
+        # админ нажал кнопку, но в users его нет – создаём
+        await db_manager.create_user(
+            telegram_id=callback.from_user.id,
+            first_name=callback.from_user.first_name or '',
+            last_name=callback.from_user.last_name or '',
+            username=callback.from_user.username,
+            role='admin'  # явно ставим админскую роль
+        )
+        user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
+
+    logger.info(f"admin={callback.from_user.id} inner-id={user['id']} -> ищем created_by={user['id']}")
+    
+    
+    async with db_manager.pool.acquire() as conn:
+        # Получаем тренировки, созданные тренером
+        workouts = await conn.fetch("""
+            SELECT id, name, description, difficulty_level, estimated_duration_minutes
+            FROM workouts
+            WHERE created_by = $1 AND is_active = true
+            ORDER BY created_at DESC
+         """, user['id']) 
+        logger.info(f"admin={callback.from_user.id} inner-id={user['id']} -> ищем created_by={user['id']}")
+    if not workouts:
+        await callback.answer("❌ У вас нет созданных тренировок", show_alert=True)
+        return
+    
+    # Показать список для выбора
+    kb = InlineKeyboardBuilder()
+    for workout in workouts:
+        kb.button(
+            text=f"💪 {workout['name'][:30]}",
+            callback_data=f"trainee_select_workout_{workout['id']}"
+        )
+    kb.button(text="❌ Отмена", callback_data=f"trainee_profile_{trainee_id}")
+    kb.adjust(1)
+    
+    await callback.message.edit_text(
+        "💪 **Выберите тренировку из ваших:**",
+        reply_markup=kb.as_markup(),
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+@teams_router.callback_query(F.data == "trainee_workout_method_code", StateFilter(AssignWorkoutStates.choosing_workout_method))
+async def trainee_workout_method_code(callback: CallbackQuery, state: FSMContext):
+    """Поиск тренировки подопечнику по коду"""
+    await state.set_state(AssignWorkoutStates.entering_workout_code)
+    
+    kb = InlineKeyboardBuilder()
+    kb.button(text="❌ Отмена", callback_data="back_to_trainee_assign")
+    
+    await callback.message.edit_text(
+        "🔗 **Поиск тренировки по коду**\n\n"
+        "Введите код тренировки (8 символов):",
+        reply_markup=kb.as_markup(),
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+@teams_router.callback_query(F.data == "trainee_workout_method_create", StateFilter(AssignWorkoutStates.choosing_workout_method))
+async def trainee_workout_method_create(callback: CallbackQuery, state: FSMContext):
+    """Создание новой тренировки для подопечного"""
+    await callback.message.edit_text(
+        "🆕 **Создание тренировки**\n\n"
+        "⚠️ Функция в разработке.\n\n"
+        "Используйте раздел 'Тренировки' в главном меню для создания.",
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+@teams_router.callback_query(F.data.startswith("trainee_select_workout_"))
+async def trainee_select_workout(callback: CallbackQuery, state: FSMContext):
+    """Пользователь выбрал тренировку из списка «Мои тренировки» в окне назначения подопечному."""
+    workout_id = int(callback.data.split("_")[-1])
+    data = await state.get_data()
+    trainee_id = data.get("trainee_id")
+    if not trainee_id:
+        await callback.answer("Контекст подопечного потерян", show_alert=True)
+        return
+
+    # Сохраняем выбранную тренировку в state
+    await state.update_data(selected_workout_id=workout_id)
+
+    # Получаем имя тренировки для красивого сообщения
+    async with db_manager.pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT name FROM workouts WHERE id = $1", workout_id)
+    if not row:
+        await callback.answer("Тренировка не найдена", show_alert=True)
+        return
+
+    kb = InlineKeyboardBuilder()
+    kb.button(text="✅ Назначить", callback_data="confirm_assign_workout_trainee")
+    kb.button(text="📝 Добавить примечание", callback_data="add_assignment_notes")
+    kb.button(text="📅 Установить срок", callback_data="set_assignment_deadline")
+    kb.button(text="🔙 Назад", callback_data=f"trainee_profile_{trainee_id}")
+    kb.adjust(1)
+
+    await callback.message.edit_text(
+        f"💪 **{row['name']}**\n\n"
+        "Подтвердите назначение подопечному:",
+        reply_markup=kb.as_markup(),
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+
+
+# teams_database: TeamsDatabase | None = None   # ← уже есть, оставляем
+
+# def init_teams_database_instance(pool) -> TeamsDatabase:
+#     """
+#     Создаёт ЕДИНЫЙ глобальный экземпляр TeamsDatabase.
+#     Вызывается ОДИН раз из main.py после готовности pool.
+#     Возвращает объект, чтобы main мог его держать и передавать куда нужно.
+#     """
+#     global teams_database
+#     teams_database = TeamsDatabase(pool)
+#     logger.info("🔧 Глобальный teams_database инициализирован: %s", teams_database)
+#     return teams_database
 
 
 
