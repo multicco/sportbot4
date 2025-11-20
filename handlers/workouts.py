@@ -578,9 +578,111 @@ async def handle_name_search(message: Message, state: FSMContext):
 
 
 
+# @workouts_router.callback_query(F.data == "my_workouts")
+# async def my_workouts(callback: CallbackQuery):
+    
+#     """Показать тренировки пользователя"""
+#     try:
+#         logger.info(f"=== my_workouts START user {callback.from_user.id} ===")
+        
+#         # ЛОГИРОВАНИЕ 1: Получение юзера
+#         user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
+#         logger.info(f"✓ User found: {user}")
+        
+#         if not user:
+#             logger.error(f"✗ User NOT found for telegram_id {callback.from_user.id}")
+#             await callback.answer("❌ Пользователь не найден", show_alert=True)
+#             return
+        
+#         # ✅ ДЛЯ ПОДОПЕЧНОГО (PLAYER) - НЕ ОБРАБАТЫВАЕМ, ВЫХОДИМ
+#         if user.get('role') == 'player':
+#             logger.info(f"⚠️ Player {user['id']} skip - using teams_menu handler")
+#             await callback.answer()
+#             return
+
+
+
+#         logger.info(f"✓ User ID: {user.get('id')}")
+        
+#         # ЛОГИРОВАНИЕ 2: Подключение к БД
+#         async with db_manager.pool.acquire() as conn:
+#             logger.info("✓ DB connection acquired")
+            
+#             # ЛОГИРОВАНИЕ 3: Запрос к тренировкам
+#             workouts = await conn.fetch("""
+#                 SELECT w.*, COUNT(we.id) as exercise_count
+#                 FROM workouts w
+#                 LEFT JOIN workout_exercises we ON w.id = we.workout_id
+#                 WHERE w.created_by = $1 AND w.is_active = true
+#                 GROUP BY w.id
+#                 ORDER BY w.created_at DESC
+#                 LIMIT 10
+#             """, user['id'])
+            
+#             logger.info(f"✓ Query executed, found: {len(workouts) if workouts else 0} workouts")
+            
+#             if workouts:
+#                 logger.info(f"✓ First workout keys: {list(workouts[0].keys())}")  # ← ПОКАЖЕТ СТРУКТУРУ
+                
+#                 text = f"🏋️ **Мои тренировки ({len(workouts)}):**\n\n"
+#                 keyboard = InlineKeyboardBuilder()
+                
+#                 for i, workout in enumerate(workouts):
+#                     logger.info(f"✓ Processing workout {i}: {workout.get('name')}")
+                    
+#                     exercise_count = workout['exercise_count'] or 0
+#                     duration = workout.get('estimated_duration_minutes', 'N/A')  # ← ИСПОЛЬЗУЙ .get()!
+                    
+#                     button_text = f"🏋️ {workout['name']}"
+#                     if exercise_count > 0:
+#                         button_text += f" ({exercise_count} упр.)"
+#                     keyboard.button(
+#                         text=button_text,
+#                         callback_data=f"view_workout_{workout['id']}"
+#                     )
+                    
+#                     text += f"**{workout['name']}**\n"
+#                     text += f"📋 Упражнений: {exercise_count} | ⏱️ ~{duration}мин\n"
+#                     text += f"🆔 Код: `{workout['unique_id']}`\n\n"
+                
+#                 keyboard.button(text="➕ Создать новую", callback_data="create_workout")
+#                 keyboard.button(text="🔙 К тренировкам", callback_data="workouts_menu")
+#                 keyboard.adjust(1)
+                
+#                 logger.info("✓ About to edit message")
+#             else:
+#                 logger.info("⚠️ No workouts found")
+#                 text = ("🏋️ **Мои тренировки**\n\n"
+#                         "У вас пока нет созданных тренировок.\n\n"
+#                         "Создайте первую тренировку с блочной структурой!")
+#                 keyboard = InlineKeyboardBuilder()
+#                 keyboard.button(text="➕ Создать первую", callback_data="create_workout")
+#                 keyboard.button(text="🔙 К тренировкам", callback_data="workouts_menu")
+            
+#             logger.info("✓ Editing message...")
+#             await callback.message.edit_text(
+#                 text,
+#                 reply_markup=keyboard.as_markup(),
+#                 parse_mode="Markdown"
+#             )
+#             logger.info("✓ Message edited successfully")
+            
+#             await callback.answer()
+#             logger.info("=== my_workouts END (SUCCESS) ===")
+            
+#     except Exception as e:
+#         logger.error(f"=== ERROR in my_workouts ===", exc_info=True)
+#         logger.error(f"Error type: {type(e).__name__}")
+#         logger.error(f"Error message: {str(e)}")
+#         import traceback
+#         logger.error(f"Traceback:\n{traceback.format_exc()}")
+        
+#         await callback.answer(f"❌ Ошибка: {str(e)}", show_alert=True)
+
+
 @workouts_router.callback_query(F.data == "my_workouts")
 async def my_workouts(callback: CallbackQuery):
-    """Показать тренировки пользователя"""
+    """Показать мои тренировки (для тренера/админа)"""
     try:
         logger.info(f"=== my_workouts START user {callback.from_user.id} ===")
         
@@ -591,6 +693,12 @@ async def my_workouts(callback: CallbackQuery):
         if not user:
             logger.error(f"✗ User NOT found for telegram_id {callback.from_user.id}")
             await callback.answer("❌ Пользователь не найден", show_alert=True)
+            return
+        
+        # ✅ ДЛЯ ПОДОПЕЧНОГО (PLAYER) - НЕ ОБРАБАТЫВАЕМ, ВЫХОДИМ
+        if user.get('role') == 'player':
+            logger.info(f"⚠️ Player {user['id']} skip - using teams_menu handler")
+            await callback.answer()
             return
         
         logger.info(f"✓ User ID: {user.get('id')}")
@@ -612,43 +720,44 @@ async def my_workouts(callback: CallbackQuery):
             
             logger.info(f"✓ Query executed, found: {len(workouts) if workouts else 0} workouts")
             
+            keyboard = InlineKeyboardBuilder()
+            
             if workouts:
-                logger.info(f"✓ First workout keys: {list(workouts[0].keys())}")  # ← ПОКАЖЕТ СТРУКТУРУ
+                logger.info(f"✓ First workout keys: {list(workouts[0].keys())}")
                 
                 text = f"🏋️ **Мои тренировки ({len(workouts)}):**\n\n"
-                keyboard = InlineKeyboardBuilder()
                 
                 for i, workout in enumerate(workouts):
                     logger.info(f"✓ Processing workout {i}: {workout.get('name')}")
                     
-                    exercise_count = workout['exercise_count'] or 0
-                    duration = workout.get('estimated_duration_minutes', 'N/A')  # ← ИСПОЛЬЗУЙ .get()!
+                    exercise_count = workout.get('exercise_count') or 0
+                    duration = workout.get('estimated_duration_minutes', 'N/A')
+                    unique_id = workout.get('unique_id', 'N/A')
                     
                     button_text = f"🏋️ {workout['name']}"
                     if exercise_count > 0:
                         button_text += f" ({exercise_count} упр.)"
+                    
                     keyboard.button(
                         text=button_text,
                         callback_data=f"view_workout_{workout['id']}"
                     )
                     
                     text += f"**{workout['name']}**\n"
-                    text += f"📋 Упражнений: {exercise_count} | ⏱️ ~{duration}мин\n"
-                    text += f"🆔 Код: `{workout['unique_id']}`\n\n"
+                    text += f"📋 Упражнений: {exercise_count} | ⏱️ ~{duration} мин\n"
+                    text += f"🆔 Код: `{unique_id}`\n\n"
                 
-                keyboard.button(text="➕ Создать новую", callback_data="create_workout")
-                keyboard.button(text="🔙 К тренировкам", callback_data="workouts_menu")
-                keyboard.adjust(1)
-                
-                logger.info("✓ About to edit message")
             else:
                 logger.info("⚠️ No workouts found")
-                text = ("🏋️ **Мои тренировки**\n\n"
-                        "У вас пока нет созданных тренировок.\n\n"
-                        "Создайте первую тренировку с блочной структурой!")
-                keyboard = InlineKeyboardBuilder()
-                keyboard.button(text="➕ Создать первую", callback_data="create_workout")
-                keyboard.button(text="🔙 К тренировкам", callback_data="workouts_menu")
+                text = (
+                    "🏋️ **Мои тренировки**\n\n"
+                    "У вас пока нет созданных тренировок.\n\n"
+                    "Создайте первую тренировку с блочной структурой!"
+                )
+            
+            keyboard.button(text="➕ Создать новую", callback_data="create_workout")
+            keyboard.button(text="🔙 К тренировкам", callback_data="workouts_menu")
+            keyboard.adjust(1)
             
             logger.info("✓ Editing message...")
             await callback.message.edit_text(
@@ -669,8 +778,6 @@ async def my_workouts(callback: CallbackQuery):
         logger.error(f"Traceback:\n{traceback.format_exc()}")
         
         await callback.answer(f"❌ Ошибка: {str(e)}", show_alert=True)
-
-
 
 
 

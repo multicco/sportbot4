@@ -483,21 +483,58 @@ async def cb_main_menu(callback: CallbackQuery, state: FSMContext) -> None:
     logger.info("User %s returned to main menu", callback.from_user.id)
 
 
+# @teams_router.callback_query(F.data == "teams_menu")
+# async def cb_teams_menu(callback: CallbackQuery, state: FSMContext) -> None:
+#     """Обработчик открытия меню управления командами."""
+#     await state.clear()
+#     teams = await get_coach_teams(callback.from_user.id)
+#     text = (
+#         f"🏆 <b>Управление командами</b>\n\n"
+#         f"📊 У вас {len(teams)} команд(ы)\n\n"
+#         "Команды предназначены для групповых видов спорта."
+#     )
+#     await safe_edit_text(callback.message, text, reply_markup=build_teams_menu(len(teams)))
+#     await callback.answer()
+#     logger.info("User %s opened teams menu", callback.from_user.id)
+
 @teams_router.callback_query(F.data == "teams_menu")
 async def cb_teams_menu(callback: CallbackQuery, state: FSMContext) -> None:
-    """Обработчик открытия меню управления командами."""
+    """Открытие меню команд с учётом роли пользователя"""
+    
     await state.clear()
-    teams = await get_coach_teams(callback.from_user.id)
-    text = (
-        f"🏆 <b>Управление командами</b>\n\n"
-        f"📊 У вас {len(teams)} команд(ы)\n\n"
-        "Команды предназначены для групповых видов спорта."
-    )
-    await safe_edit_text(callback.message, text, reply_markup=build_teams_menu(len(teams)))
-    await callback.answer()
-    logger.info("User %s opened teams menu", callback.from_user.id)
-
-
+    
+    try:
+        user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
+        
+        if not user:
+            await callback.answer("❌ Пользователь не найден")
+            return
+        
+        # ✅ КЛЮЧЕВОЕ: импортируем функцию из main_keyboards
+        from keyboards.main_keyboards import get_teams_menu_keyboard
+        
+        # ✅ Передаём роль в функцию
+        keyboard = get_teams_menu_keyboard(user.get('role', 'player'))
+        
+        role_text = "Тренер" if user.get('role') in ['coach', 'admin'] else "Подопечный"
+        
+        text = (
+            f"👥 **Меню команд**\n\n"
+            f"**Ваша роль:** {role_text}\n\n"
+            "Выберите действие:"
+        )
+        
+        await callback.message.edit_text(
+            text,
+            reply_markup=keyboard,
+            parse_mode="Markdown"
+        )
+        await callback.answer()
+        
+    except Exception as e:
+        logger.exception(f"❌ Ошибка в cb_teams_menu: {e}")
+        await callback.answer(f"❌ Ошибка: {str(e)}", show_alert=True)
+        
 @teams_router.callback_query(F.data == "create_team")
 async def cb_create_team(callback: CallbackQuery, state: FSMContext) -> None:
     """Обработчик начала создания команды."""
@@ -2520,33 +2557,138 @@ async def finalize_add_trainee_by_id(callback: CallbackQuery, state: FSMContext)
 
 
 
+# @teams_router.callback_query(F.data == "my_trainee_workouts")
+# async def show_trainee_workouts(callback: CallbackQuery):
+#     """Показывает тренировки, назначенные конкретному подопечному"""
+#     telegram_id = callback.from_user.id
+
+#     trainee = await teams_db.get_individual_student_by_telegram_id(telegram_id)
+#     if not trainee:
+#         await callback.answer("❌ Вы не подопечный", show_alert=True)
+#         return
+
+#     workouts = await teams_db.get_student_workouts(trainee["id"])
+
+#     kb = InlineKeyboardBuilder()
+#     if not workouts:
+#         text = "📭 У вас пока нет назначенных тренировок."
+#         kb.button(text="🔙 Назад", callback_data="main_menu")
+#     else:
+#         text = "📋 Ваши тренировки:\n\n"
+#         for w in workouts:
+#             status_emoji = {"pending": "⏳", "in_progress": "🔄", "completed": "✅"}.get(w["status"], "❓")
+#             text += f"{status_emoji} {w['name']}\n"
+#             kb.button(text=f"▶️ {w['name']}", callback_data=f"start_workout_{w['id']}")
+#         kb.button(text="🔙 Назад", callback_data="main_menu")
+
+#     kb.adjust(1)
+#     await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="Markdown")
+#     await callback.answer()
+
 @teams_router.callback_query(F.data == "my_trainee_workouts")
-async def show_trainee_workouts(callback: CallbackQuery):
-    """Показывает тренировки, назначенные конкретному подопечному"""
-    telegram_id = callback.from_user.id
-
-    trainee = await teams_db.get_individual_student_by_telegram_id(telegram_id)
-    if not trainee:
-        await callback.answer("❌ Вы не подопечный", show_alert=True)
-        return
-
-    workouts = await teams_db.get_student_workouts(trainee["id"])
-
-    kb = InlineKeyboardBuilder()
-    if not workouts:
-        text = "📭 У вас пока нет назначенных тренировок."
-        kb.button(text="🔙 Назад", callback_data="main_menu")
-    else:
-        text = "📋 Ваши тренировки:\n\n"
-        for w in workouts:
-            status_emoji = {"pending": "⏳", "in_progress": "🔄", "completed": "✅"}.get(w["status"], "❓")
-            text += f"{status_emoji} {w['name']}\n"
-            kb.button(text=f"▶️ {w['name']}", callback_data=f"start_workout_{w['id']}")
-        kb.button(text="🔙 Назад", callback_data="main_menu")
-
-    kb.adjust(1)
-    await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="Markdown")
-    await callback.answer()
+async def show_my_trainee_workouts(callback: CallbackQuery, state: FSMContext):
+    """Показать тренировки назначенные подопечному"""
+    
+    logger.info(f"✅ teams_router - my_trainee_workouts START for player {callback.from_user.id}")
+    
+    await state.clear()
+    
+    try:
+        # Находим ID подопечного по telegram_id
+        async with db_manager.pool.acquire() as conn:
+            student = await conn.fetchrow("""
+                SELECT id, first_name, last_name 
+                FROM individual_students
+                WHERE telegram_id = $1 AND is_active = true
+                LIMIT 1
+            """, callback.from_user.id)
+            
+            if not student:
+                logger.warning(f"⚠️ Student not found for telegram_id={callback.from_user.id}")
+                kb = InlineKeyboardBuilder()
+                kb.button(text="🔙 Назад", callback_data="teams_menu")
+                
+                await callback.message.edit_text(
+                    "❌ Профиль не найден",
+                    reply_markup=kb.as_markup()
+                )
+                await callback.answer()
+                return
+            
+            student_id = student['id']
+            logger.info(f"✅ Found student: id={student_id}")
+            
+            # Получаем тренировки назначенные этому подопечному
+            workouts = await conn.fetch("""
+                SELECT
+                    w.id,
+                    w.name,
+                    w.description,
+                    w.difficulty_level,
+                    w.estimated_duration_minutes,
+                    wis.assigned_at,
+                    wis.deadline,
+                    wis.status
+                FROM workouts w
+                JOIN workout_individual_students wis ON w.id = wis.workout_id
+                WHERE wis.student_id = $1 AND wis.is_active = true
+                ORDER BY wis.assigned_at DESC
+            """, student_id)
+            
+            logger.info(f"📋 Found {len(workouts)} workouts for student {student_id}")
+            
+            if not workouts:
+                kb = InlineKeyboardBuilder()
+                kb.button(text="🔙 Назад", callback_data="teams_menu")
+                
+                await callback.message.edit_text(
+                    "📭 Тренировок пока нет",
+                    reply_markup=kb.as_markup()
+                )
+                await callback.answer()
+                return
+            
+            text = "🏋️ **Мои тренировки:**\n\n"
+            kb = InlineKeyboardBuilder()
+            
+            for w in workouts:
+                status_emoji = {
+                    'pending': '🆕',
+                    'in_progress': '⏳',
+                    'completed': '✅'
+                }.get(w['status'], '❓')
+                
+                text += f"{status_emoji} **{w['name']}**\n"
+                
+                if w['description']:
+                    desc = w['description'][:50]
+                    text += f"_{desc}_\n"
+                
+                if w['estimated_duration_minutes']:
+                    text += f"⏱️ ~{w['estimated_duration_minutes']} мин\n"
+                
+                text += "\n"
+                
+                kb.button(
+                    text=f"▶️ {w['name'][:20]}",
+                    callback_data=f"start_student_workout_{w['id']}"
+                )
+            
+            kb.button(text="🔙 К меню", callback_data="teams_menu")
+            kb.adjust(1)
+            
+            await callback.message.edit_text(
+                text,
+                reply_markup=kb.as_markup(),
+                parse_mode="Markdown"
+            )
+            await callback.answer()
+            
+            logger.info(f"✅ Workouts shown to student {student_id}")
+    
+    except Exception as e:
+        logger.exception(f"❌ Error in show_my_trainee_workouts: {e}")
+        await callback.answer(f"❌ Ошибка: {str(e)}", show_alert=True)
 
 
 

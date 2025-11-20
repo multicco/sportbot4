@@ -22558,3 +22558,728 @@ ValueError: invalid literal for int() with base 10: 'None'
 2025-11-20 16:41:02,281 - aiogram.event - INFO - Update id=645440028 is not handled. Duration 30 ms by bot id=8236074997
 2025-11-20 16:41:03,688 - aiogram.event - INFO - Update id=645440029 is not handled. Duration 30 ms by bot id=8236074997
 2025-11-20 16:41:13,109 - aiogram.event - INFO - Update id=645440030 is handled. Duration 639 ms by bot id=8236074997
+2025-11-20 16:54:58,532 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-11-20 16:54:58,533 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-11-20 16:54:58,665 - database.database - INFO - ✅ База данных инициализирована
+2025-11-20 16:54:58,665 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-11-20 16:54:58,666 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-11-20 16:54:58,668 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-11-20 16:54:58,669 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2025-11-20 16:54:58,669 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2025-11-20 16:54:58,669 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x0000024DDD2DAD40>
+2025-11-20 16:54:58,669 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x0000024DDD4AD380>
+2025-11-20 16:54:58,670 - database.teams_database - INFO - ✅ teams_database инициализирована
+2025-11-20 16:54:58,670 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x0000024DDD3DD9C0>
+2025-11-20 16:54:58,673 - database.teams_database - INFO - ✅ Teams database tables initialized
+2025-11-20 16:54:58,674 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x0000024DDD3DD9C0>
+2025-11-20 16:54:58,674 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2025-11-20 16:54:58,675 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2025-11-20 16:54:58,675 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-11-20 16:54:58,675 - handlers - INFO - ============================================================
+2025-11-20 16:54:58,675 - handlers - INFO - 🔗 Начинаю регистрацию всех роутеров и обработчиков...
+2025-11-20 16:54:58,675 - handlers - INFO - ============================================================
+2025-11-20 16:54:58,676 - handlers - INFO - ✅ start handlers зарегистрированы
+2025-11-20 16:54:58,679 - handlers - INFO - ✅ exercises handlers зарегистрированы
+2025-11-20 16:54:58,680 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-11-20 16:54:58,680 - handlers - INFO - ✅ workouts handlers зарегистрированы
+2025-11-20 16:54:58,682 - handlers - INFO - ✅ tests handlers зарегистрированы
+2025-11-20 16:54:58,684 - handlers - INFO - ✅ test_batteries handlers зарегистрированы
+2025-11-20 16:54:58,685 - handlers - INFO - ✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)
+2025-11-20 16:54:58,685 - handlers - INFO - ✅ trainees_router зарегистрирован
+2025-11-20 16:54:58,685 - handlers - INFO - ✅ workouts_router зарегистрирован
+2025-11-20 16:54:58,686 - handlers - INFO - ✅ general_router зарегистрирован (последний приоритет)
+2025-11-20 16:54:58,688 - handlers - INFO - ✅ team_tests handlers зарегистрированы
+2025-11-20 16:54:58,689 - handlers - INFO - ✅ player_tests handlers зарегистрированы
+2025-11-20 16:54:58,689 - handlers - INFO - ============================================================
+2025-11-20 16:54:58,689 - handlers - INFO - 🎉 ВСЕ роутеры и обработчики успешно зарегистрированы!
+2025-11-20 16:54:58,690 - handlers - INFO - ============================================================
+2025-11-20 16:55:00,088 - __main__ - INFO - ✅ Команды бота настроены
+2025-11-20 16:55:00,184 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-11-20 16:55:00,185 - __main__ - INFO - 🆔 ID: 8236074997
+2025-11-20 16:55:00,185 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-11-20 16:55:00,185 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-11-20 16:55:00,185 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-11-20 16:55:00,186 - aiogram.dispatcher - INFO - Start polling
+2025-11-20 16:55:00,276 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-11-20 16:55:35,244 - aiogram.event - INFO - Update id=645440031 is handled. Duration 686 ms by bot id=8236074997
+2025-11-20 16:55:38,270 - handlers.workouts - INFO - === my_workouts START user 6969870739 ===
+2025-11-20 16:55:38,273 - handlers.workouts - INFO - ✓ User found: <Record id=5 telegram_id=6969870739 first_name='Фея' last_name=None username=None role='player' created_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) body_weight=Decimal('70.00') age=None gender=None experience_level='beginner' updated_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) is_active=True>
+2025-11-20 16:55:38,273 - handlers.workouts - INFO - ✓ User ID: 5
+2025-11-20 16:55:38,273 - handlers.workouts - INFO - ✓ DB connection acquired
+2025-11-20 16:55:38,275 - handlers.workouts - INFO - ✓ Query executed, found: 0 workouts
+2025-11-20 16:55:38,276 - handlers.workouts - INFO - ⚠️ No workouts found
+2025-11-20 16:55:38,276 - handlers.workouts - INFO - ✓ Editing message...
+2025-11-20 16:55:38,466 - handlers.workouts - INFO - ✓ Message edited successfully
+2025-11-20 16:55:38,597 - handlers.workouts - INFO - === my_workouts END (SUCCESS) ===
+2025-11-20 16:55:38,598 - aiogram.event - INFO - Update id=645440032 is handled. Duration 360 ms by bot id=8236074997
+2025-11-20 16:55:42,308 - aiogram.event - INFO - Update id=645440033 is handled. Duration 202 ms by bot id=8236074997
+2025-11-20 16:55:43,481 - aiogram.event - INFO - Update id=645440034 is handled. Duration 202 ms by bot id=8236074997
+2025-11-20 16:55:45,015 - aiogram.event - INFO - Update id=645440035 is handled. Duration 219 ms by bot id=8236074997
+2025-11-20 16:55:48,533 - aiogram.event - INFO - Update id=645440036 is not handled. Duration 30 ms by bot id=8236074997
+2025-11-20 16:59:47,661 - aiogram.event - INFO - Update id=645440037 is not handled. Duration 30 ms by bot id=8236074997
+2025-11-20 17:00:00,126 - aiogram.event - INFO - Update id=645440038 is handled. Duration 734 ms by bot id=8236074997
+2025-11-20 17:04:45,272 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - Request timeout error
+2025-11-20 17:04:45,272 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8236074997)
+2025-11-20 17:05:46,286 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ClientConnectorError: Cannot connect to host api.telegram.org:443 ssl:default [None]
+2025-11-20 17:05:46,286 - aiogram.dispatcher - WARNING - Sleep for 1.067674 seconds and try again... (tryings = 1, bot id = 8236074997)
+2025-11-20 17:06:34,431 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ClientConnectorError: Cannot connect to host api.telegram.org:443 ssl:default [Указанное сетевое имя более недоступно]
+2025-11-20 17:06:34,432 - aiogram.dispatcher - WARNING - Sleep for 1.402922 seconds and try again... (tryings = 2, bot id = 8236074997)
+2025-11-20 17:06:46,083 - aiogram.dispatcher - INFO - Connection established (tryings = 3, bot id = 8236074997)
+2025-11-20 17:26:52,333 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-11-20 17:26:52,333 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-11-20 17:26:52,572 - database.database - INFO - ✅ База данных инициализирована
+2025-11-20 17:26:52,572 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-11-20 17:26:52,574 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-11-20 17:26:52,575 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-11-20 17:26:52,576 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2025-11-20 17:26:52,576 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2025-11-20 17:26:52,576 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x000001A5C1896EF0>
+2025-11-20 17:26:52,576 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x000001A5C1A55380>
+2025-11-20 17:26:52,577 - database.teams_database - INFO - ✅ teams_database инициализирована
+2025-11-20 17:26:52,577 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x000001A5C1A10A30>
+2025-11-20 17:26:52,580 - database.teams_database - INFO - ✅ Teams database tables initialized
+2025-11-20 17:26:52,581 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x000001A5C1A10A30>
+2025-11-20 17:26:52,581 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2025-11-20 17:26:52,582 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2025-11-20 17:26:52,582 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-11-20 17:26:52,582 - handlers - INFO - ============================================================
+2025-11-20 17:26:52,582 - handlers - INFO - 🔗 Начинаю регистрацию всех роутеров и обработчиков...
+2025-11-20 17:26:52,583 - handlers - INFO - ============================================================
+2025-11-20 17:26:52,584 - handlers - INFO - ✅ start handlers зарегистрированы
+2025-11-20 17:26:52,586 - handlers - INFO - ✅ exercises handlers зарегистрированы
+2025-11-20 17:26:52,586 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-11-20 17:26:52,586 - handlers - INFO - ✅ workouts handlers зарегистрированы
+2025-11-20 17:26:52,588 - handlers - INFO - ✅ tests handlers зарегистрированы
+2025-11-20 17:26:52,591 - handlers - INFO - ✅ test_batteries handlers зарегистрированы
+2025-11-20 17:26:52,591 - handlers - INFO - ✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)
+2025-11-20 17:26:52,591 - handlers - INFO - ✅ trainees_router зарегистрирован
+2025-11-20 17:26:52,591 - handlers - INFO - ✅ workouts_router зарегистрирован
+2025-11-20 17:26:52,592 - handlers - INFO - ✅ general_router зарегистрирован (последний приоритет)
+2025-11-20 17:26:52,593 - handlers - INFO - ✅ team_tests handlers зарегистрированы
+2025-11-20 17:26:52,595 - handlers - INFO - ✅ player_tests handlers зарегистрированы
+2025-11-20 17:26:52,595 - handlers - INFO - ============================================================
+2025-11-20 17:26:52,595 - handlers - INFO - 🎉 ВСЕ роутеры и обработчики успешно зарегистрированы!
+2025-11-20 17:26:52,595 - handlers - INFO - ============================================================
+2025-11-20 17:26:52,865 - __main__ - INFO - ✅ Команды бота настроены
+2025-11-20 17:26:52,944 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-11-20 17:26:52,944 - __main__ - INFO - 🆔 ID: 8236074997
+2025-11-20 17:26:52,945 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-11-20 17:26:52,945 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-11-20 17:26:52,945 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-11-20 17:26:52,946 - aiogram.dispatcher - INFO - Start polling
+2025-11-20 17:26:53,020 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-11-20 17:26:59,290 - aiogram.event - INFO - Update id=645440039 is handled. Duration 609 ms by bot id=8236074997
+2025-11-20 17:27:02,878 - aiogram.event - INFO - Update id=645440040 is handled. Duration 155 ms by bot id=8236074997
+2025-11-20 17:27:04,618 - aiogram.event - INFO - Update id=645440041 is handled. Duration 186 ms by bot id=8236074997
+2025-11-20 17:27:11,067 - aiogram.event - INFO - Update id=645440042 is handled. Duration 484 ms by bot id=8236074997
+2025-11-20 17:27:12,173 - aiogram.event - INFO - Update id=645440043 is handled. Duration 327 ms by bot id=8236074997
+2025-11-20 17:27:14,179 - handlers.workouts - INFO - === my_workouts START user 6969870739 ===
+2025-11-20 17:27:14,182 - handlers.workouts - INFO - ✓ User found: <Record id=5 telegram_id=6969870739 first_name='Фея' last_name=None username=None role='player' created_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) body_weight=Decimal('70.00') age=None gender=None experience_level='beginner' updated_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) is_active=True>
+2025-11-20 17:27:14,182 - handlers.workouts - INFO - ✓ User ID: 5
+2025-11-20 17:27:14,182 - handlers.workouts - INFO - ✓ DB connection acquired
+2025-11-20 17:27:14,185 - handlers.workouts - INFO - ✓ Query executed, found: 0 workouts
+2025-11-20 17:27:14,185 - handlers.workouts - INFO - ⚠️ No workouts found
+2025-11-20 17:27:14,185 - handlers.workouts - INFO - ✓ Editing message...
+2025-11-20 17:27:14,283 - handlers.workouts - INFO - ✓ Message edited successfully
+2025-11-20 17:27:14,371 - handlers.workouts - INFO - === my_workouts END (SUCCESS) ===
+2025-11-20 17:27:14,372 - aiogram.event - INFO - Update id=645440044 is handled. Duration 234 ms by bot id=8236074997
+2025-11-20 17:28:59,647 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-11-20 17:28:59,648 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-11-20 17:28:59,772 - database.database - INFO - ✅ База данных инициализирована
+2025-11-20 17:28:59,773 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-11-20 17:28:59,774 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-11-20 17:28:59,776 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-11-20 17:28:59,776 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2025-11-20 17:28:59,777 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2025-11-20 17:28:59,777 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x0000018E9AEFAEF0>
+2025-11-20 17:28:59,777 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x0000018E9B0B14E0>
+2025-11-20 17:28:59,777 - database.teams_database - INFO - ✅ teams_database инициализирована
+2025-11-20 17:28:59,778 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x0000018E9B0ABF40>
+2025-11-20 17:28:59,780 - database.teams_database - INFO - ✅ Teams database tables initialized
+2025-11-20 17:28:59,781 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x0000018E9B0ABF40>
+2025-11-20 17:28:59,782 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2025-11-20 17:28:59,782 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2025-11-20 17:28:59,782 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-11-20 17:28:59,782 - handlers - INFO - ============================================================
+2025-11-20 17:28:59,782 - handlers - INFO - 🔗 Начинаю регистрацию всех роутеров и обработчиков...
+2025-11-20 17:28:59,783 - handlers - INFO - ============================================================
+2025-11-20 17:28:59,783 - handlers - INFO - ✅ start handlers зарегистрированы
+2025-11-20 17:28:59,785 - handlers - INFO - ✅ exercises handlers зарегистрированы
+2025-11-20 17:28:59,785 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-11-20 17:28:59,786 - handlers - INFO - ✅ workouts handlers зарегистрированы
+2025-11-20 17:28:59,788 - handlers - INFO - ✅ tests handlers зарегистрированы
+2025-11-20 17:28:59,790 - handlers - INFO - ✅ test_batteries handlers зарегистрированы
+2025-11-20 17:28:59,791 - handlers - INFO - ✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)
+2025-11-20 17:28:59,791 - handlers - INFO - ✅ trainees_router зарегистрирован
+2025-11-20 17:28:59,791 - handlers - INFO - ✅ workouts_router зарегистрирован
+2025-11-20 17:28:59,791 - handlers - INFO - ✅ general_router зарегистрирован (последний приоритет)
+2025-11-20 17:28:59,794 - handlers - INFO - ✅ team_tests handlers зарегистрированы
+2025-11-20 17:28:59,795 - handlers - INFO - ✅ player_tests handlers зарегистрированы
+2025-11-20 17:28:59,795 - handlers - INFO - ============================================================
+2025-11-20 17:28:59,795 - handlers - INFO - 🎉 ВСЕ роутеры и обработчики успешно зарегистрированы!
+2025-11-20 17:28:59,796 - handlers - INFO - ============================================================
+2025-11-20 17:29:00,123 - __main__ - INFO - ✅ Команды бота настроены
+2025-11-20 17:29:00,209 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-11-20 17:29:00,210 - __main__ - INFO - 🆔 ID: 8236074997
+2025-11-20 17:29:00,210 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-11-20 17:29:00,210 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-11-20 17:29:00,211 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-11-20 17:29:00,211 - aiogram.dispatcher - INFO - Start polling
+2025-11-20 17:29:00,292 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-11-20 17:29:00,793 - aiogram.event - INFO - Update id=645440045 is not handled. Duration 327 ms by bot id=8236074997
+2025-11-20 17:29:00,793 - aiogram.event - ERROR - Cause exception while process update id=645440045 by bot id=8236074997
+TelegramBadRequest: Telegram server says - Bad Request: message is not modified: specified new message content and reply markup are exactly the same as a current content and reply markup of the message
+Traceback (most recent call last):
+  File "F:\python\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "F:\python\lib\site-packages\aiogram\dispatcher\middlewares\error.py", line 25, in __call__
+    return await handler(event, data)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\middlewares\user_context.py", line 49, in __call__
+    return await handler(event, data)
+  File "F:\python\lib\site-packages\aiogram\fsm\middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\handler.py", line 43, in call
+    return await wrapped()
+  File "F:\python\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 142, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 137, in _wrapped
+    return await self._propagate_event(
+  File "F:\python\lib\site-packages\aiogram\dispatcher\router.py", line 162, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "F:\python\lib\site-packages\aiogram\dispatcher\event\handler.py", line 43, in call
+    return await wrapped()
+  File "V:\python\sportbot3\handlers\start.py", line 88, in workouts_menu
+    await callback.message.edit_text(
+  File "F:\python\lib\site-packages\aiogram\methods\base.py", line 84, in emit
+    return await bot(self)
+  File "F:\python\lib\site-packages\aiogram\client\bot.py", line 485, in __call__
+    return await self.session(self, method, timeout=request_timeout)
+  File "F:\python\lib\site-packages\aiogram\client\session\base.py", line 254, in __call__
+    return cast(TelegramType, await middleware(bot, method))
+  File "F:\python\lib\site-packages\aiogram\client\session\aiohttp.py", line 189, in make_request
+    response = self.check_response(
+  File "F:\python\lib\site-packages\aiogram\client\session\base.py", line 120, in check_response
+    raise TelegramBadRequest(method=method, message=description)
+aiogram.exceptions.TelegramBadRequest: Telegram server says - Bad Request: message is not modified: specified new message content and reply markup are exactly the same as a current content and reply markup of the message
+2025-11-20 17:29:00,895 - aiogram.event - INFO - Update id=645440046 is handled. Duration 421 ms by bot id=8236074997
+2025-11-20 17:29:06,666 - aiogram.event - INFO - Update id=645440047 is handled. Duration 140 ms by bot id=8236074997
+2025-11-20 17:29:16,737 - aiogram.event - INFO - Update id=645440048 is handled. Duration 264 ms by bot id=8236074997
+2025-11-20 17:29:18,648 - aiogram.event - INFO - Update id=645440049 is handled. Duration 359 ms by bot id=8236074997
+2025-11-20 17:29:19,810 - aiogram.event - INFO - Update id=645440050 is handled. Duration 217 ms by bot id=8236074997
+2025-11-20 17:29:22,487 - aiogram.event - INFO - Update id=645440051 is not handled. Duration 30 ms by bot id=8236074997
+2025-11-20 17:29:25,003 - aiogram.event - INFO - Update id=645440052 is not handled. Duration 30 ms by bot id=8236074997
+2025-11-20 17:29:28,356 - aiogram.event - INFO - Update id=645440053 is not handled. Duration 46 ms by bot id=8236074997
+2025-11-20 17:29:32,619 - aiogram.event - INFO - Update id=645440054 is handled. Duration 202 ms by bot id=8236074997
+2025-11-20 17:29:39,750 - aiogram.event - INFO - Update id=645440055 is handled. Duration 359 ms by bot id=8236074997
+2025-11-20 17:29:58,762 - aiogram.event - INFO - Update id=645440056 is handled. Duration 453 ms by bot id=8236074997
+2025-11-20 17:30:12,785 - aiogram.event - INFO - Update id=645440057 is handled. Duration 250 ms by bot id=8236074997
+2025-11-20 17:30:16,450 - aiogram.event - INFO - Update id=645440058 is handled. Duration 219 ms by bot id=8236074997
+2025-11-20 17:30:18,296 - aiogram.event - INFO - Update id=645440059 is handled. Duration 390 ms by bot id=8236074997
+2025-11-20 17:30:24,127 - aiogram.event - INFO - Update id=645440060 is handled. Duration 250 ms by bot id=8236074997
+2025-11-20 17:30:29,568 - aiogram.event - INFO - Update id=645440061 is handled. Duration 203 ms by bot id=8236074997
+2025-11-20 17:32:31,238 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-11-20 17:32:31,239 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-11-20 17:32:31,364 - database.database - INFO - ✅ База данных инициализирована
+2025-11-20 17:32:31,364 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-11-20 17:32:31,366 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-11-20 17:32:31,368 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-11-20 17:32:31,368 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2025-11-20 17:32:31,368 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2025-11-20 17:32:31,369 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x000001E875246EF0>
+2025-11-20 17:32:31,369 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x000001E875409430>
+2025-11-20 17:32:31,369 - database.teams_database - INFO - ✅ teams_database инициализирована
+2025-11-20 17:32:31,369 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x000001E8753C0A30>
+2025-11-20 17:32:31,372 - database.teams_database - INFO - ✅ Teams database tables initialized
+2025-11-20 17:32:31,373 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x000001E8753C0A30>
+2025-11-20 17:32:31,374 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2025-11-20 17:32:31,374 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2025-11-20 17:32:31,374 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-11-20 17:32:31,374 - handlers - INFO - ============================================================
+2025-11-20 17:32:31,375 - handlers - INFO - 🔗 Начинаю регистрацию всех роутеров и обработчиков...
+2025-11-20 17:32:31,375 - handlers - INFO - ============================================================
+2025-11-20 17:32:31,376 - handlers - INFO - ✅ start handlers зарегистрированы
+2025-11-20 17:32:31,378 - handlers - INFO - ✅ exercises handlers зарегистрированы
+2025-11-20 17:32:31,378 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-11-20 17:32:31,378 - handlers - INFO - ✅ workouts handlers зарегистрированы
+2025-11-20 17:32:31,380 - handlers - INFO - ✅ tests handlers зарегистрированы
+2025-11-20 17:32:31,382 - handlers - INFO - ✅ test_batteries handlers зарегистрированы
+2025-11-20 17:32:31,382 - handlers - INFO - ✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)
+2025-11-20 17:32:31,382 - handlers - INFO - ✅ trainees_router зарегистрирован
+2025-11-20 17:32:31,383 - handlers - INFO - ✅ workouts_router зарегистрирован
+2025-11-20 17:32:31,383 - handlers - INFO - ✅ general_router зарегистрирован (последний приоритет)
+2025-11-20 17:32:31,385 - handlers - INFO - ✅ team_tests handlers зарегистрированы
+2025-11-20 17:32:31,386 - handlers - INFO - ✅ player_tests handlers зарегистрированы
+2025-11-20 17:32:31,387 - handlers - INFO - ============================================================
+2025-11-20 17:32:31,387 - handlers - INFO - 🎉 ВСЕ роутеры и обработчики успешно зарегистрированы!
+2025-11-20 17:32:31,387 - handlers - INFO - ============================================================
+2025-11-20 17:32:31,674 - __main__ - INFO - ✅ Команды бота настроены
+2025-11-20 17:32:31,758 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-11-20 17:32:31,759 - __main__ - INFO - 🆔 ID: 8236074997
+2025-11-20 17:32:31,759 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-11-20 17:32:31,759 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-11-20 17:32:31,760 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-11-20 17:32:31,760 - aiogram.dispatcher - INFO - Start polling
+2025-11-20 17:32:31,841 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-11-20 17:32:34,159 - handlers.teams - INFO - 🟢 Просмотр профиля подопечного
+2025-11-20 17:32:34,159 - handlers.teams - ERROR - 🔴 Ошибка при просмотре профиля подопечного: 'TeamsDatabase' object has no attribute 'get_individual_student_by_id'
+2025-11-20 17:32:34,435 - aiogram.event - INFO - Update id=645440062 is handled. Duration 311 ms by bot id=8236074997
+2025-11-20 17:32:40,547 - handlers.teams - INFO - 🟢 Просмотр профиля подопечного
+2025-11-20 17:32:40,547 - handlers.teams - ERROR - 🔴 Ошибка при просмотре профиля подопечного: 'TeamsDatabase' object has no attribute 'get_individual_student_by_id'
+2025-11-20 17:32:40,650 - aiogram.event - INFO - Update id=645440063 is handled. Duration 125 ms by bot id=8236074997
+2025-11-20 17:32:49,753 - aiogram.event - INFO - Update id=645440064 is not handled. Duration 47 ms by bot id=8236074997
+2025-11-20 17:32:52,163 - aiogram.event - INFO - Update id=645440065 is handled. Duration 250 ms by bot id=8236074997
+2025-11-20 17:32:53,611 - aiogram.event - INFO - Update id=645440066 is handled. Duration 452 ms by bot id=8236074997
+2025-11-20 17:32:54,593 - handlers.workouts - INFO - === my_workouts START user 6969870739 ===
+2025-11-20 17:32:54,596 - handlers.workouts - INFO - ✓ User found: <Record id=5 telegram_id=6969870739 first_name='Фея' last_name=None username=None role='player' created_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) body_weight=Decimal('70.00') age=None gender=None experience_level='beginner' updated_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) is_active=True>
+2025-11-20 17:32:54,596 - handlers.workouts - INFO - ✓ User ID: 5
+2025-11-20 17:32:54,596 - handlers.workouts - INFO - ✓ DB connection acquired
+2025-11-20 17:32:54,599 - handlers.workouts - INFO - ✓ Query executed, found: 0 workouts
+2025-11-20 17:32:54,599 - handlers.workouts - INFO - ⚠️ No workouts found
+2025-11-20 17:32:54,600 - handlers.workouts - INFO - ✓ Editing message...
+2025-11-20 17:32:54,718 - handlers.workouts - INFO - ✓ Message edited successfully
+2025-11-20 17:32:54,829 - handlers.workouts - INFO - === my_workouts END (SUCCESS) ===
+2025-11-20 17:32:54,830 - aiogram.event - INFO - Update id=645440067 is handled. Duration 280 ms by bot id=8236074997
+2025-11-20 17:32:58,869 - aiogram.event - INFO - Update id=645440068 is handled. Duration 375 ms by bot id=8236074997
+2025-11-20 17:33:03,275 - aiogram.event - INFO - Update id=645440069 is handled. Duration 375 ms by bot id=8236074997
+2025-11-20 17:34:05,844 - aiogram.event - INFO - Update id=645440070 is handled. Duration 500 ms by bot id=8236074997
+2025-11-20 17:34:16,004 - handlers.workouts - INFO - === my_workouts START user 6969870739 ===
+2025-11-20 17:34:16,006 - handlers.workouts - INFO - ✓ User found: <Record id=5 telegram_id=6969870739 first_name='Фея' last_name=None username=None role='player' created_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) body_weight=Decimal('70.00') age=None gender=None experience_level='beginner' updated_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) is_active=True>
+2025-11-20 17:34:16,006 - handlers.workouts - INFO - ✓ User ID: 5
+2025-11-20 17:34:16,006 - handlers.workouts - INFO - ✓ DB connection acquired
+2025-11-20 17:34:16,007 - handlers.workouts - INFO - ✓ Query executed, found: 0 workouts
+2025-11-20 17:34:16,007 - handlers.workouts - INFO - ⚠️ No workouts found
+2025-11-20 17:34:16,008 - handlers.workouts - INFO - ✓ Editing message...
+2025-11-20 17:34:16,136 - handlers.workouts - INFO - ✓ Message edited successfully
+2025-11-20 17:34:16,252 - handlers.workouts - INFO - === my_workouts END (SUCCESS) ===
+2025-11-20 17:34:16,253 - aiogram.event - INFO - Update id=645440071 is handled. Duration 280 ms by bot id=8236074997
+2025-11-20 17:41:00,599 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-11-20 17:41:00,599 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-11-20 17:41:00,726 - database.database - INFO - ✅ База данных инициализирована
+2025-11-20 17:41:00,726 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-11-20 17:41:00,727 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-11-20 17:41:00,729 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-11-20 17:41:00,729 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2025-11-20 17:41:00,730 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2025-11-20 17:41:00,730 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x0000028AC5086EF0>
+2025-11-20 17:41:00,730 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x0000028AC5249430>
+2025-11-20 17:41:00,731 - database.teams_database - INFO - ✅ teams_database инициализирована
+2025-11-20 17:41:00,731 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x0000028AC5200A30>
+2025-11-20 17:41:00,733 - database.teams_database - INFO - ✅ Teams database tables initialized
+2025-11-20 17:41:00,735 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x0000028AC5200A30>
+2025-11-20 17:41:00,735 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2025-11-20 17:41:00,735 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2025-11-20 17:41:00,735 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-11-20 17:41:00,736 - handlers - INFO - ============================================================
+2025-11-20 17:41:00,736 - handlers - INFO - 🔗 Начинаю регистрацию всех роутеров и обработчиков...
+2025-11-20 17:41:00,736 - handlers - INFO - ============================================================
+2025-11-20 17:41:00,737 - handlers - INFO - ✅ start handlers зарегистрированы
+2025-11-20 17:41:00,739 - handlers - INFO - ✅ exercises handlers зарегистрированы
+2025-11-20 17:41:00,739 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-11-20 17:41:00,739 - handlers - INFO - ✅ workouts handlers зарегистрированы
+2025-11-20 17:41:00,742 - handlers - INFO - ✅ tests handlers зарегистрированы
+2025-11-20 17:41:00,744 - handlers - INFO - ✅ test_batteries handlers зарегистрированы
+2025-11-20 17:41:00,744 - handlers - INFO - ✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)
+2025-11-20 17:41:00,744 - handlers - INFO - ✅ trainees_router зарегистрирован
+2025-11-20 17:41:00,744 - handlers - INFO - ✅ workouts_router зарегистрирован
+2025-11-20 17:41:00,745 - handlers - INFO - ✅ general_router зарегистрирован (последний приоритет)
+2025-11-20 17:41:00,747 - handlers - INFO - ✅ team_tests handlers зарегистрированы
+2025-11-20 17:41:00,748 - handlers - INFO - ✅ player_tests handlers зарегистрированы
+2025-11-20 17:41:00,749 - handlers - INFO - ============================================================
+2025-11-20 17:41:00,749 - handlers - INFO - 🎉 ВСЕ роутеры и обработчики успешно зарегистрированы!
+2025-11-20 17:41:00,749 - handlers - INFO - ============================================================
+2025-11-20 17:41:01,047 - __main__ - INFO - ✅ Команды бота настроены
+2025-11-20 17:41:01,133 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-11-20 17:41:01,133 - __main__ - INFO - 🆔 ID: 8236074997
+2025-11-20 17:41:01,133 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-11-20 17:41:01,135 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-11-20 17:41:01,135 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-11-20 17:41:01,135 - aiogram.dispatcher - INFO - Start polling
+2025-11-20 17:41:01,216 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-11-20 17:41:08,195 - aiogram.event - INFO - Update id=645440072 is handled. Duration 686 ms by bot id=8236074997
+2025-11-20 17:41:09,180 - handlers.workouts - INFO - === my_workouts START user 6969870739 ===
+2025-11-20 17:41:09,183 - handlers.workouts - INFO - ✓ User found: <Record id=5 telegram_id=6969870739 first_name='Фея' last_name=None username=None role='player' created_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) body_weight=Decimal('70.00') age=None gender=None experience_level='beginner' updated_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) is_active=True>
+2025-11-20 17:41:09,184 - handlers.workouts - INFO - ✓ User ID: 5
+2025-11-20 17:41:09,184 - handlers.workouts - INFO - ✓ DB connection acquired
+2025-11-20 17:41:09,186 - handlers.workouts - INFO - ✓ Query executed, found: 0 workouts
+2025-11-20 17:41:09,187 - handlers.workouts - INFO - ⚠️ No workouts found
+2025-11-20 17:41:09,187 - handlers.workouts - INFO - ✓ Editing message...
+2025-11-20 17:41:09,292 - handlers.workouts - INFO - ✓ Message edited successfully
+2025-11-20 17:41:09,410 - handlers.workouts - INFO - === my_workouts END (SUCCESS) ===
+2025-11-20 17:41:09,411 - aiogram.event - INFO - Update id=645440073 is handled. Duration 265 ms by bot id=8236074997
+2025-11-20 18:00:20,529 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-11-20 18:00:20,530 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-11-20 18:00:20,655 - database.database - INFO - ✅ База данных инициализирована
+2025-11-20 18:00:20,656 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-11-20 18:00:20,657 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-11-20 18:00:20,659 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-11-20 18:00:20,659 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2025-11-20 18:00:20,659 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2025-11-20 18:00:20,659 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x000001FE4D946EF0>
+2025-11-20 18:00:20,660 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x000001FE4DB01640>
+2025-11-20 18:00:20,660 - database.teams_database - INFO - ✅ teams_database инициализирована
+2025-11-20 18:00:20,660 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x000001FE4DAF7F10>
+2025-11-20 18:00:20,663 - database.teams_database - INFO - ✅ Teams database tables initialized
+2025-11-20 18:00:20,664 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x000001FE4DAF7F10>
+2025-11-20 18:00:20,664 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2025-11-20 18:00:20,664 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2025-11-20 18:00:20,665 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-11-20 18:00:20,665 - handlers - INFO - ============================================================
+2025-11-20 18:00:20,665 - handlers - INFO - 🔗 Начинаю регистрацию всех роутеров и обработчиков...
+2025-11-20 18:00:20,666 - handlers - INFO - ============================================================
+2025-11-20 18:00:20,667 - handlers - INFO - ✅ start handlers зарегистрированы
+2025-11-20 18:00:20,669 - handlers - INFO - ✅ exercises handlers зарегистрированы
+2025-11-20 18:00:20,669 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-11-20 18:00:20,669 - handlers - INFO - ✅ workouts handlers зарегистрированы
+2025-11-20 18:00:20,671 - handlers - INFO - ✅ tests handlers зарегистрированы
+2025-11-20 18:00:20,673 - handlers - INFO - ✅ test_batteries handlers зарегистрированы
+2025-11-20 18:00:20,673 - handlers - INFO - ✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)
+2025-11-20 18:00:20,674 - handlers - INFO - ✅ trainees_router зарегистрирован
+2025-11-20 18:00:20,674 - handlers - INFO - ✅ workouts_router зарегистрирован
+2025-11-20 18:00:20,674 - handlers - INFO - ✅ general_router зарегистрирован (последний приоритет)
+2025-11-20 18:00:20,676 - handlers - INFO - ✅ team_tests handlers зарегистрированы
+2025-11-20 18:00:20,677 - handlers - INFO - ✅ player_tests handlers зарегистрированы
+2025-11-20 18:00:20,677 - handlers - INFO - ============================================================
+2025-11-20 18:00:20,677 - handlers - INFO - 🎉 ВСЕ роутеры и обработчики успешно зарегистрированы!
+2025-11-20 18:00:20,678 - handlers - INFO - ============================================================
+2025-11-20 18:00:21,073 - __main__ - INFO - ✅ Команды бота настроены
+2025-11-20 18:00:21,163 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-11-20 18:00:21,163 - __main__ - INFO - 🆔 ID: 8236074997
+2025-11-20 18:00:21,163 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-11-20 18:00:21,163 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-11-20 18:00:21,164 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-11-20 18:00:21,164 - aiogram.dispatcher - INFO - Start polling
+2025-11-20 18:00:21,245 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-11-20 18:00:26,869 - aiogram.event - INFO - Update id=645440074 is handled. Duration 311 ms by bot id=8236074997
+2025-11-20 18:00:28,461 - aiogram.event - INFO - Update id=645440075 is handled. Duration 234 ms by bot id=8236074997
+2025-11-20 18:00:29,706 - handlers.workouts - INFO - === my_workouts START user 6969870739 ===
+2025-11-20 18:00:29,709 - handlers.workouts - INFO - ✓ User found: <Record id=5 telegram_id=6969870739 first_name='Фея' last_name=None username=None role='player' created_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) body_weight=Decimal('70.00') age=None gender=None experience_level='beginner' updated_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) is_active=True>
+2025-11-20 18:00:29,710 - handlers.workouts - INFO - ✓ User ID: 5
+2025-11-20 18:00:29,711 - handlers.workouts - INFO - ✓ DB connection acquired
+2025-11-20 18:00:29,714 - handlers.workouts - INFO - ✓ Query executed, found: 0 workouts
+2025-11-20 18:00:29,715 - handlers.workouts - INFO - ⚠️ No workouts found
+2025-11-20 18:00:29,715 - handlers.workouts - INFO - ✓ Editing message...
+2025-11-20 18:00:29,869 - handlers.workouts - INFO - ✓ Message edited successfully
+2025-11-20 18:00:29,980 - handlers.workouts - INFO - === my_workouts END (SUCCESS) ===
+2025-11-20 18:00:29,982 - aiogram.event - INFO - Update id=645440076 is handled. Duration 328 ms by bot id=8236074997
+2025-11-20 18:00:33,886 - aiogram.event - INFO - Update id=645440077 is handled. Duration 188 ms by bot id=8236074997
+2025-11-20 18:00:35,585 - aiogram.event - INFO - Update id=645440078 is handled. Duration 202 ms by bot id=8236074997
+2025-11-20 18:00:36,659 - aiogram.event - INFO - Update id=645440079 is handled. Duration 202 ms by bot id=8236074997
+2025-11-20 18:00:39,145 - aiogram.event - INFO - Update id=645440080 is not handled. Duration 31 ms by bot id=8236074997
+2025-11-20 18:00:42,458 - aiogram.event - INFO - Update id=645440081 is not handled. Duration 30 ms by bot id=8236074997
+2025-11-20 18:00:43,834 - aiogram.event - INFO - Update id=645440082 is handled. Duration 234 ms by bot id=8236074997
+2025-11-20 18:00:45,277 - aiogram.event - INFO - Update id=645440083 is handled. Duration 438 ms by bot id=8236074997
+2025-11-20 18:00:46,457 - handlers.workouts - INFO - === my_workouts START user 6969870739 ===
+2025-11-20 18:00:46,458 - handlers.workouts - INFO - ✓ User found: <Record id=5 telegram_id=6969870739 first_name='Фея' last_name=None username=None role='player' created_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) body_weight=Decimal('70.00') age=None gender=None experience_level='beginner' updated_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) is_active=True>
+2025-11-20 18:00:46,459 - handlers.workouts - INFO - ✓ User ID: 5
+2025-11-20 18:00:46,459 - handlers.workouts - INFO - ✓ DB connection acquired
+2025-11-20 18:00:46,459 - handlers.workouts - INFO - ✓ Query executed, found: 0 workouts
+2025-11-20 18:00:46,460 - handlers.workouts - INFO - ⚠️ No workouts found
+2025-11-20 18:00:46,460 - handlers.workouts - INFO - ✓ Editing message...
+2025-11-20 18:00:46,573 - handlers.workouts - INFO - ✓ Message edited successfully
+2025-11-20 18:00:46,680 - handlers.workouts - INFO - === my_workouts END (SUCCESS) ===
+2025-11-20 18:00:46,681 - aiogram.event - INFO - Update id=645440084 is handled. Duration 250 ms by bot id=8236074997
+2025-11-20 18:06:00,952 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-11-20 18:06:00,953 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-11-20 18:06:01,195 - database.database - INFO - ✅ База данных инициализирована
+2025-11-20 18:06:01,196 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-11-20 18:06:01,197 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-11-20 18:06:01,199 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-11-20 18:06:01,200 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2025-11-20 18:06:01,200 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2025-11-20 18:06:01,200 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x000001A4829C6EF0>
+2025-11-20 18:06:01,200 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x000001A482BB5900>
+2025-11-20 18:06:01,200 - database.teams_database - INFO - ✅ teams_database инициализирована
+2025-11-20 18:06:01,201 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x000001A482AD0CD0>
+2025-11-20 18:06:01,203 - database.teams_database - INFO - ✅ Teams database tables initialized
+2025-11-20 18:06:01,204 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x000001A482AD0CD0>
+2025-11-20 18:06:01,204 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2025-11-20 18:06:01,205 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2025-11-20 18:06:01,205 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-11-20 18:06:01,205 - handlers - INFO - ============================================================
+2025-11-20 18:06:01,205 - handlers - INFO - 🔗 Начинаю регистрацию всех роутеров и обработчиков...
+2025-11-20 18:06:01,206 - handlers - INFO - ============================================================
+2025-11-20 18:06:01,207 - handlers - INFO - ✅ start handlers зарегистрированы
+2025-11-20 18:06:01,209 - handlers - INFO - ✅ exercises handlers зарегистрированы
+2025-11-20 18:06:01,209 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-11-20 18:06:01,210 - handlers - INFO - ✅ workouts handlers зарегистрированы
+2025-11-20 18:06:01,212 - handlers - INFO - ✅ tests handlers зарегистрированы
+2025-11-20 18:06:01,214 - handlers - INFO - ✅ test_batteries handlers зарегистрированы
+2025-11-20 18:06:01,214 - handlers - INFO - ✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)
+2025-11-20 18:06:01,215 - handlers - INFO - ✅ trainees_router зарегистрирован
+2025-11-20 18:06:01,215 - handlers - INFO - ✅ workouts_router зарегистрирован
+2025-11-20 18:06:01,215 - handlers - INFO - ✅ general_router зарегистрирован (последний приоритет)
+2025-11-20 18:06:01,217 - handlers - INFO - ✅ team_tests handlers зарегистрированы
+2025-11-20 18:06:01,218 - handlers - INFO - ✅ player_tests handlers зарегистрированы
+2025-11-20 18:06:01,219 - handlers - INFO - ============================================================
+2025-11-20 18:06:01,219 - handlers - INFO - 🎉 ВСЕ роутеры и обработчики успешно зарегистрированы!
+2025-11-20 18:06:01,219 - handlers - INFO - ============================================================
+2025-11-20 18:06:01,659 - __main__ - INFO - ✅ Команды бота настроены
+2025-11-20 18:06:01,739 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-11-20 18:06:01,740 - __main__ - INFO - 🆔 ID: 8236074997
+2025-11-20 18:06:01,740 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-11-20 18:06:01,740 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-11-20 18:06:01,740 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-11-20 18:06:01,741 - aiogram.dispatcher - INFO - Start polling
+2025-11-20 18:06:01,816 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-11-20 18:06:03,994 - aiogram.event - INFO - Update id=645440085 is handled. Duration 311 ms by bot id=8236074997
+2025-11-20 18:06:05,990 - aiogram.event - INFO - Update id=645440086 is handled. Duration 234 ms by bot id=8236074997
+2025-11-20 18:06:07,833 - handlers.workouts - INFO - === my_workouts START user 6969870739 ===
+2025-11-20 18:06:07,836 - handlers.workouts - INFO - ✓ User found: <Record id=5 telegram_id=6969870739 first_name='Фея' last_name=None username=None role='player' created_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) body_weight=Decimal('70.00') age=None gender=None experience_level='beginner' updated_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) is_active=True>
+2025-11-20 18:06:07,836 - handlers.workouts - INFO - ✓ User ID: 5
+2025-11-20 18:06:07,836 - handlers.workouts - INFO - ✓ DB connection acquired
+2025-11-20 18:06:07,839 - handlers.workouts - INFO - ✓ Query executed, found: 0 workouts
+2025-11-20 18:06:07,839 - handlers.workouts - INFO - ⚠️ No workouts found
+2025-11-20 18:06:07,840 - handlers.workouts - INFO - ✓ Editing message...
+2025-11-20 18:06:07,977 - handlers.workouts - INFO - ✓ Message edited successfully
+2025-11-20 18:06:08,081 - handlers.workouts - INFO - === my_workouts END (SUCCESS) ===
+2025-11-20 18:06:08,082 - aiogram.event - INFO - Update id=645440087 is handled. Duration 280 ms by bot id=8236074997
+2025-11-20 18:11:35,886 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-11-20 18:11:35,886 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-11-20 18:11:36,011 - database.database - INFO - ✅ База данных инициализирована
+2025-11-20 18:11:36,012 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-11-20 18:11:36,013 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-11-20 18:11:36,015 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-11-20 18:11:36,015 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2025-11-20 18:11:36,015 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2025-11-20 18:11:36,015 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x000001568962AEF0>
+2025-11-20 18:11:36,016 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x00000156897EDFE0>
+2025-11-20 18:11:36,016 - database.teams_database - INFO - ✅ teams_database инициализирована
+2025-11-20 18:11:36,016 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x0000015689766230>
+2025-11-20 18:11:36,019 - database.teams_database - INFO - ✅ Teams database tables initialized
+2025-11-20 18:11:36,020 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x0000015689766230>
+2025-11-20 18:11:36,020 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2025-11-20 18:11:36,020 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2025-11-20 18:11:36,020 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-11-20 18:11:36,021 - handlers - INFO - ============================================================
+2025-11-20 18:11:36,021 - handlers - INFO - 🔗 Начинаю регистрацию всех роутеров и обработчиков...
+2025-11-20 18:11:36,021 - handlers - INFO - ============================================================
+2025-11-20 18:11:36,022 - handlers - INFO - ✅ start handlers зарегистрированы
+2025-11-20 18:11:36,024 - handlers - INFO - ✅ exercises handlers зарегистрированы
+2025-11-20 18:11:36,025 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-11-20 18:11:36,025 - handlers - INFO - ✅ workouts handlers зарегистрированы
+2025-11-20 18:11:36,027 - handlers - INFO - ✅ tests handlers зарегистрированы
+2025-11-20 18:11:36,029 - handlers - INFO - ✅ test_batteries handlers зарегистрированы
+2025-11-20 18:11:36,030 - handlers - INFO - ✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)
+2025-11-20 18:11:36,030 - handlers - INFO - ✅ trainees_router зарегистрирован
+2025-11-20 18:11:36,030 - handlers - INFO - ✅ workouts_router зарегистрирован
+2025-11-20 18:11:36,030 - handlers - INFO - ✅ general_router зарегистрирован (последний приоритет)
+2025-11-20 18:11:36,032 - handlers - INFO - ✅ team_tests handlers зарегистрированы
+2025-11-20 18:11:36,034 - handlers - INFO - ✅ player_tests handlers зарегистрированы
+2025-11-20 18:11:36,034 - handlers - INFO - ============================================================
+2025-11-20 18:11:36,034 - handlers - INFO - 🎉 ВСЕ роутеры и обработчики успешно зарегистрированы!
+2025-11-20 18:11:36,034 - handlers - INFO - ============================================================
+2025-11-20 18:11:36,342 - __main__ - INFO - ✅ Команды бота настроены
+2025-11-20 18:11:36,425 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-11-20 18:11:36,425 - __main__ - INFO - 🆔 ID: 8236074997
+2025-11-20 18:11:36,426 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-11-20 18:11:36,426 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-11-20 18:11:36,426 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-11-20 18:11:36,427 - aiogram.dispatcher - INFO - Start polling
+2025-11-20 18:11:36,505 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-11-20 18:11:44,835 - aiogram.event - INFO - Update id=645440088 is handled. Duration 343 ms by bot id=8236074997
+2025-11-20 18:11:46,407 - aiogram.event - INFO - Update id=645440089 is handled. Duration 233 ms by bot id=8236074997
+2025-11-20 18:11:47,257 - handlers.workouts - INFO - === my_workouts START user 6969870739 ===
+2025-11-20 18:11:47,260 - handlers.workouts - INFO - ✓ User found: <Record id=5 telegram_id=6969870739 first_name='Фея' last_name=None username=None role='player' created_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) body_weight=Decimal('70.00') age=None gender=None experience_level='beginner' updated_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) is_active=True>
+2025-11-20 18:11:47,260 - handlers.workouts - INFO - ⚠️ Player 5 skip - using teams_menu handler
+2025-11-20 18:11:47,446 - aiogram.event - INFO - Update id=645440090 is handled. Duration 218 ms by bot id=8236074997
+2025-11-20 18:11:53,336 - handlers.workouts - INFO - === my_workouts START user 6969870739 ===
+2025-11-20 18:11:53,338 - handlers.workouts - INFO - ✓ User found: <Record id=5 telegram_id=6969870739 first_name='Фея' last_name=None username=None role='player' created_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) body_weight=Decimal('70.00') age=None gender=None experience_level='beginner' updated_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) is_active=True>
+2025-11-20 18:11:53,338 - handlers.workouts - INFO - ⚠️ Player 5 skip - using teams_menu handler
+2025-11-20 18:11:53,428 - aiogram.event - INFO - Update id=645440091 is handled. Duration 125 ms by bot id=8236074997
+2025-11-20 18:16:34,401 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-11-20 18:16:34,402 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-11-20 18:16:34,527 - database.database - INFO - ✅ База данных инициализирована
+2025-11-20 18:16:34,527 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-11-20 18:16:34,528 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-11-20 18:16:34,530 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-11-20 18:16:34,530 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2025-11-20 18:16:34,531 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2025-11-20 18:16:34,531 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x000001EAADFDAEF0>
+2025-11-20 18:16:34,531 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x000001EAAE19A090>
+2025-11-20 18:16:34,531 - database.teams_database - INFO - ✅ teams_database инициализирована
+2025-11-20 18:16:34,532 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x000001EAAE1116F0>
+2025-11-20 18:16:34,534 - database.teams_database - INFO - ✅ Teams database tables initialized
+2025-11-20 18:16:34,535 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x000001EAAE1116F0>
+2025-11-20 18:16:34,535 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2025-11-20 18:16:34,536 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2025-11-20 18:16:34,536 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-11-20 18:16:34,536 - handlers - INFO - ============================================================
+2025-11-20 18:16:34,536 - handlers - INFO - 🔗 Начинаю регистрацию всех роутеров и обработчиков...
+2025-11-20 18:16:34,537 - handlers - INFO - ============================================================
+2025-11-20 18:16:34,538 - handlers - INFO - ✅ start handlers зарегистрированы
+2025-11-20 18:16:34,540 - handlers - INFO - ✅ exercises handlers зарегистрированы
+2025-11-20 18:16:34,540 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-11-20 18:16:34,540 - handlers - INFO - ✅ workouts handlers зарегистрированы
+2025-11-20 18:16:34,542 - handlers - INFO - ✅ tests handlers зарегистрированы
+2025-11-20 18:16:34,545 - handlers - INFO - ✅ test_batteries handlers зарегистрированы
+2025-11-20 18:16:34,545 - handlers - INFO - ✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)
+2025-11-20 18:16:34,545 - handlers - INFO - ✅ trainees_router зарегистрирован
+2025-11-20 18:16:34,545 - handlers - INFO - ✅ workouts_router зарегистрирован
+2025-11-20 18:16:34,546 - handlers - INFO - ✅ general_router зарегистрирован (последний приоритет)
+2025-11-20 18:16:34,548 - handlers - INFO - ✅ team_tests handlers зарегистрированы
+2025-11-20 18:16:34,549 - handlers - INFO - ✅ player_tests handlers зарегистрированы
+2025-11-20 18:16:34,549 - handlers - INFO - ============================================================
+2025-11-20 18:16:34,550 - handlers - INFO - 🎉 ВСЕ роутеры и обработчики успешно зарегистрированы!
+2025-11-20 18:16:34,550 - handlers - INFO - ============================================================
+2025-11-20 18:16:34,832 - __main__ - INFO - ✅ Команды бота настроены
+2025-11-20 18:16:34,923 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-11-20 18:16:34,924 - __main__ - INFO - 🆔 ID: 8236074997
+2025-11-20 18:16:34,924 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-11-20 18:16:34,924 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-11-20 18:16:34,924 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-11-20 18:16:34,925 - aiogram.dispatcher - INFO - Start polling
+2025-11-20 18:16:35,001 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-11-20 18:16:56,024 - handlers.workouts - INFO - === my_workouts START user 6969870739 ===
+2025-11-20 18:16:56,027 - handlers.workouts - INFO - ✓ User found: <Record id=5 telegram_id=6969870739 first_name='Фея' last_name=None username=None role='player' created_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) body_weight=Decimal('70.00') age=None gender=None experience_level='beginner' updated_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) is_active=True>
+2025-11-20 18:16:56,028 - handlers.workouts - INFO - ⚠️ Player 5 skip - using teams_menu handler
+2025-11-20 18:16:56,271 - aiogram.event - INFO - Update id=645440092 is handled. Duration 281 ms by bot id=8236074997
+2025-11-20 18:16:58,765 - handlers.workouts - INFO - === my_workouts START user 6969870739 ===
+2025-11-20 18:16:58,766 - handlers.workouts - INFO - ✓ User found: <Record id=5 telegram_id=6969870739 first_name='Фея' last_name=None username=None role='player' created_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) body_weight=Decimal('70.00') age=None gender=None experience_level='beginner' updated_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) is_active=True>
+2025-11-20 18:16:58,766 - handlers.workouts - INFO - ⚠️ Player 5 skip - using teams_menu handler
+2025-11-20 18:16:58,852 - aiogram.event - INFO - Update id=645440093 is handled. Duration 109 ms by bot id=8236074997
+2025-11-20 18:17:01,222 - handlers.workouts - INFO - === my_workouts START user 6969870739 ===
+2025-11-20 18:17:01,223 - handlers.workouts - INFO - ✓ User found: <Record id=5 telegram_id=6969870739 first_name='Фея' last_name=None username=None role='player' created_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) body_weight=Decimal('70.00') age=None gender=None experience_level='beginner' updated_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) is_active=True>
+2025-11-20 18:17:01,224 - handlers.workouts - INFO - ⚠️ Player 5 skip - using teams_menu handler
+2025-11-20 18:17:01,310 - aiogram.event - INFO - Update id=645440094 is handled. Duration 125 ms by bot id=8236074997
+2025-11-20 18:17:02,950 - aiogram.event - INFO - Update id=645440095 is handled. Duration 280 ms by bot id=8236074997
+2025-11-20 18:17:04,954 - aiogram.event - INFO - Update id=645440096 is handled. Duration 202 ms by bot id=8236074997
+2025-11-20 18:17:06,500 - handlers.workouts - INFO - === my_workouts START user 6969870739 ===
+2025-11-20 18:17:06,501 - handlers.workouts - INFO - ✓ User found: <Record id=5 telegram_id=6969870739 first_name='Фея' last_name=None username=None role='player' created_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) body_weight=Decimal('70.00') age=None gender=None experience_level='beginner' updated_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) is_active=True>
+2025-11-20 18:17:06,502 - handlers.workouts - INFO - ⚠️ Player 5 skip - using teams_menu handler
+2025-11-20 18:17:06,588 - aiogram.event - INFO - Update id=645440097 is handled. Duration 109 ms by bot id=8236074997
+2025-11-20 18:17:08,512 - handlers.workouts - INFO - === my_workouts START user 6969870739 ===
+2025-11-20 18:17:08,513 - handlers.workouts - INFO - ✓ User found: <Record id=5 telegram_id=6969870739 first_name='Фея' last_name=None username=None role='player' created_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) body_weight=Decimal('70.00') age=None gender=None experience_level='beginner' updated_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) is_active=True>
+2025-11-20 18:17:08,514 - handlers.workouts - INFO - ⚠️ Player 5 skip - using teams_menu handler
+2025-11-20 18:17:08,622 - aiogram.event - INFO - Update id=645440098 is handled. Duration 140 ms by bot id=8236074997
+2025-11-20 18:17:10,162 - handlers.workouts - INFO - find_workout menu для user 6969870739
+2025-11-20 18:17:10,429 - aiogram.event - INFO - Update id=645440099 is handled. Duration 297 ms by bot id=8236074997
+2025-11-20 18:17:12,727 - aiogram.event - INFO - Update id=645440100 is handled. Duration 218 ms by bot id=8236074997
+2025-11-20 18:19:54,683 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-11-20 18:19:54,684 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-11-20 18:19:54,808 - database.database - INFO - ✅ База данных инициализирована
+2025-11-20 18:19:54,808 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-11-20 18:19:54,810 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-11-20 18:19:54,811 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-11-20 18:19:54,812 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2025-11-20 18:19:54,812 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2025-11-20 18:19:54,812 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x0000019FD97CAEF0>
+2025-11-20 18:19:54,812 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x0000019FD9A01B10>
+2025-11-20 18:19:54,813 - database.teams_database - INFO - ✅ teams_database инициализирована
+2025-11-20 18:19:54,813 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x0000019FD99AB220>
+2025-11-20 18:19:54,815 - database.teams_database - INFO - ✅ Teams database tables initialized
+2025-11-20 18:19:54,816 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x0000019FD99AB220>
+2025-11-20 18:19:54,817 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2025-11-20 18:19:54,817 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2025-11-20 18:19:54,817 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-11-20 18:19:54,817 - handlers - INFO - ============================================================
+2025-11-20 18:19:54,817 - handlers - INFO - 🔗 Начинаю регистрацию всех роутеров и обработчиков...
+2025-11-20 18:19:54,818 - handlers - INFO - ============================================================
+2025-11-20 18:19:54,818 - handlers - INFO - ✅ start handlers зарегистрированы
+2025-11-20 18:19:54,820 - handlers - INFO - ✅ exercises handlers зарегистрированы
+2025-11-20 18:19:54,820 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-11-20 18:19:54,821 - handlers - INFO - ✅ workouts handlers зарегистрированы
+2025-11-20 18:19:54,823 - handlers - INFO - ✅ tests handlers зарегистрированы
+2025-11-20 18:19:54,825 - handlers - INFO - ✅ test_batteries handlers зарегистрированы
+2025-11-20 18:19:54,825 - handlers - INFO - ✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)
+2025-11-20 18:19:54,825 - handlers - INFO - ✅ trainees_router зарегистрирован
+2025-11-20 18:19:54,826 - handlers - INFO - ✅ workouts_router зарегистрирован
+2025-11-20 18:19:54,826 - handlers - INFO - ✅ general_router зарегистрирован (последний приоритет)
+2025-11-20 18:19:54,828 - handlers - INFO - ✅ team_tests handlers зарегистрированы
+2025-11-20 18:19:54,829 - handlers - INFO - ✅ player_tests handlers зарегистрированы
+2025-11-20 18:19:54,829 - handlers - INFO - ============================================================
+2025-11-20 18:19:54,829 - handlers - INFO - 🎉 ВСЕ роутеры и обработчики успешно зарегистрированы!
+2025-11-20 18:19:54,830 - handlers - INFO - ============================================================
+2025-11-20 18:19:55,120 - __main__ - INFO - ✅ Команды бота настроены
+2025-11-20 18:19:55,205 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-11-20 18:19:55,205 - __main__ - INFO - 🆔 ID: 8236074997
+2025-11-20 18:19:55,205 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-11-20 18:19:55,205 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-11-20 18:19:55,206 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-11-20 18:19:55,206 - aiogram.dispatcher - INFO - Start polling
+2025-11-20 18:19:55,283 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-11-20 18:20:06,804 - aiogram.event - INFO - Update id=645440101 is handled. Duration 547 ms by bot id=8236074997
+2025-11-20 18:20:07,936 - aiogram.event - INFO - Update id=645440102 is handled. Duration 186 ms by bot id=8236074997
+2025-11-20 18:20:08,752 - handlers.workouts - INFO - === my_workouts START user 6969870739 ===
+2025-11-20 18:20:08,755 - handlers.workouts - INFO - ✓ User found: <Record id=5 telegram_id=6969870739 first_name='Фея' last_name=None username=None role='player' created_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) body_weight=Decimal('70.00') age=None gender=None experience_level='beginner' updated_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) is_active=True>
+2025-11-20 18:20:08,755 - handlers.workouts - INFO - ⚠️ Player 5 skip - using teams_menu handler
+2025-11-20 18:20:08,844 - aiogram.event - INFO - Update id=645440103 is handled. Duration 125 ms by bot id=8236074997
+2025-11-20 18:20:10,762 - handlers.workouts - INFO - === my_workouts START user 6969870739 ===
+2025-11-20 18:20:10,763 - handlers.workouts - INFO - ✓ User found: <Record id=5 telegram_id=6969870739 first_name='Фея' last_name=None username=None role='player' created_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) body_weight=Decimal('70.00') age=None gender=None experience_level='beginner' updated_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) is_active=True>
+2025-11-20 18:20:10,763 - handlers.workouts - INFO - ⚠️ Player 5 skip - using teams_menu handler
+2025-11-20 18:20:10,932 - aiogram.event - INFO - Update id=645440104 is handled. Duration 203 ms by bot id=8236074997
+2025-11-20 18:20:10,956 - handlers.workouts - INFO - === my_workouts START user 6969870739 ===
+2025-11-20 18:20:10,958 - handlers.workouts - INFO - ✓ User found: <Record id=5 telegram_id=6969870739 first_name='Фея' last_name=None username=None role='player' created_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) body_weight=Decimal('70.00') age=None gender=None experience_level='beginner' updated_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) is_active=True>
+2025-11-20 18:20:10,958 - handlers.workouts - INFO - ⚠️ Player 5 skip - using teams_menu handler
+2025-11-20 18:20:11,105 - aiogram.event - INFO - Update id=645440105 is handled. Duration 171 ms by bot id=8236074997
+2025-11-20 18:20:11,291 - handlers.workouts - INFO - find_workout menu для user 6969870739
+2025-11-20 18:20:11,436 - handlers.workouts - INFO - find_workout menu для user 6969870739
+2025-11-20 18:20:11,653 - aiogram.event - INFO - Update id=645440106 is handled. Duration 405 ms by bot id=8236074997
+2025-11-20 18:20:12,157 - aiogram.event - INFO - Update id=645440107 is handled. Duration 750 ms by bot id=8236074997
+2025-11-20 18:25:55,430 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2025-11-20 18:25:55,430 - __main__ - INFO - 📊 Инициализация базы данных...
+2025-11-20 18:25:55,564 - database.database - INFO - ✅ База данных инициализирована
+2025-11-20 18:25:55,564 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2025-11-20 18:25:55,566 - database.database - INFO - 🔗 PostgreSQL: 18.0
+2025-11-20 18:25:55,568 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2025-11-20 18:25:55,568 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2025-11-20 18:25:55,568 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2025-11-20 18:25:55,569 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x000002014657EEF0>
+2025-11-20 18:25:55,569 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x00000201467ADA60>
+2025-11-20 18:25:55,569 - database.teams_database - INFO - ✅ teams_database инициализирована
+2025-11-20 18:25:55,570 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x000002014675B190>
+2025-11-20 18:25:55,572 - database.teams_database - INFO - ✅ Teams database tables initialized
+2025-11-20 18:25:55,573 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x000002014675B190>
+2025-11-20 18:25:55,574 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2025-11-20 18:25:55,574 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2025-11-20 18:25:55,574 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2025-11-20 18:25:55,575 - handlers - INFO - ============================================================
+2025-11-20 18:25:55,575 - handlers - INFO - 🔗 Начинаю регистрацию всех роутеров и обработчиков...
+2025-11-20 18:25:55,575 - handlers - INFO - ============================================================
+2025-11-20 18:25:55,576 - handlers - INFO - ✅ start handlers зарегистрированы
+2025-11-20 18:25:55,578 - handlers - INFO - ✅ exercises handlers зарегистрированы
+2025-11-20 18:25:55,578 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2025-11-20 18:25:55,579 - handlers - INFO - ✅ workouts handlers зарегистрированы
+2025-11-20 18:25:55,580 - handlers - INFO - ✅ tests handlers зарегистрированы
+2025-11-20 18:25:55,583 - handlers - INFO - ✅ test_batteries handlers зарегистрированы
+2025-11-20 18:25:55,583 - handlers - INFO - ✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)
+2025-11-20 18:25:55,584 - handlers - INFO - ✅ trainees_router зарегистрирован
+2025-11-20 18:25:55,584 - handlers - INFO - ✅ workouts_router зарегистрирован
+2025-11-20 18:25:55,584 - handlers - INFO - ✅ general_router зарегистрирован (последний приоритет)
+2025-11-20 18:25:55,586 - handlers - INFO - ✅ team_tests handlers зарегистрированы
+2025-11-20 18:25:55,588 - handlers - INFO - ✅ player_tests handlers зарегистрированы
+2025-11-20 18:25:55,588 - handlers - INFO - ============================================================
+2025-11-20 18:25:55,589 - handlers - INFO - 🎉 ВСЕ роутеры и обработчики успешно зарегистрированы!
+2025-11-20 18:25:55,589 - handlers - INFO - ============================================================
+2025-11-20 18:25:55,888 - __main__ - INFO - ✅ Команды бота настроены
+2025-11-20 18:25:55,974 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2025-11-20 18:25:55,974 - __main__ - INFO - 🆔 ID: 8236074997
+2025-11-20 18:25:55,975 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2025-11-20 18:25:55,975 - __main__ - INFO - ✅ Бот успешно запущен!
+2025-11-20 18:25:55,975 - __main__ - INFO - 🔄 Начинаю поллинг...
+2025-11-20 18:25:55,976 - aiogram.dispatcher - INFO - Start polling
+2025-11-20 18:25:56,067 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2025-11-20 18:26:02,182 - aiogram.event - INFO - Update id=645440108 is handled. Duration 391 ms by bot id=8236074997
+2025-11-20 18:26:03,561 - handlers.workouts - INFO - === my_workouts START user 6969870739 ===
+2025-11-20 18:26:03,563 - handlers.workouts - INFO - ✓ User found: <Record id=5 telegram_id=6969870739 first_name='Фея' last_name=None username=None role='player' created_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) body_weight=Decimal('70.00') age=None gender=None experience_level='beginner' updated_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) is_active=True>
+2025-11-20 18:26:03,564 - handlers.workouts - INFO - ⚠️ Player 5 skip - using teams_menu handler
+2025-11-20 18:26:03,660 - aiogram.event - INFO - Update id=645440109 is handled. Duration 125 ms by bot id=8236074997
+2025-11-20 18:26:06,607 - handlers.workouts - INFO - === my_workouts START user 6969870739 ===
+2025-11-20 18:26:06,608 - handlers.workouts - INFO - ✓ User found: <Record id=5 telegram_id=6969870739 first_name='Фея' last_name=None username=None role='player' created_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) body_weight=Decimal('70.00') age=None gender=None experience_level='beginner' updated_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) is_active=True>
+2025-11-20 18:26:06,608 - handlers.workouts - INFO - ⚠️ Player 5 skip - using teams_menu handler
+2025-11-20 18:26:06,702 - aiogram.event - INFO - Update id=645440110 is handled. Duration 125 ms by bot id=8236074997
+2025-11-20 18:26:07,514 - handlers.workouts - INFO - === my_workouts START user 6969870739 ===
+2025-11-20 18:26:07,515 - handlers.workouts - INFO - ✓ User found: <Record id=5 telegram_id=6969870739 first_name='Фея' last_name=None username=None role='player' created_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) body_weight=Decimal('70.00') age=None gender=None experience_level='beginner' updated_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) is_active=True>
+2025-11-20 18:26:07,516 - handlers.workouts - INFO - ⚠️ Player 5 skip - using teams_menu handler
+2025-11-20 18:26:07,659 - aiogram.event - INFO - Update id=645440111 is handled. Duration 171 ms by bot id=8236074997
+2025-11-20 18:26:08,621 - handlers.workouts - INFO - === my_workouts START user 6969870739 ===
+2025-11-20 18:26:08,622 - handlers.workouts - INFO - ✓ User found: <Record id=5 telegram_id=6969870739 first_name='Фея' last_name=None username=None role='player' created_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) body_weight=Decimal('70.00') age=None gender=None experience_level='beginner' updated_at=datetime.datetime(2025, 11, 19, 15, 38, 41, 238205) is_active=True>
+2025-11-20 18:26:08,622 - handlers.workouts - INFO - ⚠️ Player 5 skip - using teams_menu handler
+2025-11-20 18:26:08,732 - aiogram.event - INFO - Update id=645440112 is handled. Duration 156 ms by bot id=8236074997

@@ -520,3 +520,226 @@ async def trainee_start_assign_workout(callback: CallbackQuery, state: FSMContex
     await callback.answer()
 
 
+# ===== МЕНЮ ПОДОПЕЧНОГО (ATHLETE/PLAYER) =====
+
+@trainees_router.callback_query(F.data == "my_trainee_workouts")
+async def show_my_trainee_workouts(callback: CallbackQuery, state: FSMContext):
+    """Показать тренировки подопечного - для подопечного!"""
+    
+    await state.clear()
+    
+    try:
+        # Сначала находим ID подопечного по его telegram_id
+        async with db_manager.pool.acquire() as conn:
+            # ✅ ИСПРАВЛЕНО: ищем в individual_students подопечного по telegram_id
+            student = await conn.fetchrow("""
+                SELECT id, first_name, last_name 
+                FROM individual_students
+                WHERE telegram_id = $1 AND is_active = true
+                LIMIT 1
+            """, callback.from_user.id)
+            
+            if not student:
+                logger.warning(f"⚠️ Подопечный не найден для telegram_id={callback.from_user.id}")
+                kb = InlineKeyboardBuilder()
+                kb.button(text="🔙 В меню", callback_data="teams_menu")
+                kb.adjust(1)
+                
+                await callback.message.edit_text(
+                    "❌ **Профиль не найден**\n\n"
+                    "Попросите тренера добавить вас в систему.",
+                    reply_markup=kb.as_markup(),
+                    parse_mode="Markdown"
+                )
+                await callback.answer()
+                return
+            
+            student_id = student['id']
+            logger.info(f"✅ Найден подопечный: id={student_id}, telegram_id={callback.from_user.id}")
+            
+            # ✅ Теперь получаем тренировки, назначенные этому подопечному
+            workouts = await conn.fetch("""
+                SELECT
+                    w.id,
+                    w.name,
+                    w.description,
+                    w.difficulty_level,
+                    w.estimated_duration_minutes,
+                    wis.assigned_at,
+                    wis.deadline,
+                    wis.notes,
+                    wis.status
+                FROM workouts w
+                JOIN workout_individual_students wis ON w.id = wis.workout_id
+                WHERE wis.student_id = $1
+                AND wis.is_active = true
+                ORDER BY wis.assigned_at DESC
+            """, student_id)
+            
+            logger.info(f"📋 Найдено тренировок: {len(workouts)}")
+            
+            if not workouts:
+                kb = InlineKeyboardBuilder()
+                kb.button(text="🔙 В меню", callback_data="teams_menu")
+                kb.adjust(1)
+                
+                await callback.message.edit_text(
+                    "📭 **Назначенных тренировок нет**\n\n"
+                    "Тренер назначит вам тренировку, и она появится здесь.",
+                    reply_markup=kb.as_markup(),
+                    parse_mode="Markdown"
+                )
+                await callback.answer()
+                return
+            
+            # Группируем по статусам
+            pending = [w for w in workouts if w['status'] in ['pending', None]]
+            in_progress = [w for w in workouts if w['status'] == 'in_progress']
+            completed = [w for w in workouts if w['status'] == 'completed']
+            
+            text = "🏋️ **Мои тренировки**\n\n"
+            kb = InlineKeyboardBuilder()
+            
+            # Новые тренировки
+            if pending:
+                text += f"🆕 **Новые ({len(pending)}):**\n"
+                for w in pending:
+                    deadline_text = ""
+                    if w['deadline']:
+                        deadline_text = f" ⏰ До {w['deadline'].strftime('%d.%m')}"
+                    
+                    difficulty_emoji = {
+                        'beginner': '🟢',
+                        'intermediate': '🟡',
+                        'advanced': '🟠',
+                        'expert': '🔴'
+                    }.get(w['difficulty_level'], '⚪')
+                    
+                    text += f"{difficulty_emoji} **{w['name']}**{deadline_text}\n"
+                    
+                    if w['description']:
+                        desc = w['description'][:40]
+                        if len(w['description']) > 40:
+                            desc += "..."
+                        text += f"  _{desc}_\n"
+                    
+                    if w['estimated_duration_minutes']:
+                        text += f"  ⏱️ ~{w['estimated_duration_minutes']} мин\n"
+                    
+                    text += "\n"
+                    
+                    # КНОПКА НАЧАТЬ ТРЕНИРОВКУ
+                    kb.button(
+                        text=f"▶️ {w['name'][:20]}",
+                        callback_data=f"athlete_start_workout_{w['id']}"
+                    )
+            
+            # В процессе
+            if in_progress:
+                text += f"\n⏳ **В процессе ({len(in_progress)}):**\n"
+                for w in in_progress:
+                    text += f"• {w['name']}\n"
+                    kb.button(
+                        text=f"⏸️ Продолжить: {w['name'][:15]}",
+                        callback_data=f"athlete_continue_workout_{w['id']}"
+                    )
+            
+            # Выполненные
+            if completed:
+                text += f"\n✅ **Выполнено ({len(completed)}):**\n"
+                for w in completed[:3]:
+                    text += f"• {w['name']}\n"
+            
+            kb.button(text="🔙 К командам", callback_data="teams_menu")
+            kb.adjust(1)
+            
+            await callback.message.edit_text(
+                text,
+                reply_markup=kb.as_markup(),
+                parse_mode="Markdown"
+            )
+            await callback.answer()
+            
+            logger.info(f"✅ Тренировки подопечного {student_id} загружены")
+        
+    except Exception as e:
+        logger.exception(f"❌ Ошибка в show_my_trainee_workouts: {e}")
+        await callback.answer(f"❌ Ошибка: {str(e)}", show_alert=True)
+
+
+
+
+@trainees_router.callback_query(F.data.startswith("athlete_start_workout_"))
+async def athlete_start_workout(callback: CallbackQuery, state: FSMContext):
+    """Подопечный начинает тренировку"""
+    
+    try:
+        workout_id = int(callback.data.split("_")[-1])
+        
+        # Обновляем статус на 'in_progress'
+        await db_manager.pool.execute("""
+            UPDATE workout_individual_students
+            SET status = 'in_progress', started_at = NOW()
+            WHERE workout_id = $1 
+            AND student_id = (
+                SELECT id FROM individual_students 
+                WHERE telegram_id = $2 AND is_active = true
+            )
+        """, workout_id, callback.from_user.id)
+        
+        kb = InlineKeyboardBuilder()
+        kb.button(text="✅ Завершить тренировку", callback_data=f"athlete_finish_workout_{workout_id}")
+        kb.button(text="📋 Мои тренировки", callback_data="my_trainee_workouts")
+        kb.adjust(1)
+        
+        await callback.message.edit_text(
+            "💪 **Тренировка начата!**\n\n"
+            "Удачной тренировки! 🔥\n\n"
+            "Когда закончите, нажмите «Завершить».",
+            reply_markup=kb.as_markup(),
+            parse_mode="Markdown"
+        )
+        await callback.answer("✅ Тренировка начата!")
+        
+        logger.info(f"✅ Подопечный {callback.from_user.id} начал тренировку {workout_id}")
+        
+    except Exception as e:
+        logger.exception(f"❌ Ошибка: {e}")
+        await callback.answer("❌ Ошибка", show_alert=True)
+
+
+@trainees_router.callback_query(F.data.startswith("athlete_finish_workout_"))
+async def athlete_finish_workout(callback: CallbackQuery, state: FSMContext):
+    """Подопечный завершает тренировку"""
+    
+    try:
+        workout_id = int(callback.data.split("_")[-1])
+        
+        # Обновляем статус
+        await db_manager.pool.execute("""
+            UPDATE workout_individual_students
+            SET status = 'completed', completed_at = NOW()
+            WHERE workout_id = $1 
+            AND student_id = (
+                SELECT id FROM individual_students 
+                WHERE telegram_id = $2 AND is_active = true
+            )
+        """, workout_id, callback.from_user.id)
+        
+        kb = InlineKeyboardBuilder()
+        kb.button(text="📋 Мои тренировки", callback_data="my_trainee_workouts")
+        kb.adjust(1)
+        
+        await callback.message.edit_text(
+            "🎉 **Тренировка завершена!**\n\n"
+            "Отличная работа! 💪",
+            reply_markup=kb.as_markup(),
+            parse_mode="Markdown"
+        )
+        await callback.answer("✅ Тренировка сохранена!")
+        
+        logger.info(f"✅ Подопечный {callback.from_user.id} завершил тренировку {workout_id}")
+        
+    except Exception as e:
+        logger.exception(f"❌ Ошибка: {e}")
+        await callback.answer("❌ Ошибка", show_alert=True)
