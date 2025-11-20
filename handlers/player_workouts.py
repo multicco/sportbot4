@@ -8,13 +8,18 @@ from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from states.workout_assignment_states import WorkoutPlayerStates
-#from database.teams_database import teams_database
-#from handlers.teams import teams_db
 logger = logging.getLogger(__name__)
-#from handlers.teams import  teams_db
 player_workouts_router = Router(name="player_workouts")
 from handlers import teams 
 logger.info("Импорт teams_db в player_workouts.py: %s", teams )
+
+from states.player_rpe_state import PlayerRPEState   
+
+
+# @player_workouts_router.message()          # ловит ВСЕ текстовые сообщения
+# async def debug(message: Message, state: FSMContext):
+#     st = await state.get_state()
+#     await message.answer(f"state={st}\nтекст={message.text}")
 
 
 @player_workouts_router.message(Command("myworkouts"))
@@ -136,6 +141,7 @@ async def show_my_workouts(update: Message | CallbackQuery, state: FSMContext):
     else:
         await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="HTML")
 
+
 @player_workouts_router.callback_query(F.data.startswith("start_workout_"))
 async def start_workout(callback: CallbackQuery, state: FSMContext):
     """Начать тренировку"""
@@ -153,7 +159,7 @@ async def start_workout(callback: CallbackQuery, state: FSMContext):
         return
     
     keyboard = InlineKeyboardBuilder()
-    keyboard.button(text="✅ Завершить тренировку", callback_data=f"finish_workout_{workout_id}")
+    keyboard.button(text="✅ Завершить тренировку", callback_data=f"player_finish_workout_{workout_id}")
     keyboard.button(text="📋 Мои тренировки", callback_data="assigned_workouts")
     keyboard.adjust(1)
     
@@ -166,74 +172,66 @@ async def start_workout(callback: CallbackQuery, state: FSMContext):
     )
     await callback.answer("✅ Тренировка начата!")
 
-@player_workouts_router.callback_query(F.data.startswith("finish_workout_"))
+@player_workouts_router.callback_query(F.data.startswith("player_finish_workout_"))
 async def finish_workout(callback: CallbackQuery, state: FSMContext):
-    """Завершить тренировку и запросить RPE"""
     workout_id = int(callback.data.split("_")[-1])
     
-    await state.set_state(WorkoutPlayerStates.rating_rpe)
-    await state.update_data(workout_id=workout_id)
+    await state.clear()  # ← ЭТО ФИКС: очищаем любое старое состояние перед новым!
     
-    keyboard = InlineKeyboardBuilder()
-    for i in range(1, 11):
-        emoji = "🟢" if i <= 3 else "🟡" if i <= 6 else "🟠" if i <= 8 else "🔴"
-        keyboard.button(text=f"{emoji} {i}", callback_data=f"rpe_{i}")
-    keyboard.button(text="⏭️ Пропустить", callback_data="rpe_skip")
-    keyboard.adjust(5, 5, 1)
+    await state.set_state(PlayerRPEState.waiting)
+    await state.update_data(workout_id=workout_id)
     
     await callback.message.edit_text(
         "📊 **Оцените интенсивность тренировки**\n\n"
-        "**Шкала RPE (Rate of Perceived Exertion):**\n\n"
-        "1-3 🟢 Легко\n"
-        "4-6 🟡 Умеренно\n"
-        "7-8 🟠 Тяжело\n"
-        "9-10 🔴 Максимум\n\n"
-        "Выберите оценку от 1 до 10:",
-        reply_markup=keyboard.as_markup(),
+        "Введите число от **1 до 10**:\n"
+        "1 – легко, 10 – максимум\n\n"
+        "💡 *Напишите цифру в чат*",
         parse_mode="Markdown"
     )
     await callback.answer()
 
-@player_workouts_router.callback_query(F.data.startswith("rpe_"))
-async def process_rpe_rating(callback: CallbackQuery, state: FSMContext):
-    """Обработать оценку RPE"""
+@player_workouts_router.message(PlayerRPEState.waiting)
+async def process_rpe_text(message: Message, state: FSMContext):
+    text = message.text.strip().replace(",", ".")
+
+    # Проверяем корректность формата RPE
+    try:
+        rpe = float(text)
+        if not 1 <= rpe <= 10:
+            raise ValueError
+        rpe = round(rpe, 1)
+    except:
+        await state.clear()
+        await message.answer("❌ Введите число от 1 до 10. Пример: 7 или 8.5")
+        return
+
     data = await state.get_data()
-    workout_id = data.get('workout_id')
-    
-    if callback.data == "rpe_skip":
-        rpe = None
-        rpe_text = "не указана"
-    else:
-        rpe = float(callback.data.split("_")[-1])
-        rpe_text = f"{rpe}/10"
-    
-    # Обновляем статус на завершено с RPE
+    workout_id = data.get("workout_id")
+
+    if not workout_id:
+        await message.answer("Ошибка: потерялся ID тренировки. Начните заново.")
+        await state.clear()
+        return
+
     success = await teams.teams_db.update_player_workout_status(
-        telegram_id=callback.from_user.id,
+        telegram_id=message.from_user.id,
         workout_id=workout_id,
         status='completed',
         rpe=rpe
     )
-    
+
     await state.clear()
-    
+
     if success:
-        keyboard = InlineKeyboardBuilder()
-        keyboard.button(text="📋 Мои тренировки", callback_data="assigned_workouts")
-        keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
-        keyboard.adjust(1)
-        
-        await callback.message.edit_text(
+        await message.answer(
             f"🎉 **Тренировка завершена!**\n\n"
-            f"✅ Статус: Выполнено\n"
-            f"📊 RPE: {rpe_text}\n\n"
+            f"📊 RPE: {rpe:.1f}/10\n"
             f"Отличная работа! 💪",
-            reply_markup=keyboard.as_markup(),
             parse_mode="Markdown"
         )
-        await callback.answer("✅ Тренировка завершена!")
     else:
-        await callback.answer("❌ Ошибка", show_alert=True)
+        await message.answer("❌ Не удалось сохранить результат. Обратитесь к администратору.")
+
 
 def get_player_workouts_router():
     """Экспорт роутера"""

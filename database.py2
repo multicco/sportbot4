@@ -41,14 +41,31 @@ class DatabaseManager:
             )
             return dict(row) if row else None
 
-    async def create_user(self, telegram_id: int, first_name: str, 
-                         last_name: str = None, username: str = None):
-        """Создать нового пользователя"""
+    # async def create_user(self, telegram_id: int, first_name: str, 
+    #     #                  last_name: str = None, username: str = None):
+    #     # """Создать нового пользователя"""
+    #     # async with self.pool.acquire() as conn:
+    #     #     user_id = await conn.fetchval(
+    #     #         """INSERT INTO users (telegram_id, first_name, last_name, username, role)
+    #     #            VALUES ($1, $2, $3, $4, 'player') RETURNING id""",
+    #     #         telegram_id, first_name, last_name, username
+    #     #     )
+    #     #     return user_id
+
+
+    async def create_user(
+        self,
+        telegram_id: int,
+        first_name: str,
+        last_name: str | None = None,
+        username: str | None = None,
+        role: str = 'player'
+        ) -> int:
         async with self.pool.acquire() as conn:
             user_id = await conn.fetchval(
                 """INSERT INTO users (telegram_id, first_name, last_name, username, role)
-                   VALUES ($1, $2, $3, $4, 'player') RETURNING id""",
-                telegram_id, first_name, last_name, username
+                VALUES ($1, $2, $3, $4, $5) RETURNING id""",
+                telegram_id, first_name, last_name, username, role
             )
             return user_id
 

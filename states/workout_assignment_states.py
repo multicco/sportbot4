@@ -16,5 +16,5 @@ class WorkoutPlayerStates(StatesGroup):
     """Состояния для выполнения тренировки игроком"""
     viewing_workout = State()
     in_workout = State()
-    rating_rpe = State()  # Оценка RPE после тренировки
+    entering_workout_rpe = State()  # Оценка RPE после тренировки
     adding_workout_notes = State()

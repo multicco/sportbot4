@@ -5,5 +5,6 @@ from .exercise_states import CreateExerciseStates
 
 __all__ = [
     'CreateWorkoutStates',
-    'CreateExerciseStates'
+    'CreateExerciseStates',
+    'PlayerRPEState',
 ]

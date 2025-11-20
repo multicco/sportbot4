@@ -80,6 +80,23 @@ class DatabaseManager:
             )
             return user
 
+    async def create_user(
+        self,
+        telegram_id: int,
+        first_name: str,
+        last_name: str | None = None,
+        username: str | None = None,
+        role: str = 'player'
+    ) -> int:
+        """Создать нового пользователя"""
+        async with self.pool.acquire() as conn:
+            user_id = await conn.fetchval(
+                """INSERT INTO users (telegram_id, first_name, last_name, username, role)
+                   VALUES ($1, $2, $3, $4, $5) RETURNING id""",
+                telegram_id, first_name, last_name, username, role
+            )
+            return user_id
+
 async def get_team_by_access_code(self, access_code: str) -> Optional[Team]:
     """Найти команду по коду доступа"""
     async with self.pool.acquire() as conn:

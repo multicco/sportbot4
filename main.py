@@ -135,7 +135,7 @@ async def main():
         # 2. Player workouts router (НОВЫЙ)
         logger.info("💪 Регистрация роутера тренировок игроков...")
         player_workouts_router = get_player_workouts_router()
-        # dp.include_router(player_workouts_router)
+        #dp.include_router(player_workouts_router)
         
         #         # 2.1 Основной workouts router
         # from handlers.workouts import workouts_router

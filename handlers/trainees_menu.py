@@ -19,9 +19,133 @@ logger = logging.getLogger(__name__)
 trainees_router = Router(name="trainees_menu")
 
 
-async def debug_all_callbacks(callback: CallbackQuery):
-    logger.info(f"🔴 DEBUG: callback.data={callback.data}")
-    await callback.answer() 
+# async def debug_all_callbacks(callback: CallbackQuery):
+#     logger.info(f"🔴 DEBUG: callback.data={callback.data}")
+#     await callback.answer() 
+
+
+from aiogram.fsm.state import State, StatesGroup
+
+class AddTraineeStates(StatesGroup):
+    waiting_first_name = State()
+    waiting_last_name = State()
+    waiting_specialization = State()
+    waiting_level = State()
+    waiting_telegram_id = State()
+
+
+
+@trainees_router.callback_query(F.data == "add_trainee")
+async def start_add_trainee_flow(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
+    kb = InlineKeyboardBuilder()
+    kb.button(text="🆔 По Telegram ID", callback_data="add_trainee_by_id")
+    kb.button(text="✍️ Ввести вручную", callback_data="add_trainee_manual")
+    kb.button(text="📋 Пригласительная ссылка", callback_data="generate_trainee_invite")
+    kb.button(text="🔙 Назад", callback_data="my_trainees")
+    kb.adjust(1)
+
+    await callback.message.edit_text(
+        "🆕 **Добавление подопечного**\n\n"
+        "Выберите способ добавления:",
+        reply_markup=kb.as_markup(),
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+@trainees_router.message(AddTraineeStates.waiting_telegram_id)
+async def process_trainee_telegram_id(message: Message, state: FSMContext):
+    telegram_id_str = message.text.strip()
+
+    if not telegram_id_str.isdigit():
+        await message.answer("❌ ID должен содержать только цифры. Попробуйте ещё раз:")
+        return
+
+    telegram_id = int(telegram_id_str)
+
+    # Проверяем, не добавлен ли уже
+    existing = await db_manager.pool.fetchrow("""
+        SELECT id FROM individual_students
+        WHERE telegram_id = $1 AND coach_telegram_id = $2 AND is_active = true
+    """, telegram_id, message.from_user.id)
+
+    if existing:
+        await message.answer("ℹ️ Этот подопечный уже у вас добавлен.")
+        await state.clear()
+        return
+
+    # Добавляем
+    await db_manager.pool.execute("""
+        INSERT INTO individual_students (coach_telegram_id, telegram_id, first_name, level, is_active)
+        VALUES ($1, $2, 'Пользователь', 'beginner', true)
+        ON CONFLICT (coach_telegram_id, telegram_id)
+        DO UPDATE SET is_active = true, first_name = 'Пользователь'
+    """, message.from_user.id, telegram_id)
+
+    await state.clear()
+    kb = InlineKeyboardBuilder()
+    kb.button(text="👥 К подопечным", callback_data="my_trainees")
+    await message.answer("✅ Подопечный добавлен по Telegram ID!", reply_markup=kb.as_markup())
+
+
+@trainees_router.callback_query(F.data == "add_trainee_by_id")
+async def add_trainee_by_id(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(AddTraineeStates.waiting_telegram_id)
+    kb = InlineKeyboardBuilder()
+    kb.button(text="🔙 Назад", callback_data="add_trainee")
+    await callback.message.edit_text(
+        "🆔 **Добавление по Telegram ID**\n\n"
+        "Введите Telegram ID подопечного (только цифры):\n\n"
+        "💡 *Как узнать ID:* попросите подопечного написать боту @userinfobot",
+        reply_markup=kb.as_markup(),
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+
+@trainees_router.callback_query(F.data == "generate_trainee_invite")
+async def generate_trainee_invite(callback: CallbackQuery):
+    import secrets
+    from main import bot
+
+    coach_id = callback.from_user.id
+    access_code = secrets.token_urlsafe(8)[:8]
+
+    # ✅ Добавляем тренера в users, если его нет
+    await db_manager.pool.execute("""
+        INSERT INTO users (telegram_id, first_name, role, is_active)
+        VALUES ($1, 'Тренер', 'coach', true)
+        ON CONFLICT (telegram_id) DO NOTHING
+    """, coach_id)
+
+    # ✅ Теперь вставляем invite
+    await db_manager.pool.execute("""
+        INSERT INTO coach_students (coach_id, student_id, invite_code, relationship_type, status)
+        VALUES ($1, NULL, $2, 'personal', 'invited')
+    """, coach_id, access_code)
+
+    bot_username = (await bot.get_me()).username
+    invite_link = f"https://t.me/{bot_username}?start=trainee_{access_code}"
+
+    kb = InlineKeyboardBuilder()
+    kb.button(text="📋 Скопировать код", callback_data=f"copy_trainee_code_{access_code}")
+    kb.button(text="🔙 Назад", callback_data="add_trainee")
+    kb.adjust(1)
+
+    await callback.message.edit_text(
+        f"📋 **Пригласительная ссылка для подопечного**\n\n"
+        f"🔗 **Ссылка:** `{invite_link}`\n\n"
+        f"🆔 **Код:** `{access_code}`\n\n"
+        f"Отправьте эту ссылку подопечному.",
+        reply_markup=kb.as_markup(),
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+
 
 # ===== УРОВЕНЬ 1: СПИСОК ПОДОПЕЧНЫХ =====
 
@@ -391,3 +515,5 @@ async def trainee_start_assign_workout(callback: CallbackQuery, state: FSMContex
 
 
     await callback.answer()
+
+

@@ -112,6 +112,7 @@ async def cmd_join_team(message: Message, state: FSMContext):
         return
     
     # Сохраняем данные команды и начинаем регистрацию
+    
     await state.update_data(
         team_id=team.id,
         team_name=team.name,
@@ -810,6 +811,8 @@ async def process_player_first_name(message: Message, state: FSMContext) -> None
 
 @teams_router.message(AddMemberStates.waiting_telegram_id)
 async def process_telegram_id_input(message: Message, state: FSMContext):
+
+    
     """Обработка ввода Telegram ID"""
     data = await state.get_data()
     team_id = data.get('team_id')
@@ -862,6 +865,9 @@ async def process_telegram_id_input(message: Message, state: FSMContext):
         user_info=user_info
     )
     await state.set_state(AddMemberStates.waiting_confirmation)
+
+    logger.warning(f"✅ Состояние после ввода ID: {await state.get_state()}")
+    logger.warning(f"✅ Данные после ввода ID: {await state.get_data()}")
     
     # Показываем информацию для подтверждения
     keyboard = InlineKeyboardBuilder()
@@ -870,11 +876,14 @@ async def process_telegram_id_input(message: Message, state: FSMContext):
     keyboard.adjust(1)
     
     if user_info:
-        # Пользователь найден в системе
-        full_name = user_info['first_name']
+    # Пользователь найден в системе
+        full_name = user_info.get('first_name', 'Имя неизвестно')
         if user_info.get('last_name'):
-            full_name += f" {user_info['last_name']}"
-        username_text = f"@{user_info['username']}" if user_info.get('username') else "не указан"
+                full_name += f" {user_info['last_name']}"
+                username_text = f"@{user_info.get('username')}" if user_info.get('username') else "не указан"
+        else:
+                full_name = "Неизвестен"
+                username_text = "не указан"
         
         text = (
             f"✅ **Пользователь найден!**\n\n"
@@ -903,84 +912,88 @@ async def process_telegram_id_input(message: Message, state: FSMContext):
 @teams_router.callback_query(F.data == "confirm_add_by_id")
 async def confirm_add_by_telegram_id(callback: CallbackQuery, state: FSMContext):
     """Подтверждение добавления по Telegram ID"""
+    logger.warning(f"🔍 STATE: {await state.get_state()}")
+    logger.warning(f"🔍 DATA: {await state.get_data()}")
+
     data = await state.get_data()
+    assignment_type = data.get('assignment_type')
+
+    # ✅ РАЗДЕЛЯЕМ: подопечный или игрок
+    if assignment_type == 'trainee':
+        await finalize_add_trainee_by_id(callback, state)
+        return
+
+    # ✅ Старая логика для команды
     team_id = data.get('team_id')
     telegram_id = data.get('telegram_id')
     user_info = data.get('user_info')
-    
+
     try:
-        # Добавляем игрока в команду
         player = await teams_db.add_player_by_telegram_id(
             team_id=team_id,
             telegram_id=telegram_id,
             added_by=callback.from_user.id
         )
-        
-        if player:
-            await state.clear()
-            
-            # Получаем обновленную информацию о команде
-            team = await get_team_by_id(team_id)
-            
-            keyboard = InlineKeyboardBuilder()
-            keyboard.button(
-                text="➕ Добавить еще", 
-                callback_data=f"add_player_{team_id}"
-            )
-            keyboard.button(
-                text="👥 Посмотреть игроков", 
-                callback_data=f"team_players_{team_id}"
-            )
-            keyboard.button(
-                text="🔙 К команде", 
-                callback_data=f"view_team_{team_id}"
-            )
-            keyboard.adjust(1)
-            
-            full_name = player.first_name
-            if player.last_name:
-                full_name += f" {player.last_name}"
-            
-            await callback.message.edit_text(
-                f"🎉 **Игрок успешно добавлен!**\n\n"
-                f"👤 **Игрок:** {full_name}\n"
-                f"🆔 **Telegram ID:** `{telegram_id}`\n"
-                f"🏆 **Команда:** {team.name}\n"
-                f"📅 **Добавлен:** {player.joined_at.strftime('%d.%m.%Y %H:%M')}\n\n"
-                f"💡 Игрок получит уведомление о добавлении в команду.",
-                reply_markup=keyboard.as_markup(),
-                parse_mode="Markdown"
-            )
-            
-            # Отправляем уведомление игроку (если он есть в системе)
-            if user_info:
-                try:
-                    from main import bot
-                    await bot.send_message(
-                        telegram_id,
-                        f"🎉 **Вы добавлены в команду!**\n\n"
-                        f"🏆 **Команда:** {team.name}\n"
-                        f"📝 **Описание:** {team.description or 'Нет описания'}\n\n"
-                        f"Используйте команду /myteam для просмотра своих команд.",
-                        parse_mode="Markdown"
-                    )
-                except Exception as e:
-                    logger.error(f"Failed to notify player {telegram_id}: {e}")
-            
-            await callback.answer("✅ Игрок добавлен!")
-        else:
+
+        if player is None:
+            logger.error(f"add_player_by_telegram_id returned None for telegram_id={telegram_id}")
             await callback.answer("❌ Не удалось добавить игрока", show_alert=True)
-            
+            return
+
+        await state.clear()
+
+        team = await get_team_by_id(team_id)
+        if not team:
+            await callback.answer("❌ Ошибка загрузки команды", show_alert=True)
+            return
+
+        keyboard = InlineKeyboardBuilder()
+        keyboard.button(text="➕ Добавить еще", callback_data=f"add_player_{team_id}")
+        keyboard.button(text="👥 Посмотреть игроков", callback_data=f"team_players_{team_id}")
+        keyboard.button(text="🔙 К команде", callback_data=f"view_team_{team_id}")
+        keyboard.adjust(1)
+
+        full_name = player.first_name or "Игрок"
+        if player.last_name:
+            full_name += f" {player.last_name}"
+
+        await callback.message.edit_text(
+            f"🎉 **Игрок успешно добавлен!**\n\n"
+            f"👤 **Игрок:** {full_name}\n"
+            f"🆔 **Telegram ID:** `{telegram_id}`\n"
+            f"🏆 **Команда:** {team.name}\n"
+            f"📅 **Добавлен:** {player.joined_at.strftime('%d.%m.%Y %H:%M')}\n\n"
+            f"💡 Игрок получит уведомление о добавлении в команду.",
+            reply_markup=keyboard.as_markup(),
+            parse_mode="Markdown"
+        )
+
+        if user_info:
+            try:
+                from main import bot
+                await bot.send_message(
+                    telegram_id,
+                    f"🎉 **Вы добавлены в команду!**\n\n"
+                    f"🏆 **Команда:** {team.name}\n"
+                    f"📝 **Описание:** {team.description or 'Нет описания'}\n\n"
+                    f"Используйте команду /myteam для просмотра своих команд.",
+                    parse_mode="Markdown"
+                )
+            except Exception as e:
+                logger.error(f"Failed to notify player {telegram_id}: {e}")
+
+        await callback.answer("✅ Игрок добавлен!")
+
     except Exception as e:
         logger.error(f"Error adding player by telegram_id: {e}")
         await callback.answer("❌ Произошла ошибка", show_alert=True)
-
 # ===== ГЕНЕРАЦИЯ ПРИГЛАСИТЕЛЬНОЙ ССЫЛКИ =====
 @teams_router.callback_query(F.data.startswith("generate_invite_"))
 async def generate_team_invite(callback: CallbackQuery):
     """Генерация пригласительной ссылки для команды"""
     team_id = int(callback.data.split("_")[-1])
-    team = await get_team_by_id(team_id)
+    team = await get_team_by_id(team_id)    
+    logger.warning(f"DEBUG: team = {team}")
     
     if not team:
         await callback.answer("❌ Команда не найдена")
@@ -2462,7 +2475,48 @@ async def trainee_select_workout(callback: CallbackQuery, state: FSMContext):
 #     logger.info("🔧 Глобальный teams_database инициализирован: %s", teams_database)
 #     return teams_database
 
+async def finalize_add_trainee_by_id(callback: CallbackQuery, state: FSMContext):
+    """Добавление подопечного по Telegram ID"""
+    data = await state.get_data()
+    telegram_id = data.get('telegram_id')
+    user_info = data.get('user_info')
 
+    try:
+        # ✅ Добавляем подопечного
+        trainee = await teams_db.add_individual_student(
+            coach_telegram_id=callback.from_user.id,
+            first_name=user_info['first_name'],
+            last_name=user_info.get('last_name'),
+            telegram_id=telegram_id
+        )
+
+        await state.clear()
+
+        keyboard = InlineKeyboardBuilder()
+        keyboard.button(text="👥 К подопечным", callback_data="my_trainees")
+        keyboard.adjust(1)
+
+        await callback.message.edit_text(
+            f"🎉 Подопечный **{user_info['first_name']}** добавлен!",
+            reply_markup=keyboard.as_markup(),
+            parse_mode="Markdown"
+        )
+
+        # ✅ Уведомляем подопечного
+        try:
+            from main import bot
+            await bot.send_message(
+                telegram_id,
+                f"🎉 Вы добавлены в подопечные к тренеру!"
+            )
+        except Exception as e:
+            logger.error(f"Не удалось уведомить подопечного: {e}")
+
+        await callback.answer("✅ Подопечный добавлен!")
+
+    except Exception as e:
+        logger.error(f"Ошибка при добавлении подопечного: {e}")
+        await callback.answer("❌ Ошибка при добавлении", show_alert=True)
 
 # Экспорт
 def get_teams_router() -> Router:
