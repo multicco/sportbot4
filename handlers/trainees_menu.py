@@ -274,6 +274,9 @@ async def show_trainee_profile(callback: CallbackQuery, state: FSMContext):
                 text="📊 Статистика",
                 callback_data=f"trainee_stats_{trainee_id}"
             )
+
+            kb.button(text="📋 Мои тренировки", callback_data="my_trainee_workouts")
+
             kb.button(
                 text="🔙 К подопечным",
                 callback_data="my_trainees"

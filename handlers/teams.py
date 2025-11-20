@@ -2518,6 +2518,40 @@ async def finalize_add_trainee_by_id(callback: CallbackQuery, state: FSMContext)
         logger.error(f"Ошибка при добавлении подопечного: {e}")
         await callback.answer("❌ Ошибка при добавлении", show_alert=True)
 
+
+
+@teams_router.callback_query(F.data == "my_trainee_workouts")
+async def show_trainee_workouts(callback: CallbackQuery):
+    """Показывает тренировки, назначенные конкретному подопечному"""
+    telegram_id = callback.from_user.id
+
+    trainee = await teams_db.get_individual_student_by_telegram_id(telegram_id)
+    if not trainee:
+        await callback.answer("❌ Вы не подопечный", show_alert=True)
+        return
+
+    workouts = await teams_db.get_student_workouts(trainee["id"])
+
+    kb = InlineKeyboardBuilder()
+    if not workouts:
+        text = "📭 У вас пока нет назначенных тренировок."
+        kb.button(text="🔙 Назад", callback_data="main_menu")
+    else:
+        text = "📋 Ваши тренировки:\n\n"
+        for w in workouts:
+            status_emoji = {"pending": "⏳", "in_progress": "🔄", "completed": "✅"}.get(w["status"], "❓")
+            text += f"{status_emoji} {w['name']}\n"
+            kb.button(text=f"▶️ {w['name']}", callback_data=f"start_workout_{w['id']}")
+        kb.button(text="🔙 Назад", callback_data="main_menu")
+
+    kb.adjust(1)
+    await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="Markdown")
+    await callback.answer()
+
+
+
+
+
 # Экспорт
 def get_teams_router() -> Router:
     """Экспорт роутера команд."""
@@ -2526,5 +2560,10 @@ def get_teams_router() -> Router:
 def get_teams_router() -> Router:
     """Возвращает роутер модуля teams."""
     return teams_router
+
+
+
+
+
 
 __all__ = ["get_teams_router", "init_teams_module_async"]

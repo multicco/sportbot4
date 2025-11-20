@@ -790,6 +790,37 @@ class TeamsDatabase:
             return dict(row) if row else None
 
 
+
+# ----------- 1 -----------
+async def get_individual_student_by_telegram_id(self, telegram_id: int):
+    """Возвращает запись individual_students или None"""
+    async with self.pool.acquire() as conn:
+        return await conn.fetchrow(
+            "SELECT * FROM individual_students WHERE telegram_id = $1",
+            telegram_id
+        )
+
+# ----------- 2 -----------
+async def get_student_workouts(self, student_id: int):
+    """Возвращает список назначенных тренировок подопечного"""
+    async with self.pool_acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT  w.id,
+                    w.name,
+                    w.description,
+                    sw.assigned_at,
+                    sw.completed_at,
+                    sw.status
+            FROM    individual_student_workouts sw
+            JOIN    workouts w ON w.id = sw.workout_id
+            WHERE   sw.student_id = $1
+            ORDER BY sw.assigned_at DESC
+            """,
+            student_id
+        )
+        return [dict(r) for r in rows]
+
 # Глобальная переменная для БД
 teams_database = None
 
