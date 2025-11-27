@@ -558,6 +558,73 @@ class TeamsDatabase:
                 return False
 
 
+    async def get_workout_with_exercises(self, workout_id: int) -> Optional[Dict]:
+        """
+        Получить тренировку со всеми блоками и упражнениями.
+        Возвращает: {workout: {...}, blocks: [{block: {...}, exercises: [...]}]}
+        """
+        async with self.pool.acquire() as conn:
+            # Получить саму тренировку
+            workout = await conn.fetchrow(
+                """
+                SELECT id, name, description, created_by, created_at, unique_id
+                FROM workouts
+                WHERE id = $1
+                """,
+                workout_id
+            )
+            
+            if not workout:
+                return None
+            
+            # Получить все блоки тренировки
+            blocks = await conn.fetch(
+                """
+                SELECT id, name, description, position
+                FROM workout_blocks
+                WHERE workout_id = $1
+                ORDER BY position ASC
+                """,
+                workout_id
+            )
+            
+            result = {
+                'workout': dict(workout),
+                'blocks': []
+            }
+            
+            # Для каждого блока получить упражнения
+            for block in blocks:
+                exercises = await conn.fetch(
+                    """
+                    SELECT 
+                        wbe.id,
+                        wbe.exercise_id,
+                        e.name as exercise_name,
+                        e.description as exercise_description,
+                        e.video_url,
+                        e.image_url,
+                        wbe.sets,
+                        wbe.reps,
+                        wbe.weight,
+                        wbe.duration,
+                        wbe.rest_time,
+                        wbe.position
+                    FROM workout_block_exercises wbe
+                    JOIN exercises e ON wbe.exercise_id = e.id
+                    WHERE wbe.block_id = $1
+                    ORDER BY wbe.position ASC
+                    """,
+                    block['id']
+                )
+                
+                result['blocks'].append({
+                    'block': dict(block),
+                    'exercises': [dict(ex) for ex in exercises]
+                })
+            
+            return result
+
 @dataclass
 class WorkoutAssignment:
     """Назначение тренировки"""
@@ -828,6 +895,7 @@ async def get_workout_by_code(self, code: str, user_id: int) -> Optional[Dict]:
 
 # Глобальная переменная для БД
 teams_database = None
+
 
 
 

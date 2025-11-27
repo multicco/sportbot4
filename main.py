@@ -1,4 +1,4 @@
-
+ 
 # ===== ГЛАВНЫЙ ФАЙЛ ЗАПУСКА СПОРТИВНОГО БОТА =====
 from handlers.teams import TeamStates
 import asyncio
@@ -103,7 +103,7 @@ async def main():
 
     
     try:
-        # Проверяем конфигурацию
+        # Проверяеё конфигурацию
         if not config.BOT_TOKEN:
             raise ValueError("❌ BOT_TOKEN не задан в переменных окружения")
         

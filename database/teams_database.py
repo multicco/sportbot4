@@ -71,6 +71,72 @@ class TeamsDatabase:
     def __init__(self, db_pool: asyncpg.Pool):
         self.pool = db_pool
 
+
+    
+
+
+
+
+    async def get_student_workouts(self, student_id: int) -> List[Dict]:
+        """Получить все тренировки индивидуального подопечного."""
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT 
+                    wis.id,
+                    wis.workout_id,
+                    w.name as workout_name,
+                    w.description,
+                    wis.assigned_at,
+                    wis.deadline,
+                    wis.notes,
+                    u.first_name as assigned_by_name
+                FROM workout_individual_students wis
+                JOIN workouts w ON wis.workout_id = w.id
+                LEFT JOIN users u ON wis.assigned_by = u.telegram_id
+                WHERE wis.student_id = $1 AND wis.is_active = TRUE
+                ORDER BY wis.assigned_at DESC
+                """,
+                student_id
+            )
+            
+            return [dict(row) for row in rows]
+
+
+
+
+    async def get_individual_student_by_id(self, student_id: int) -> Optional[IndividualStudent]:
+     """Получить индивидуального подопечного по ID."""
+     async with self.pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            SELECT * FROM individual_students 
+            WHERE id = $1 AND is_active = TRUE
+            """,
+            student_id
+        )
+        
+        if not row:
+            logger.warning(f"Individual student {student_id} not found")
+            return None
+            
+        return IndividualStudent(
+            coach_telegram_id=row['coach_telegram_id'],
+            first_name=row['first_name'],
+            last_name=row['last_name'],
+            telegram_id=row['telegram_id'],
+            phone=row['phone'],
+            birth_date=row['birth_date'],
+            specialization=row['specialization'],
+            level=row['level'],
+            notes=row['notes'],
+            is_active=row['is_active'],
+            created_at=row['created_at'],
+            id=row['id']
+        )
+
+
+
     async def init_tables(self):
         try:
             async with self.pool.acquire() as conn:
@@ -170,6 +236,11 @@ class TeamsDatabase:
         except Exception as e:
             logger.error(f"❌ Error initializing teams tables: {e}", exc_info=True)
             raise
+
+
+    
+
+
 
     # ===== КОМАНДЫ =====
     async def create_team(self, coach_telegram_id: int, name: str, description: str = "", 
@@ -603,7 +674,131 @@ class TeamsDatabase:
             except Exception as e:
                 logger.error(f"Error assigning workout to student: {e}")
                 return None
+    
 
+
+
+    # async def get_workout_with_exercises(self, workout_id: int) -> Optional[Dict]:
+    #     """
+    #     Получить тренировку со всеми блоками и упражнениями.
+    #     Возвращает структуру: {workout, blocks: [{block, exercises: [...]}]}
+    #     """
+    #     async with self.pool.acquire() as conn:
+    #         # Получить саму тренировку
+    #         workout = await conn.fetchrow(
+    #             """
+    #             SELECT id, name, description, created_by, created_at, unique_id
+    #             FROM workouts
+    #             WHERE id = $1
+    #             """,
+    #             workout_id
+    #         )
+            
+    #         if not workout:
+    #             return None
+            
+    #         # Получить все блоки тренировки
+    #         blocks = await conn.fetch(
+    #             """
+    #             SELECT id, name, description, position
+    #             FROM workout_blocks
+    #             WHERE workout_id = $1
+    #             ORDER BY position ASC
+    #             """,
+    #             workout_id
+    #         )
+            
+    #         result = {
+    #             'workout': dict(workout),
+    #             'blocks': []
+    #         }
+            
+    #         # Для каждого блока получить упражнения
+    #         for block in blocks:
+    #             exercises = await conn.fetch(
+    #                 """
+    #                 SELECT 
+    #                     wbe.id,
+    #                     wbe.exercise_id,
+    #                     e.name as exercise_name,
+    #                     e.description as exercise_description,
+    #                     e.video_url,
+    #                     e.image_url,
+    #                     wbe.sets,
+    #                     wbe.reps,
+    #                     wbe.weight,
+    #                     wbe.duration,
+    #                     wbe.rest_time,
+    #                     wbe.position
+    #                 FROM workout_block_exercises wbe
+    #                 JOIN exercises e ON wbe.exercise_id = e.id
+    #                 WHERE wbe.block_id = $1
+    #                 ORDER BY wbe.position ASC
+    #                 """,
+    #                 block['id']
+    #             )
+                
+    #             result['blocks'].append({
+    #                 'block': dict(block),
+    #                 'exercises': [dict(ex) for ex in exercises]
+    #             })
+            
+    #         return result    
+
+
+    async def get_workout_with_exercises(self, workout_id: int) -> Optional[Dict]:
+        async with self.pool.acquire() as conn:
+            workout = await conn.fetchrow(
+                "SELECT id, name, description, created_by, created_at, unique_id FROM workouts WHERE id = $1",
+                workout_id
+            )
+            if not workout:
+                return None
+
+            # Блоки — без position, сортировка по id
+            blocks = await conn.fetch(
+                """
+                SELECT id, workout_id, name, description
+                FROM workout_blocks 
+                WHERE workout_id = $1 
+                ORDER BY id ASC
+                """,
+                workout_id
+            )
+
+            result = {'workout': dict(workout), 'blocks': []}
+
+            for block in blocks:
+                # Упражнения — без position, сортировка по id
+                exercises = await conn.fetch(
+                    """
+                    SELECT 
+                        wbe.id,
+                        wbe.exercise_id,
+                        e.name as exercise_name,
+                        e.description as exercise_description,
+                        e.video_url,
+                        e.image_url,
+                        wbe.sets,
+                        wbe.reps,
+                        wbe.weight,
+                        wbe.duration,
+                        wbe.rest_time
+                    FROM workout_block_exercises wbe
+                    JOIN exercises e ON wbe.exercise_id = e.id
+                    WHERE wbe.block_id = $1
+                    ORDER BY wbe.id ASC
+                    """,
+                    block['id']
+                )
+
+                result['blocks'].append({
+                    'block': dict(block),
+                    'exercises': [dict(ex) for ex in exercises]
+                })
+
+        return result
+  
 
     async def get_team_workouts(self, team_id: int) -> List[WorkoutAssignment]:
         """Получить назначенные тренировки команды с прогрессом"""
@@ -680,61 +875,182 @@ class TeamsDatabase:
 
             return [dict(row) for row in rows]
 
+    # async def update_player_workout_status(self, telegram_id: int, workout_id: int,
+    #                                      status: str, rpe: float = None,
+    #                                      session_id: int = None, notes: str = None) -> bool:
+    #     """Обновить статус выполнения тренировки игроком"""
+    #     async with self.pool.acquire() as conn:
+    #         try:
+    #             # Находим назначение
+    #             assignment = await conn.fetchrow("""
+    #             SELECT wtpa.id
+    #             FROM workout_team_player_assignments wtpa
+    #             JOIN workout_teams wt ON wtpa.workout_team_id = wt.id
+    #             JOIN team_players tp ON wtpa.team_player_id = tp.id
+    #             WHERE tp.telegram_id = $1 AND wt.workout_id = $2
+    #             LIMIT 1
+    #             """, telegram_id, workout_id)
+
+    #             if not assignment:
+    #                 return False
+
+    #             # Обновляем статус
+    #             update_fields = ["status = $2"]
+    #             params = [assignment['id'], status]
+    #             param_count = 2
+
+    #             if status == 'in_progress':
+    #                 update_fields.append(f"started_at = CURRENT_TIMESTAMP")
+    #             elif status == 'completed':
+    #                 update_fields.append(f"completed_at = CURRENT_TIMESTAMP")
+    #                 if rpe:
+    #                     param_count += 1
+    #                     update_fields.append(f"rpe = ${param_count}")
+    #                     params.append(rpe)
+    #                 if session_id:
+    #                     param_count += 1
+    #                     update_fields.append(f"session_id = ${param_count}")
+    #                     params.append(session_id)
+
+    #             if notes:
+    #                 param_count += 1
+    #                 update_fields.append(f"notes = ${param_count}")
+    #                 params.append(notes)
+
+    #             query = f"""
+    #             UPDATE workout_team_player_assignments
+    #             SET {', '.join(update_fields)}
+    #             WHERE id = $1
+    #             """
+
+    #             await conn.execute(query, *params)
+    #             logger.info(f"✅ Updated workout status for user {telegram_id}: {status}")
+    #             return True
+
+    #         except Exception as e:
+    #             logger.error(f"Error updating workout status: {e}")
+    #             return False
+
+
+
     async def update_player_workout_status(self, telegram_id: int, workout_id: int,
-                                         status: str, rpe: float = None,
-                                         session_id: int = None, notes: str = None) -> bool:
-        """Обновить статус выполнения тренировки игроком"""
+                                       status: str, rpe: float = None,
+                                       session_id: int = None, notes: str = None) -> bool:
+        """Обновить статус выполнения тренировки (индивидуальный, команда, или сам тренер)"""
         async with self.pool.acquire() as conn:
             try:
-                # Находим назначение
+                # ===== 1️⃣ ВАРИАНТ 1: Индивидуальный подопечный =====
                 assignment = await conn.fetchrow("""
-                SELECT wtpa.id
-                FROM workout_team_player_assignments wtpa
-                JOIN workout_teams wt ON wtpa.workout_team_id = wt.id
-                JOIN team_players tp ON wtpa.team_player_id = tp.id
-                WHERE tp.telegram_id = $1 AND wt.workout_id = $2
-                LIMIT 1
+                    SELECT 'individual'::text as type, wis.id
+                    FROM workout_individual_students wis
+                    JOIN individual_students s ON wis.student_id = s.id
+                    WHERE s.telegram_id = $1 AND wis.workout_id = $2 AND wis.is_active = TRUE
+                    LIMIT 1
                 """, telegram_id, workout_id)
-
+                
+                # ===== 2️⃣ ВАРИАНТ 2: Команда =====
                 if not assignment:
+                    assignment = await conn.fetchrow("""
+                        SELECT 'team'::text as type, wtpa.id
+                        FROM workout_team_player_assignments wtpa
+                        JOIN workout_teams wt ON wtpa.workout_team_id = wt.id
+                        JOIN team_players tp ON wtpa.team_player_id = tp.id
+                        WHERE tp.telegram_id = $1 AND wt.workout_id = $2 AND wt.is_active = TRUE
+                        LIMIT 1
+                    """, telegram_id, workout_id)
+                
+                # ===== 3️⃣ ВАРИАНТ 3: Сам тренер (для теста/демо) =====
+                if not assignment:
+                    # Проверяем, что это тренер и тренировка существует
+                    trainer = await conn.fetchrow("""
+                        SELECT u.id as user_id
+                        FROM users u
+                        WHERE u.telegram_id = $1 AND u.role IN ('admin', 'trainer', 'coach')
+                    """, telegram_id)
+                    
+                    if trainer:
+                        workout = await conn.fetchrow("""
+                            SELECT id FROM workouts WHERE id = $1 AND is_active = TRUE
+                        """, workout_id)
+                        
+                        if workout:
+                            # Для тренера: создаем временную сессию если её нет
+                            session = await conn.fetchrow("""
+                                SELECT id FROM workout_sessions
+                                WHERE user_id = $1 AND workout_id = $2 AND status = $3
+                                LIMIT 1
+                            """, trainer['user_id'], workout_id, status)
+                            
+                            if not session:
+                                # Создаём сессию для тренера
+                                session_id = await conn.fetchval("""
+                                    INSERT INTO workout_sessions (user_id, workout_id, status, started_at, created_at)
+                                    VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                                    RETURNING id
+                                """, trainer['user_id'], workout_id, 'in_progress')
+                                
+                                logger.info(f"✅ Создана сессия {session_id} для тренера {telegram_id} (тренировка {workout_id})")
+                                return True
+                            else:
+                                # Обновляем существующую сессию
+                                await conn.execute("""
+                                    UPDATE workout_sessions
+                                    SET status = $1, started_at = CASE WHEN status = 'pending' THEN CURRENT_TIMESTAMP ELSE started_at END,
+                                        completed_at = CASE WHEN $1 = 'completed' THEN CURRENT_TIMESTAMP ELSE NULL END
+                                    WHERE id = $2
+                                """, status, session['id'])
+                                
+                                logger.info(f"✅ Обновлена сессия {session['id']} для тренера {telegram_id}")
+                                return True
+                
+                if not assignment:
+                    logger.error(f"❌ Не найдено назначение: telegram_id={telegram_id}, workout_id={workout_id}")
                     return False
-
-                # Обновляем статус
+                
+                # ===== Обновляем найденное назначение =====
+                table_name = "workout_individual_students" if assignment['type'] == 'individual' else "workout_team_player_assignments"
+                
                 update_fields = ["status = $2"]
                 params = [assignment['id'], status]
                 param_count = 2
-
+                
                 if status == 'in_progress':
-                    update_fields.append(f"started_at = CURRENT_TIMESTAMP")
+                    update_fields.append("started_at = CURRENT_TIMESTAMP")
                 elif status == 'completed':
-                    update_fields.append(f"completed_at = CURRENT_TIMESTAMP")
-                    if rpe:
-                        param_count += 1
-                        update_fields.append(f"rpe = ${param_count}")
-                        params.append(rpe)
-                    if session_id:
-                        param_count += 1
-                        update_fields.append(f"session_id = ${param_count}")
-                        params.append(session_id)
-
+                    update_fields.append("completed_at = CURRENT_TIMESTAMP")
+                
+                if rpe:
+                    param_count += 1
+                    update_fields.append(f"rpe = ${param_count}")
+                    params.append(rpe)
+                
+                if session_id:
+                    param_count += 1
+                    update_fields.append(f"session_id = ${param_count}")
+                    params.append(session_id)
+                
                 if notes:
                     param_count += 1
                     update_fields.append(f"notes = ${param_count}")
                     params.append(notes)
-
+                
                 query = f"""
-                UPDATE workout_team_player_assignments
-                SET {', '.join(update_fields)}
-                WHERE id = $1
+                    UPDATE {table_name}
+                    SET {', '.join(update_fields)}
+                    WHERE id = $1
                 """
-
+                
                 await conn.execute(query, *params)
-                logger.info(f"✅ Updated workout status for user {telegram_id}: {status}")
+                assignment_type = "индивидуальная" if assignment['type'] == 'individual' else "команда"
+                logger.info(f"✅ Обновлен статус тренировки {workout_id} для {telegram_id} ({assignment_type}): {status}")
                 return True
-
+                
             except Exception as e:
-                logger.error(f"Error updating workout status: {e}")
+                logger.error(f"❌ Ошибка обновления статуса: {e}", exc_info=True)
                 return False
+
+
+
 
     async def get_team_workout_progress(self, workout_team_id: int) -> List[Dict]:
         """Получить детальный прогресс по тренировке для команды"""
@@ -788,6 +1104,10 @@ class TeamsDatabase:
             """, code, user_id)
 
             return dict(row) if row else None
+        
+
+
+    
 
 
 # Глобальная переменная для БД

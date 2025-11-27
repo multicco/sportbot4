@@ -15,6 +15,9 @@ from states.workout_assignment_states import AssignWorkoutStates
 from typing import Dict, List, Optional, Tuple
 
 from database import db_manager
+from database.teams_database import IndividualStudent, Team, TeamPlayer  # ← добавьте сюда ваши классы
+from datetime import date
+
 
 # Импортируем реализацию БД из папки database
 try:
@@ -59,6 +62,131 @@ async def select_workout(callback: CallbackQuery, state: FSMContext):
 # async def debug_all_callbacks(callback: CallbackQuery):
 #     logger.info(f"🔴 DEBUG: callback.data={callback.data}")
 #     await callback.answer() 
+
+
+async def get_individual_student_by_id(self, student_id: int) -> Optional[IndividualStudent]:
+    """Получить индивидуального подопечного по ID."""
+    async with self.pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            SELECT id, coach_telegram_id, first_name, last_name, 
+                   telegram_id, phone, birth_date, specialization, 
+                   level, notes, is_active, created_at
+            FROM individual_students 
+            WHERE id = $1 AND is_active = TRUE
+            """,
+            student_id
+        )
+        
+        if not row:
+            logger.warning(f"Individual student {student_id} not found")
+            return None
+            
+        return IndividualStudent(
+            id=row['id'],
+            coachtelegramid=row['coach_telegram_id'],
+            firstname=row['first_name'],
+            lastname=row['last_name'],
+            telegramid=row['telegram_id'],
+            phone=row['phone'],
+            birthdate=row['birth_date'],
+            specialization=row['specialization'],
+            level=row['level'],
+            notes=row['notes'],
+            isactive=row['is_active'],
+            createdat=row['created_at']
+        )
+
+async def add_individual_student(
+    self,
+    coach_telegram_id: int,
+    first_name: str,
+    last_name: Optional[str] = None,
+    telegram_id: Optional[int] = None,
+    phone: Optional[str] = None,
+    birthdate: Optional[date] = None,
+    specialization: Optional[str] = None,
+    level: str = "beginner"
+) -> Optional[int]:
+    """Добавить нового индивидуального подопечного."""
+    async with self.pool.acquire() as conn:
+        try:
+            student_id = await conn.fetchval(
+                """
+                INSERT INTO individual_students 
+                (coach_telegram_id, first_name, last_name, telegram_id, phone, birth_date, specialization, level)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                RETURNING id
+                """,
+                coach_telegram_id, first_name, last_name, telegram_id, phone, birthdate, specialization, level
+            )
+            logger.info(f"✅ Added individual student: {first_name} {last_name or ''} (ID: {student_id})")
+            return student_id
+        except Exception as e:
+            logger.error(f"🔴 Error adding individual student: {e}")
+            return None
+
+async def get_individual_students(self, coach_telegram_id: int) -> List[IndividualStudent]:
+    """Получить всех индивидуальных подопечных тренера."""
+    async with self.pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT id, coach_telegram_id, first_name, last_name, 
+                   telegramid, phone, birth_date, specialization, 
+                   level, notes, is_active, created_at
+            FROM individual_students
+            WHERE coach_telegram_id = $1 AND isactive = TRUE
+            ORDER BY created_at DESC
+            """,
+            coach_telegram_id
+        )
+        
+        return [
+            IndividualStudent(
+                id=row['id'],
+                coachtelegramid=row['coach_telegram_id'],
+                firstname=row['first_name'],
+                lastname=row['last_name'],
+                telegramid=row['telegram_id'],
+                phone=row['phone'],
+                birthdate=row['birth_date'],
+                specialization=row['specialization'],
+                level=row['level'],
+                notes=row['notes'],
+                isactive=row['is_active'],
+                createdat=row['created_at']
+            )
+            for row in rows
+        ]
+
+async def assign_workout_to_individual_student(
+    self,
+    workout_id: int,
+    student_id: int,
+    assigned_by: int,
+    deadline: Optional[datetime] = None,
+    notes: Optional[str] = None
+) -> bool:
+    """Назначить тренировку индивидуальному подопечному."""
+    async with self.pool.acquire() as conn:
+        try:
+            await conn.execute(
+                """
+                INSERT INTO workout_individual_students 
+                (workoutid, studentid, assignedby, deadline, notes)
+                VALUES ($1, $2, $3, $4, $5)
+                """,
+                workout_id, student_id, assigned_by, deadline, notes
+            )
+            logger.info(f"✅ Assigned workout {workout_id} to student {student_id}")
+            return True
+        except Exception as e:
+            logger.error(f"🔴 Error assigning workout: {e}")
+            return False
+
+
+
+
 
 @teams_router.message(Command("join"))
 async def cmd_join_team(message: Message, state: FSMContext):
@@ -128,6 +256,9 @@ async def cmd_join_team(message: Message, state: FSMContext):
     )
     
     await state.set_state(JoinTeamStates.waiting_first_name)
+
+
+
 
 
 @teams_router.message(JoinTeamStates.waiting_first_name)
@@ -1385,6 +1516,86 @@ async def cb_stats_menu(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
 
 
+@teams_router.callback_query(F.data.startswith('viewtraineeworkout_'))
+async def view_trainee_workout_callback(callback: CallbackQuery, state: FSMContext):
+    """Показать подопечному полную тренировку с упражнениями"""
+    try:
+        workout_id = int(callback.data.split('_')[1])
+        
+        # Получить тренировку с упражнениями
+        workout_data = await teams_db.get_workout_with_exercises(workout_id)
+        
+        if not workout_data:
+            await callback.answer("❌ Тренировка не найдена", show_alert=True)
+            return
+        
+        workout = workout_data['workout']
+        blocks = workout_data['blocks']
+        
+        # Формируем текст
+        text = f"💪 <b>{workout['name']}</b>\n\n"
+        
+        if workout.get('description'):
+            text += f"📝 {workout['description']}\n\n"
+        
+        if not blocks:
+            text += "❌ В этой тренировке нет упражнений"
+        else:
+            text += f"📊 <b>Блоков:</b> {len(blocks)}\n\n"
+            
+            for i, block_data in enumerate(blocks, 1):
+                block = block_data['block']
+                exercises = block_data['exercises']
+                
+                text += f"<b>Блок {i}: {block['name']}</b>\n"
+                
+                if block.get('description'):
+                    text += f"<i>{block['description']}</i>\n"
+                
+                if not exercises:
+                    text += "  (пусто)\n\n"
+                else:
+                    for j, ex in enumerate(exercises, 1):
+                        text += f"\n  {j}. <b>{ex['exercise_name']}</b>\n"
+                        
+                        if ex.get('exercise_description'):
+                            text += f"     📖 {ex['exercise_description']}\n"
+                        
+                        # Параметры
+                        params = []
+                        if ex.get('sets'):
+                            params.append(f"Подходы: {ex['sets']}")
+                        if ex.get('reps'):
+                            params.append(f"Повторения: {ex['reps']}")
+                        if ex.get('weight'):
+                            params.append(f"Вес: {ex['weight']} кг")
+                        if ex.get('duration'):
+                            params.append(f"Длительность: {ex['duration']} сек")
+                        if ex.get('rest_time'):
+                            params.append(f"Отдых: {ex['rest_time']} сек")
+                        
+                        if params:
+                            text += f"     🔹 {' | '.join(params)}\n"
+                        
+                        if ex.get('video_url'):
+                            text += f"     🎥 <a href='{ex['video_url']}'>Видео</a>\n"
+                    
+                    text += "\n"
+        
+        # Кнопки
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🔙 К списку тренировок", callback_data="mytraineeworkouts")]
+        ])
+        
+        await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+        await callback.answer()
+        
+    except Exception as e:
+        logger.exception(f"🔴 Ошибка при просмотре тренировки: {e}")
+        await callback.answer("❌ Ошибка при загрузке тренировки", show_alert=True)
+
+
+
 # Работа с БД
 async def get_coach_stats(coach_telegram_id: int) -> dict:
     """Получение статистики тренера."""
@@ -1397,7 +1608,7 @@ async def get_coach_stats(coach_telegram_id: int) -> dict:
     return {'teams_count': 0, 'team_players_count': 0, 'individual_students_count': 0, 'total_athletes': 0}
 
 
-async def create_team(coach_telegram_id: int, name: str, description: str = "", sport_type: str = "ОФП") -> Optional:
+async def create_team(coach_telegram_id: int, name: str, description: str = "", sport_type: str = "ОФП") -> Optional[Team]:
     """Создание команды в БД."""
     if teams_db:
         try:
@@ -1420,7 +1631,7 @@ async def get_coach_teams(coach_telegram_id: int) -> List:
     return []
 
 
-async def get_team_by_id(team_id: int) -> Optional:
+async def get_team_by_id(team_id: int) -> Optional[Team]:
     """Получение команды по ID."""
     if teams_db:
         try:
@@ -1442,7 +1653,7 @@ async def get_team_players(team_id: int) -> List:
     return []
 
 
-async def add_team_player(team_id: int, first_name: str, last_name: Optional[str] = None, position: Optional[str] = None, jersey_number: Optional[int] = None) -> Optional:
+async def add_team_player(team_id: int, first_name: str, last_name: Optional[str] = None, position: Optional[str] = None, jersey_number: Optional[int] = None) -> Optional[int]:
     """Добавление игрока в команду."""
     if teams_db:
         try:
@@ -1453,7 +1664,7 @@ async def add_team_player(team_id: int, first_name: str, last_name: Optional[str
     return None
 
 
-async def add_individual_student(coach_telegram_id: int, first_name: str, last_name: Optional[str] = None, specialization: Optional[str] = None, level: str = "beginner") -> Optional:
+async def add_individual_student(coach_telegram_id: int, first_name: str, last_name: Optional[str] = None, specialization: Optional[str] = None, level: str = "beginner") -> Optional[int]:
     """Добавление индивидуального подопечного."""
     if teams_db:
         try:
@@ -2446,6 +2657,50 @@ async def trainee_select_workout(callback: CallbackQuery, state: FSMContext):
     )
     await callback.answer()
 
+@teams_router.callback_query(F.data == 'mytraineeworkouts')
+async def show_my_trainee_workouts_callback(callback: CallbackQuery, state: FSMContext):
+    """Показать список назначенных тренировок подопечному"""
+    try:
+        user_data = await state.get_data()
+        student_id = user_data.get('student_id')
+        
+        if not student_id:
+            # Получить student_id из базы по telegram_id
+            user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
+            if not user:
+                await callback.answer("❌ Пользователь не найден", show_alert=True)
+                return
+            student_id = user['id']
+        
+        # Получить тренировки
+        workouts = await teams_db.get_student_workouts(student_id)
+        
+        if not workouts:
+            text = "❌ У вас пока нет назначенных тренировок"
+            kb = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🔙 Главное меню", callback_data="mainmenu")]
+            ])
+        else:
+            text = f"💪 <b>Ваши тренировки ({len(workouts)}):</b>\n\n"
+            
+            buttons = []
+            for workout in workouts:
+                buttons.append([
+                    InlineKeyboardButton(
+                        text=f"📋 {workout['workout_name']}", 
+                        callback_data=f"viewtraineeworkout_{workout['workoutid']}"
+                    )
+                ])
+            
+            buttons.append([InlineKeyboardButton(text="🔙 Главное меню", callback_data="mainmenu")])
+            kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+        
+        await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+        await callback.answer()
+        
+    except Exception as e:
+        logger.exception(f"🔴 Ошибка при показе списка тренировок: {e}")
+        await callback.answer("❌ Ошибка", show_alert=True)
 
 
 

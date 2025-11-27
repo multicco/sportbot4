@@ -54,44 +54,39 @@ async def _safe_edit_or_send(message, text, reply_markup=None, parse_mode=None):
 # ==================== ОПЦИОНАЛЬНО: ДОБАВИТЬ ФИЛЬТР ПО РОЛЯМ В ГЛАВНОЕ МЕНЮ =====
 @workouts_router.callback_query(F.data == "workouts_menu")
 async def workouts_menu(callback: CallbackQuery):
-    """Главное меню тренировок - УЛУЧШЕННАЯ версия с учетом ролей"""
-    
     try:
         user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
-        role = user.get('role', 'player')
-        
+        role = user.get('role', 'player') if user else 'player'
+
         kb = InlineKeyboardBuilder()
-        
-        # ✓ РАЗНЫЕ КНОПКИ ДЛЯ РАЗНЫХ РОЛЕЙ (как в tests.py)
-        
-        kb.button(text="🏋️ Мои тренировки", callback_data="my_workouts")
-        kb.button(text="🔍 Найти тренировку", callback_data="find_workout")
-        
-        if role in ['trainer', 'coach', 'admin']:
-            # Только тренеры видят опции создания и управления
-            kb.button(text="➕ Создать тренировку", callback_data="create_workout")
-            kb.button(text="📊 Статистика", callback_data="workout_statistics")
+
+        # Общие кнопки
+        kb.button(text="Найти тренировку", callback_data="find_workout")
+
+        if role in ['admin', 'trainer', 'coach']:
+            # Тренеры и админы — работают с шаблонами
+            kb.button(text="Мои шаблоны", callback_data="my_templates")      # ← НОВАЯ КНОПКА
+            kb.button(text="Создать тренировку", callback_data="create_workout")
+            kb.button(text="Статистика", callback_data="workout_statistics")
         else:
-            # Игроки видят поиск и мои достижения
-            kb.button(text="🏆 Мои достижения", callback_data="my_achievements")
-        
-        kb.button(text="🔙 Главное меню", callback_data="main_menu")
-        kb.adjust(2)
-        
-        text = f"🏋️ **Меню тренировок**\n\n"
-        text += f"*(Ваша роль: {role})*\n\n"
-        text += f"Выберите действие:"
-        
-        await _safe_edit_or_send(
-            callback.message, 
-            text, 
-            reply_markup=kb.as_markup(), 
-            parse_mode="Markdown"
-        )
+            # Игроки — видят только свои назначенные
+            kb.button(text="Мои тренировки", callback_data="my_workouts")    # ← ОСТАЁТСЯ ТОЛЬКО ДЛЯ ИГРОКОВ
+            kb.button(text="Мои достижения", callback_data="my_achievements")
+
+        kb.button(text="Главное меню", callback_data="main_menu")
+        kb.adjust(1)  # или 2, как тебе нравится
+
+        text = "<b>Меню тренировок</b>\n\n"
+        if role in ['admin', 'trainer', 'coach']:
+            text += "Вы — тренер. Здесь ваши шаблоны и инструменты создания."
+        else:
+            text += "Вы — подопечный. Здесь ваши назначенные тренировки."
+
+        await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="HTML")
         await callback.answer()
-    
+
     except Exception as e:
-        logger.exception(f"Ошибка в workouts_menu: {e}")
+        logger.exception("Ошибка в workouts_menu")
         await callback.answer("Ошибка", show_alert=True)
 
 @workouts_router.callback_query(F.data == "manual_add_exercise")
@@ -169,47 +164,69 @@ async def handle_manual_exercise_input(message: Message, state: FSMContext):
 
 async def check_workout_access(user_id: int, telegram_id: int, workout_id: int) -> bool:
     """
-    ✓ ФУНКЦИЯ ПРОВЕРКИ ДОСТУПА
-    Использует существующий паттерн из системы тестов
+    Корректная проверка доступа:
+    - админ → всё
+    - автор → доступ
+    - тренер → свои + подопечных
+    - игрок → назначения из workout_individual_students
     """
-    
     try:
+        # Получаем пользователя по telegram_id
         user = await db_manager.get_user_by_telegram_id(telegram_id)
         if not user:
             return False
         
         role = user.get('role', 'player')
-        
-        # АДМИН видит всё
+
+        # Админ видит всё
         if role == 'admin':
             return True
-        
+
         async with db_manager.pool.acquire() as conn:
-            workout = await conn.fetchrow(
-                "SELECT created_by FROM workouts WHERE id = $1",
+
+            # Узнаем, кто создал тренировку
+            creator = await conn.fetchval(
+                "SELECT created_by FROM workouts WHERE id=$1",
                 workout_id
             )
-            
-            if not workout:
+            if not creator:
                 return False
-            
-            # Если это твоя тренировка
-            if workout['created_by'] == user_id:
+
+            # Автор тренировки → доступ
+            if creator == user['id']:  # <-- ИСПРАВЛЕНО
                 return True
-            
-            # Если ты тренер - проверяем, является ли это подопечным
+
+            # Тренер → видит тренировки подопечных
             if role in ['trainer', 'coach']:
                 is_trainee = await conn.fetchval("""
-                    SELECT COUNT(*) FROM user_trainee_assignments
-                    WHERE trainer_id = $1 AND trainee_id = $2
-                """, user_id, workout['created_by'])
-                return is_trainee > 0
-        
-        return False
-    
+                    SELECT COUNT(*) 
+                    FROM user_trainee_assignments
+                    WHERE trainer_id=$1 AND trainee_id=$2
+                """, user['id'], creator)
+                if is_trainee:
+                    return True
+
+            # Игрок → проверяем назначение тренировки
+            student = await conn.fetchrow("""
+                SELECT id FROM individual_students
+                WHERE telegram_id=$1 AND is_active=TRUE
+            """, telegram_id)
+
+            if not student:
+                return False
+
+            assigned = await conn.fetchval("""
+                SELECT COUNT(*)
+                FROM workout_individual_students
+                WHERE workout_id=$1 AND student_id=$2 AND is_active=TRUE
+            """, workout_id, student['id'])
+
+            return assigned > 0
+
     except Exception as e:
         logger.exception(f"Ошибка проверки доступа: {e}")
         return False
+
 # @workouts_router.callback_query(F.data == "my_workouts")
 # async def my_workouts(callback: CallbackQuery):
 #     """
@@ -878,100 +895,318 @@ async def handle_name_search(message: Message, state: FSMContext):
 #         logger.error(f"Ошибка в my_workouts: {e}")
 #         await callback.answer("❌ Ошибка загрузки тренировок", show_alert=True)
 
-@workouts_router.callback_query(F.data == "my_workouts")
-async def my_workouts(callback: CallbackQuery):
-    """Показать тренировки пользователя"""
+# @workouts_router.callback_query(F.data == "my_workouts")
+# async def my_workouts(callback: CallbackQuery):
+#     """Показать тренировки пользователя"""
+#     try:
+#         logger.info(f"=== my_workouts START user {callback.from_user.id} ===")
+        
+#         # ЛОГИРОВАНИЕ 1: Получение юзера
+#         user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
+#         logger.info(f"✓ User found: {user}")
+        
+#         if not user:
+#             logger.error(f"✗ User NOT found for telegram_id {callback.from_user.id}")
+#             await callback.answer("❌ Пользователь не найден", show_alert=True)
+#             return
+        
+#         logger.info(f"✓ User ID: {user.get('id')}")
+        
+#         # ЛОГИРОВАНИЕ 2: Подключение к БД
+#         async with db_manager.pool.acquire() as conn:
+#             logger.info("✓ DB connection acquired")
+            
+#             # ЛОГИРОВАНИЕ 3: Запрос к тренировкам
+#             workouts = await conn.fetch("""
+#                 SELECT w.*, COUNT(we.id) as exercise_count
+#                 FROM workouts w
+#                 LEFT JOIN workout_exercises we ON w.id = we.workout_id
+#                 WHERE w.created_by = $1 AND w.is_active = true
+#                 GROUP BY w.id
+#                 ORDER BY w.created_at DESC
+#                 LIMIT 10
+#             """, user['id'])
+            
+#             logger.info(f"✓ Query executed, found: {len(workouts) if workouts else 0} workouts")
+            
+#             if workouts:
+#                 logger.info(f"✓ First workout keys: {list(workouts[0].keys())}")  # ← ПОКАЖЕТ СТРУКТУРУ
+                
+#                 text = f"🏋️ **Мои тренировки ({len(workouts)}):**\n\n"
+#                 keyboard = InlineKeyboardBuilder()
+                
+#                 for i, workout in enumerate(workouts):
+#                     logger.info(f"✓ Processing workout {i}: {workout.get('name')}")
+                    
+#                     exercise_count = workout['exercise_count'] or 0
+#                     duration = workout.get('estimated_duration_minutes', 'N/A')  # ← ИСПОЛЬЗУЙ .get()!
+                    
+#                     button_text = f"🏋️ {workout['name']}"
+#                     if exercise_count > 0:
+#                         button_text += f" ({exercise_count} упр.)"
+#                     keyboard.button(
+#                         text=button_text,
+#                         callback_data=f"view_workout_{workout['id']}"
+#                     )
+                    
+#                     text += f"**{workout['name']}**\n"
+#                     text += f"📋 Упражнений: {exercise_count} | ⏱️ ~{duration}мин\n"
+#                     text += f"🆔 Код: `{workout['unique_id']}`\n\n"
+                
+#                 keyboard.button(text="➕ Создать новую", callback_data="create_workout")
+#                 keyboard.button(text="🔙 К тренировкам", callback_data="workouts_menu")
+#                 keyboard.adjust(1)
+                
+#                 logger.info("✓ About to edit message")
+#             else:
+#                 logger.info("⚠️ No workouts found")
+#                 text = ("🏋️ **Мои тренировки**\n\n"
+#                         "У вас пока нет созданных тренировок.\n\n"
+#                         "Создайте первую тренировку с блочной структурой!")
+#                 keyboard = InlineKeyboardBuilder()
+#                 keyboard.button(text="➕ Создать первую", callback_data="create_workout")
+#                 keyboard.button(text="🔙 К тренировкам", callback_data="workouts_menu")
+            
+#             logger.info("✓ Editing message...")
+#             await callback.message.edit_text(
+#                 text,
+#                 reply_markup=keyboard.as_markup(),
+#                 parse_mode="Markdown"
+#             )
+#             logger.info("✓ Message edited successfully")
+            
+#             await callback.answer()
+#             logger.info("=== my_workouts END (SUCCESS) ===")
+            
+#     except Exception as e:
+#         logger.error(f"=== ERROR in my_workouts ===", exc_info=True)
+#         logger.error(f"Error type: {type(e).__name__}")
+#         logger.error(f"Error message: {str(e)}")
+#         import traceback
+#         logger.error(f"Traceback:\n{traceback.format_exc()}")
+        
+#         await callback.answer(f"❌ Ошибка: {str(e)}", show_alert=True)
+
+
+
+
+
+
+# @workouts_router.callback_query(F.data == "my_workouts")
+# async def my_workouts(callback: CallbackQuery):
+#     """Показать назначенные подопечному тренировки"""
+#     try:
+#         logger.info(f"=== my_workouts START user {callback.from_user.id} ===")
+        
+#         # ЛОГИРОВАНИЕ 1: Получение юзера
+#         user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
+#         logger.info(f"✓ User found: {user}")
+        
+#         if not user:
+#             logger.error(f"✗ User NOT found for telegram_id {callback.from_user.id}")
+#             await callback.answer("❌ Пользователь не найден", show_alert=True)
+#             return
+        
+#         logger.info(f"✓ User ID: {user.get('id')}")
+#         user_id = user['id']
+        
+#         # ЛОГИРОВАНИЕ 2: Подключение к БД
+#         async with db_manager.pool.acquire() as conn:
+#             logger.info("✓ DB connection acquired")
+            
+#             # Сначала найти student_id по user_id (или telegram_id)
+#             student = await conn.fetchrow(
+#                 """
+#                 SELECT id FROM individual_students 
+#                 WHERE telegram_id = $1 AND is_active = TRUE
+#                 """,
+#                 callback.from_user.id
+#             )
+            
+#             if not student:
+#                 logger.info(f"⚠️ No individual_student found for telegram_id {callback.from_user.id}")
+#                 text = ("🏋️ **Мои тренировки**\n\n"
+#                         "У вас пока нет назначенных тренировок.\n\n"
+#                         "Обратитесь к тренеру для назначения тренировки!")
+#                 keyboard = InlineKeyboardBuilder()
+#                 keyboard.button(text="🔙 Главное меню", callback_data="mainmenu")
+                
+#                 await callback.message.edit_text(
+#                     text,
+#                     reply_markup=keyboard.as_markup(),
+#                     parse_mode="Markdown"
+#                 )
+#                 return
+            
+#             student_id = student['id']
+#             logger.info(f"✓ Student ID: {student_id}")
+            
+#             # ЛОГИРОВАНИЕ 3: Запрос НАЗНАЧЕННЫХ тренировок
+#             workouts = await conn.fetch(
+#                 """
+#                 SELECT 
+#                     w.id,
+#                     w.name,
+#                     w.description,
+#                     w.unique_id,
+#                     w.created_at,
+#                     COUNT(we.id) as exercise_count,
+#                     wis.assigned_at,
+#                     wis.deadline
+#                 FROM workouts w
+#                 LEFT JOIN workout_exercises we ON w.id = we.workout_id
+#                 INNER JOIN workout_individual_students wis ON w.id = wis.workout_id
+#                 WHERE wis.student_id = $1
+#                 AND wis.is_active = TRUE
+#                 AND w.is_active = TRUE
+#                 GROUP BY w.id, wis.id
+#                 ORDER BY wis.assigned_at DESC
+#                 LIMIT 10
+#                 """,
+#                 student_id
+#             )
+            
+#             logger.info(f"✓ Query executed, found: {len(workouts) if workouts else 0} workouts")
+            
+#             if workouts:
+#                 logger.info(f"✓ First workout keys: {list(workouts[0].keys())}")
+                
+#                 text = f"💪 **Мои назначенные тренировки ({len(workouts)}):**\n\n"
+#                 keyboard = InlineKeyboardBuilder()
+                
+#                 for i, workout in enumerate(workouts):
+#                     logger.info(f"✓ Processing workout {i}: {workout.get('name')}")
+                    
+#                     exercise_count = workout['exercise_count'] or 0
+#                     deadline = workout.get('deadline')
+#                     deadline_text = f"⏰ {deadline.strftime('%d.%m')}" if deadline else ""
+                    
+#                     button_text = f"📋 {workout['name']}"
+#                     if exercise_count > 0:
+#                         button_text += f" ({exercise_count} упр.)"
+                    
+#                     keyboard.button(
+#                         text=button_text,
+#                         callback_data=f"view_workout_{workout['id']}"
+#                     )
+                    
+#                     text += f"**{workout['name']}**\n"
+#                     text += f"📋 Упражнений: {exercise_count}\n"
+#                     if deadline_text:
+#                         text += f"{deadline_text}\n"
+#                     text += f"🆔 Код: `{workout['unique_id']}`\n\n"
+                
+#                 keyboard.adjust(1)
+#                 keyboard.button(text="🔙 Главное меню", callback_data="mainmenu")
+                
+#                 logger.info("✓ About to edit message")
+#             else:
+#                 logger.info("⚠️ No assigned workouts found")
+#                 text = ("💪 **Мои тренировки**\n\n"
+#                         "У вас пока нет назначенных тренировок.\n\n"
+#                         "Обратитесь к тренеру для назначения тренировки!")
+#                 keyboard = InlineKeyboardBuilder()
+#                 keyboard.button(text="🔙 Главное меню", callback_data="mainmenu")
+            
+#             logger.info("✓ Editing message...")
+#             await callback.message.edit_text(
+#                 text,
+#                 reply_markup=keyboard.as_markup(),
+#                 parse_mode="Markdown"
+#             )
+#             logger.info("✓ Message edited successfully")
+            
+#             await callback.answer()
+#             logger.info("=== my_workouts END (SUCCESS) ===")
+            
+#     except Exception as e:
+#         logger.error(f"=== ERROR in my_workouts ===", exc_info=True)
+#         logger.error(f"Error type: {type(e).__name__}")
+#         logger.error(f"Error message: {str(e)}")
+#         import traceback
+#         logger.error(f"Traceback:\n{traceback.format_exc()}")
+        
+#         await callback.answer(f"❌ Ошибка: {str(e)}", show_alert=True)
+
+@workouts_router.callback_query(F.data == "my_templates")
+async def show_my_templates(callback: CallbackQuery):
+    """Показать созданные шаблоны тренировок — для тренеров и админов"""
     try:
-        logger.info(f"=== my_workouts START user {callback.from_user.id} ===")
+        logger.info(f"=== show_my_templates START user {callback.from_user.id} ===")
         
-        # ЛОГИРОВАНИЕ 1: Получение юзера
         user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
-        logger.info(f"✓ User found: {user}")
-        
         if not user:
-            logger.error(f"✗ User NOT found for telegram_id {callback.from_user.id}")
             await callback.answer("❌ Пользователь не найден", show_alert=True)
             return
         
-        logger.info(f"✓ User ID: {user.get('id')}")
+        role = user.get('role', 'player')
+        if role not in ['trainer', 'coach', 'admin']:
+            await callback.answer("🚫 Доступ только для тренеров", show_alert=True)
+            return
         
-        # ЛОГИРОВАНИЕ 2: Подключение к БД
+        user_id = user['id']
+        
         async with db_manager.pool.acquire() as conn:
-            logger.info("✓ DB connection acquired")
-            
-            # ЛОГИРОВАНИЕ 3: Запрос к тренировкам
-            workouts = await conn.fetch("""
-                SELECT w.*, COUNT(we.id) as exercise_count
-                FROM workouts w
-                LEFT JOIN workout_exercises we ON w.id = we.workout_id
-                WHERE w.created_by = $1 AND w.is_active = true
-                GROUP BY w.id
-                ORDER BY w.created_at DESC
-                LIMIT 10
-            """, user['id'])
-            
-            logger.info(f"✓ Query executed, found: {len(workouts) if workouts else 0} workouts")
-            
-            if workouts:
-                logger.info(f"✓ First workout keys: {list(workouts[0].keys())}")  # ← ПОКАЖЕТ СТРУКТУРУ
-                
-                text = f"🏋️ **Мои тренировки ({len(workouts)}):**\n\n"
-                keyboard = InlineKeyboardBuilder()
-                
-                for i, workout in enumerate(workouts):
-                    logger.info(f"✓ Processing workout {i}: {workout.get('name')}")
-                    
-                    exercise_count = workout['exercise_count'] or 0
-                    duration = workout.get('estimated_duration_minutes', 'N/A')  # ← ИСПОЛЬЗУЙ .get()!
-                    
-                    button_text = f"🏋️ {workout['name']}"
-                    if exercise_count > 0:
-                        button_text += f" ({exercise_count} упр.)"
-                    keyboard.button(
-                        text=button_text,
-                        callback_data=f"view_workout_{workout['id']}"
+            if role == 'admin':
+                rows = await conn.fetch("""
+                    SELECT w.id, w.name, w.unique_id,
+                           (SELECT COUNT(*) FROM workout_exercises we WHERE we.workout_id = w.id) as exercise_count,
+                           w.estimated_duration_minutes,
+                           u.first_name AS creator_first, u.last_name AS creator_last
+                    FROM workouts w
+                    LEFT JOIN users u ON w.created_by = u.id
+                    WHERE COALESCE(w.is_active, TRUE) = TRUE
+                    ORDER BY w.created_at DESC
+                    LIMIT 50
+                """)
+            else:  # trainer/coach
+                rows = await conn.fetch("""
+                    SELECT DISTINCT w.id, w.name, w.unique_id,
+                           (SELECT COUNT(*) FROM workout_exercises we WHERE we.workout_id = w.id) as exercise_count,
+                           w.estimated_duration_minutes,
+                           u.first_name AS creator_first, u.last_name AS creator_last
+                    FROM workouts w
+                    LEFT JOIN users u ON w.created_by = u.id
+                    WHERE w.created_by = $1 OR w.created_by IN (
+                        SELECT trainee_id FROM user_trainee_assignments WHERE trainer_id = $1
                     )
-                    
-                    text += f"**{workout['name']}**\n"
-                    text += f"📋 Упражнений: {exercise_count} | ⏱️ ~{duration}мин\n"
-                    text += f"🆔 Код: `{workout['unique_id']}`\n\n"
-                
-                keyboard.button(text="➕ Создать новую", callback_data="create_workout")
-                keyboard.button(text="🔙 К тренировкам", callback_data="workouts_menu")
-                keyboard.adjust(1)
-                
-                logger.info("✓ About to edit message")
-            else:
-                logger.info("⚠️ No workouts found")
-                text = ("🏋️ **Мои тренировки**\n\n"
-                        "У вас пока нет созданных тренировок.\n\n"
-                        "Создайте первую тренировку с блочной структурой!")
-                keyboard = InlineKeyboardBuilder()
-                keyboard.button(text="➕ Создать первую", callback_data="create_workout")
-                keyboard.button(text="🔙 К тренировкам", callback_data="workouts_menu")
-            
-            logger.info("✓ Editing message...")
-            await callback.message.edit_text(
-                text,
-                reply_markup=keyboard.as_markup(),
-                parse_mode="Markdown"
-            )
-            logger.info("✓ Message edited successfully")
-            
-            await callback.answer()
-            logger.info("=== my_workouts END (SUCCESS) ===")
-            
-    except Exception as e:
-        logger.error(f"=== ERROR in my_workouts ===", exc_info=True)
-        logger.error(f"Error type: {type(e).__name__}")
-        logger.error(f"Error message: {str(e)}")
-        import traceback
-        logger.error(f"Traceback:\n{traceback.format_exc()}")
+                    AND COALESCE(w.is_active, TRUE) = TRUE
+                    ORDER BY w.created_at DESC
+                    LIMIT 50
+                """, user_id)
         
-        await callback.answer(f"❌ Ошибка: {str(e)}", show_alert=True)
+        if not rows:
+            text = "<b>📭 У вас пока нет шаблонов тренировок</b>\n\nСоздайте первую в меню!"
+            kb = InlineKeyboardBuilder()
+            kb.button(text="➕ Создать", callback_data="create_workout")
+            kb.button(text="🏠 Главное меню", callback_data="main_menu")
+            kb.adjust(1)
+        else:
+            text = f"<b>📚 Мои шаблоны тренировок ({len(rows)}):</b>\n\n"
+            kb = InlineKeyboardBuilder()
+            for r in rows:
+                cnt = r['exercise_count'] or 0
+                creator = f"{r['creator_first']} {r['creator_last'] or ''}".strip() or "Неизвестно"
+                text += f"• <b>{r['name']}</b> ({cnt} упр.) — от {creator}\nКод: <code>{r['unique_id']}</code>\n\n"
+                kb.button(text=f"{r['name']} ({cnt})", callback_data=f"view_workout_{r['id']}")
+            kb.button(text="➕ Создать", callback_data="create_workout")
+            kb.button(text="🏠 Главное меню", callback_data="main_menu")
+            kb.adjust(1)
+        
+        await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="HTML")
+        await callback.answer()
+        logger.info("=== show_my_templates END (SUCCESS) ===")
+    
+    except Exception as e:
+        logger.error("=== ERROR in show_my_templates ===", exc_info=True)
+        await callback.answer("❌ Ошибка загрузки шаблонов", show_alert=True)
 
-
-
+# @workouts_router.callback_query(F.data.startswith("trainer_view_"))
+# async def trainer_view_workout(callback: CallbackQuery):
+#     workout_id = int(callback.data.split("_")[-1])
+#     workout_data = await teams.teams_db.get_workout_with_exercises(workout_id)
+#     # ... формируешь текст как в player_workouts ...
+#     await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="HTML")
 # # Добавление блока - переход в меню блока
 # @workouts_router.callback_query(F.data.in_(["create_add_warmup", "create_add_nervousprep", "create_add_main", "create_add_cooldown"]))
 # async def create_add_block(callback: CallbackQuery, state: FSMContext):
@@ -1983,7 +2218,7 @@ async def process_workout_text_input(message: Message, state: FSMContext):
                     return
 
             # === ДОБАВЛЕНИЕ С ПАРАМЕТРАМИ ===
-            await _add_exercise_with_params(state, pending, rest, message)
+            await add_exercise_with_params_start(state, pending, rest, message)
             return
 
     # -------------------------------------------------
@@ -2612,6 +2847,97 @@ async def process_param_input(message: Message, state: FSMContext):
     await message.answer(f"**{ex_name}** добавлено: {param_text}")
     await _show_exercises_for_block(message, state)
     await state.clear()
+
+
+
+from handlers import teams  # Добавь этот импорт в начало файла, если его нет
+
+# @workouts_router.callback_query(F.data.startswith("view_workout_"))
+# async def view_workout_detail(callback: CallbackQuery):
+#     """Просмотр детали шаблона тренировки для тренера"""
+#     workout_id = int(callback.data.split("_")[-1])
+    
+#     # Проверка роли (опционально, но полезно)
+#     user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
+#     if not user or user.get('role') not in ['admin', 'trainer', 'coach']:
+#         await callback.answer("Доступ запрещён", show_alert=True)
+#         return
+    
+#     try:
+#         workout_data = await teams.teams_db.get_workout_with_exercises(workout_id)
+#         if not workout_data:
+#             await callback.answer("Тренировка не найдена", show_alert=True)
+#             return
+        
+#         workout = workout_data['workout']
+#         blocks = workout_data['blocks']
+        
+#         text = f"💪 <b>{workout['name']}</b>\n\n"
+        
+#         if workout.get('description'):
+#             text += f"📝 {workout['description']}\n\n"
+        
+#         if not blocks:
+#             text += "❌ В этой тренировке нет блоков"
+#         else:
+#             text += f"📊 <b>Блоков:</b> {len(blocks)}\n\n"
+            
+#             for i, block_data in enumerate(blocks, 1):
+#                 block = block_data['block']
+#                 exercises = block_data['exercises']
+                
+#                 text += f"<b>Блок {i}: {block['name']}</b>\n"
+                
+#                 if block.get('description'):
+#                     text += f"<i>{block['description']}</i>\n"
+                
+#                 if exercises:
+#                     for j, ex in enumerate(exercises, 1):
+#                         text += f"\n  {j}. <b>{ex['exercise_name']}</b>\n"
+                        
+#                         if ex.get('exercise_description'):
+#                             desc = ex['exercise_description']
+#                             if len(desc) > 100:
+#                                 desc = desc[:100] + "..."
+#                             text += f"     📖 {desc}\n"
+                        
+#                         params = []
+#                         if ex.get('sets'):
+#                             params.append(f"Подходы: {ex['sets']}")
+#                         if ex.get('reps'):
+#                             params.append(f"Повторения: {ex['reps']}")
+#                         if ex.get('weight'):
+#                             params.append(f"Вес: {ex['weight']} кг")
+#                         if ex.get('duration'):
+#                             params.append(f"Длительность: {ex['duration']} сек")
+#                         if ex.get('rest_time'):
+#                             params.append(f"Отдых: {ex['rest_time']} сек")
+                        
+#                         if params:
+#                             text += f"     🔹 {' | '.join(params)}\n"
+                        
+#                         if ex.get('video_url'):
+#                             text += f"     🎥 <a href='{ex['video_url']}'>Видео</a>\n"
+                    
+#                     text += "\n"
+#                 else:
+#                     text += "Нет упражнений\n\n"
+        
+#         kb = InlineKeyboardBuilder()
+#         kb.button(text="Редактировать", callback_data=f"edit_workout_{workout_id}")
+#         kb.button(text="Назначить", callback_data=f"assign_workout_{workout_id}")
+#         kb.button(text="🔙 К шаблонам", callback_data="my_templates")
+#         kb.adjust(1)
+        
+#         await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="HTML")
+#         await callback.answer()
+    
+#     except Exception as e:
+#         logger.exception("Ошибка в view_workout_detail")
+#         await callback.answer("Ошибка загрузки тренировки", show_alert=True)
+
+
+
 #----------------- REGISTER -----------------
 def register_workout_handlers(dp):
     #dp.include_router(workouts_router)

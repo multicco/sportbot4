@@ -2,7 +2,8 @@ import logging
 from aiogram import Router, F, Dispatcher
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
-
+# ← ВСТАВЬ СЮДА, рядом с другими импортами
+from . import player_workouts  # ← ЭТА СТРОКА
 # Импорт всех подмодулей
 from . import start
 from . import exercises
@@ -179,6 +180,9 @@ def register_all_handlers(dp: Dispatcher):
     # 2. ✅ ГЛАВНЫЕ РОУТЕРЫ - включаем в правильном порядке!
     dp.include_router(teams.teams_router)
     logger.info("✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)")
+
+    dp.include_router(player_workouts.get_player_workouts_router())
+    logger.info("player_workouts_router зарегистрирован")
     
     dp.include_router(trainees_router)
     logger.info("✅ trainees_router зарегистрирован")
