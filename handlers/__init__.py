@@ -10,6 +10,7 @@ from . import workouts
 from . import tests
 from . import test_batteries
 from handlers.teams import TeamStates
+#from handlers import workouts
 # Дополнительные модули (по наличию)
 try:
     from . import team_tests
@@ -24,6 +25,8 @@ except ImportError:
 from . import teams
 
 logger = logging.getLogger(__name__)
+
+
 
 # Общий роутер для текстовых сообщений
 general_router = Router(name="general")

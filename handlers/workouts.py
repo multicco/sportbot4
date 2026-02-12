@@ -1,759 +1,605 @@
-# ===== ПОЛНЫЙ ФАЙЛ handlers/workouts.py =====
-import asyncio
+# handlers/workouts.py
+# -*- coding: utf-8 -*-
 import logging
-from typing import Optional, List, Dict
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 from aiogram import F, Router
-from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
+from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from database import db_manager
 from states.workout_states import CreateWorkoutStates
 
 logger = logging.getLogger(__name__)
-
-# Роутер для обработчиков тренировок
 workouts_router = Router()
 
-# ===== УТИЛИТЫ =====
-def parse_callback_id(callback_data: str, expected_prefix: str = None) -> int:
-    """Универсальная функция для парсинга ID из callback_data"""
+# ----------------- UTIL -----------------
+def parse_int_suffix(callback_data: str) -> Optional[int]:
+    """Безопасно получить последний суффикс как int, иначе None."""
     try:
-        # Если задан префикс, пытаемся его убрать
-        if expected_prefix and callback_data.startswith(expected_prefix):
-            return int(callback_data.replace(expected_prefix, ""))
+        part = callback_data.split("_")[-1]
+        if part.isdigit():
+            return int(part)
+        return None
+    except Exception:
+        return None
 
-        # Иначе берем последний элемент после разделения по _
-        parts = callback_data.split("_")
-        if len(parts) < 2:
-            raise ValueError(f"Неверный формат callback_data: {callback_data}")
+def parse_callback_id(callback_data: str, prefix: Optional[str] = None) -> int:
+    """Парсит id и бросает ValueError если не нашли."""
+    if prefix and callback_data.startswith(prefix):
+        tail = callback_data[len(prefix):]
+        if tail.isdigit():
+            return int(tail)
+        raise ValueError(f"Нет числового ID в callback: {callback_data}")
+    # fallback: последний раздел после _
+    n = parse_int_suffix(callback_data)
+    if n is None:
+        raise ValueError(f"Не удалось извлечь ID из callback: {callback_data}")
+    return n
 
-        return int(parts[-1])
+async def safe_edit_or_send(message, text, reply_markup=None, parse_mode=None):
+    """Попытка edit_text, если не удалось — send message."""
+    try:
+        await message.edit_text(text, reply_markup=reply_markup, parse_mode=parse_mode)
+    except Exception:
+        await message.answer(text, reply_markup=reply_markup, parse_mode=parse_mode)
 
-    except (ValueError, IndexError) as e:
-        logger.error(f"Ошибка парсинга callback_data '{callback_data}': {e}")
-        raise ValueError(f"Не удалось извлечь ID из callback_data: {callback_data}")
-
-# ===== ГЛАВНОЕ МЕНЮ ТРЕНИРОВОК =====
-@workouts_router.callback_query(F.data == "workouts_menu")
+# ----------------- MENU -----------------
+@workouts_router.callback_query(F.data.in_({"workouts_menu", "menu_workouts", "workouts_menu"}))
 async def workouts_menu(callback: CallbackQuery):
-    """Главное меню тренировок"""
-    keyboard = InlineKeyboardBuilder()
-    keyboard.button(text="🏋️ Мои тренировки", callback_data="my_workouts")
-    keyboard.button(text="🔍 Найти тренировку", callback_data="find_workout")
-    keyboard.button(text="➕ Создать тренировку", callback_data="create_workout")
-    keyboard.button(text="📊 Моя статистика", callback_data="workout_statistics")
-    keyboard.button(text="🔙 Главное меню", callback_data="main_menu")
-    keyboard.adjust(2)
-
-    await callback.message.edit_text(
-        "🏋️ **Меню тренировок**\n\n"
-        "🆕 **Блочная структура тренировок:**\n"
-        "• 🔥 Разминка\n"
-        "• ⚡ Подготовка нервной системы\n"
-        "• 💪 Основная часть\n"
-        "• 🧘 Заминка\n\n"
-        "Выберите действие:",
-        reply_markup=keyboard.as_markup(),
-        parse_mode="Markdown"
-    )
+    logger.info("🔹 Открыто меню тренировок (callback=%s)", callback.data)
+    kb = InlineKeyboardBuilder()
+    kb.button(text="🏋️ Мои тренировки", callback_data="my_workouts")
+    kb.button(text="🔍 Найти тренировку", callback_data="find_workout")
+    kb.button(text="➕ Создать тренировку", callback_data="create_workout")  # legacy short
+    kb.button(text="➕ Создать тренировку (новое)", callback_data="create_workout_new")  # optional
+    kb.button(text="📊 Моя статистика", callback_data="workout_statistics")
+    kb.button(text="🔙 Главное меню", callback_data="main_menu")
+    kb.adjust(2)
+    await safe_edit_or_send(callback.message, "🏋️ **Меню тренировок**\n\nВыберите действие:", reply_markup=kb.as_markup(), parse_mode="Markdown")
     await callback.answer()
 
-# ===== МОИ ТРЕНИРОВКИ =====
-@workouts_router.callback_query(F.data == "my_workouts")
+# ----------------- MY WORKOUTS -----------------
+@workouts_router.callback_query(F.data.in_({"my_workouts", "workouts_my"}))
 async def my_workouts(callback: CallbackQuery):
-    """Показать тренировки пользователя"""
+    logger.info("🔹 Получен callback: my_workouts (from %s)", callback.from_user.id)
     try:
         user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
-
         async with db_manager.pool.acquire() as conn:
-            workouts = await conn.fetch("""
-                SELECT w.*, COUNT(we.id) as exercise_count
-                FROM workouts w
-                LEFT JOIN workout_exercises we ON w.id = we.workout_id
-                WHERE w.created_by = $1 AND w.is_active = true
-                GROUP BY w.id
-                ORDER BY w.created_at DESC
-                LIMIT 10
+            rows = await conn.fetch("""
+                SELECT w.id, w.name, w.unique_id, coalesce(count_we,0) as exercise_count, w.estimated_duration_minutes
+                FROM (
+                    SELECT w.*, (SELECT COUNT(*) FROM workout_exercises we WHERE we.workout_id = w.id) as count_we
+                    FROM workouts w
+                    WHERE w.created_by = $1 AND coalesce(w.is_active, true) = true
+                    ORDER BY w.created_at DESC
+                    LIMIT 50
+                ) w
             """, user['id'])
-
-            if workouts:
-                text = f"🏋️ **Мои тренировки ({len(workouts)}):**\n\n"
-                keyboard = InlineKeyboardBuilder()
-
-                for workout in workouts:
-                    exercise_count = workout['exercise_count'] or 0
-                    duration = workout['estimated_duration_minutes']
-
-                    button_text = f"🏋️ {workout['name']}"
-                    if exercise_count > 0:
-                        button_text += f" ({exercise_count} упр.)"
-
-                    keyboard.button(
-                        text=button_text,
-                        callback_data=f"view_workout_{workout['id']}"
-                    )
-
-                    # Добавляем краткое описание
-                    text += f"**{workout['name']}**\n"
-                    text += f"📋 Упражнений: {exercise_count} | ⏱️ ~{duration}мин\n"
-                    text += f"🆔 Код: `{workout['unique_id']}`\n\n"
-
-                keyboard.button(text="➕ Создать новую", callback_data="create_workout")
-                keyboard.button(text="🔙 К тренировкам", callback_data="workouts_menu")
-                keyboard.adjust(1)
-
-            else:
-                text = ("🏋️ **Мои тренировки**\n\n"
-                       "У вас пока нет созданных тренировок.\n\n"
-                       "Создайте первую тренировку с блочной структурой!")
-
-                keyboard = InlineKeyboardBuilder()
-                keyboard.button(text="➕ Создать первую", callback_data="create_workout")
-                keyboard.button(text="🔙 К тренировкам", callback_data="workouts_menu")
-
-            await callback.message.edit_text(
-                text,
-                reply_markup=keyboard.as_markup(),
-                parse_mode="Markdown"
-            )
+        if not rows:
+            kb = InlineKeyboardBuilder()
+            kb.button(text="➕ Создать первую", callback_data="create_workout")
+            kb.button(text="🔙 В меню", callback_data="workouts_menu")
+            kb.adjust(1)
+            await safe_edit_or_send(callback.message, "🏋️ У вас пока нет сохранённых тренировок.", reply_markup=kb.as_markup())
             await callback.answer()
+            return
 
+        text = f"🏋️ **Мои тренировки ({len(rows)}):**\n\n"
+        kb = InlineKeyboardBuilder()
+        for r in rows:
+            cnt = r['exercise_count'] or 0
+            text += f"**{r['name']}** — {cnt} упр. | Код `{r['unique_id']}`\n"
+            kb.button(text=f"{r['name']} ({cnt})", callback_data=f"view_workout_{r['id']}")
+        kb.button(text="➕ Создать", callback_data="create_workout")
+        kb.button(text="🔙 В меню", callback_data="workouts_menu")
+        kb.adjust(1)
+        await safe_edit_or_send(callback.message, text, reply_markup=kb.as_markup(), parse_mode="Markdown")
+        await callback.answer()
     except Exception as e:
-        logger.error(f"Ошибка в my_workouts: {e}")
-        await callback.answer("❌ Ошибка загрузки тренировок", show_alert=True)
+        logger.exception("my_workouts error: %s", e)
+        await callback.answer("❌ Ошибка получения тренировок", show_alert=True)
 
-# ===== ПРОСМОТР ДЕТАЛЕЙ ТРЕНИРОВКИ =====
+# ----------------- VIEW DETAILS -----------------
 @workouts_router.callback_query(F.data.startswith("view_workout_"))
 async def view_workout_details(callback: CallbackQuery):
-    """ИСПРАВЛЕННАЯ функция просмотра деталей тренировки"""
     try:
-        # ✅ ИСПРАВЛЕНИЕ: Правильный парсинг callback_data
-        workout_id = parse_callback_id(callback.data, "view_workout_")
-
-        logger.info(f"Просмотр тренировки ID: {workout_id}")
-
-        # Получаем данные тренировки из БД
+        wid = parse_callback_id(callback.data, "view_workout_")
         async with db_manager.pool.acquire() as conn:
-            # Основная информация о тренировке
             workout = await conn.fetchrow("""
                 SELECT w.*, u.first_name as creator_name, u.last_name as creator_lastname
                 FROM workouts w
-                LEFT JOIN users u ON w.created_by = u.id  
-                WHERE w.id = $1 AND w.is_active = true
-            """, workout_id)
-
+                LEFT JOIN users u ON w.created_by = u.id
+                WHERE w.id = $1 AND coalesce(w.is_active, true) = true
+            """, wid)
             if not workout:
                 await callback.answer("❌ Тренировка не найдена", show_alert=True)
                 return
-
-            # Получаем упражнения тренировки
             exercises = await conn.fetch("""
                 SELECT we.*, e.name as exercise_name, e.muscle_group, e.category
                 FROM workout_exercises we
-                JOIN exercises e ON we.exercise_id = e.id
+                LEFT JOIN exercises e ON e.id = we.exercise_id
                 WHERE we.workout_id = $1
-                ORDER BY 
-                    CASE we.phase 
-                        WHEN 'warmup' THEN 1
-                        WHEN 'nervous_prep' THEN 2  
-                        WHEN 'main' THEN 3
-                        WHEN 'cooldown' THEN 4
-                        ELSE 5
-                    END,
+                ORDER BY
+                    CASE we.phase WHEN 'warmup' THEN 1 WHEN 'nervousprep' THEN 2 WHEN 'main' THEN 3 WHEN 'cooldown' THEN 4 ELSE 5 END,
                     we.order_in_phase
-            """, workout_id)
-
-        # Формируем детальное описание тренировки
-        creator_name = workout['creator_name']
-        if workout['creator_lastname']:
-            creator_name += f" {workout['creator_lastname']}"
-
-        text = f"🏋️ **{workout['name']}**\n\n"
-
-        if workout['description']:
+            """, wid)
+        text = f"🏷 **{workout['name']}**\n\n"
+        if workout.get('description'):
             text += f"📝 _{workout['description']}_\n\n"
-
-        text += f"👤 **Автор:** {creator_name or 'Неизвестен'}\n"
-        text += f"⏱️ **Время:** ~{workout['estimated_duration_minutes']} мин\n"
-        text += f"📈 **Уровень:** {workout['difficulty_level'].title()}\n"
-        text += f"📂 **Категория:** {workout.get('category', 'general').title()}\n"
-        text += f"🆔 **Код тренировки:** `{workout['unique_id']}`\n"
-        text += f"👥 **Доступ:** {workout['visibility'].title()}\n\n"
-
+        text += f"👤 Автор: {(workout.get('creator_name') or '')} {workout.get('creator_lastname') or ''}\n"
+        text += f"⏱ Время: ~{workout.get('estimated_duration_minutes') or 0} мин\n"
+        text += f"💡 Код: `{workout.get('unique_id')}`\n\n"
         if exercises:
-            # Группируем упражнения по фазам
-            phase_names = {
-                'warmup': '🔥 Разминка',
-                'nervous_prep': '⚡ Подготовка нервной системы', 
-                'main': '💪 Основная часть',
-                'cooldown': '🧘 Заминка'
-            }
-
-            current_phase = None
-            exercise_count = 0
-
-            for exercise in exercises:
-                # Новая фаза - добавляем заголовок
-                if exercise['phase'] != current_phase:
-                    current_phase = exercise['phase']
-                    phase_display = phase_names.get(current_phase, current_phase.title())
-                    text += f"\n**{phase_display}:**\n"
-
-                exercise_count += 1
-
-                # Форматируем повторения
-                if exercise['reps_min'] == exercise['reps_max']:
-                    reps_text = f"{exercise['reps_min']}"
-                else:
-                    reps_text = f"{exercise['reps_min']}-{exercise['reps_max']}"
-
-                # Основная информация об упражнении
-                text += f"• **{exercise['exercise_name']}**\n"
-                text += f"  📊 {exercise['sets']} подх. × {reps_text} повт."
-
-                # Процент от 1ПМ если указан
-                if exercise['one_rm_percent']:
-                    text += f" ({exercise['one_rm_percent']}% 1ПМ)"
-
-                # Отдых между подходами
-                if exercise['rest_seconds'] and exercise['rest_seconds'] > 0:
-                    rest_min = exercise['rest_seconds'] // 60
-                    rest_sec = exercise['rest_seconds'] % 60
-                    if rest_min > 0:
-                        text += f" | Отдых: {rest_min}мин {rest_sec}с" if rest_sec > 0 else f" | Отдых: {rest_min}мин"
-                    else:
-                        text += f" | Отдых: {rest_sec}с"
-
-                text += f"\n  🎯 {exercise['muscle_group']} | {exercise['category']}\n"
-
-                # Дополнительные заметки
-                if exercise.get('notes'):
-                    text += f"  📝 _{exercise['notes']}_\n"
-
+            phase_map = {'warmup': '🔥 Разминка', 'nervousprep': '⚡ Подготовка НС', 'main': '💪 Основная', 'cooldown': '🧘 Заминка'}
+            cur = None
+            for ex in exercises:
+                if ex['phase'] != cur:
+                    cur = ex['phase']
+                    text += f"\n**{phase_map.get(cur, cur)}:**\n"
+                reps = f"{ex['reps_min']}" if ex['reps_min'] == ex['reps_max'] else f"{ex['reps_min']}-{ex['reps_max']}"
+                text += f"• **{ex['exercise_name']}** — {ex['sets']}×{reps}"
+                if ex.get('one_rm_percent'):
+                    text += f" ({ex['one_rm_percent']}% 1ПМ)"
+                if ex.get('rest_seconds'):
+                    rs = ex['rest_seconds']
+                    text += f" | отдых {rs//60}м{rs%60}s" if rs >= 60 else f" | отдых {rs}s"
                 text += "\n"
-
-            text += f"📋 **Всего упражнений:** {exercise_count}"
         else:
-            text += "⚠️ В тренировке пока нет упражнений."
-
-        # Создаем интерактивную клавиатуру
-        keyboard = InlineKeyboardBuilder()
-
-        # Основные действия
-        keyboard.button(
-            text="🏃 Начать тренировку", 
-            callback_data=f"start_workout_{workout_id}"
-        )
-        keyboard.button(
-            text="📊 Статистика", 
-            callback_data=f"workout_stats_{workout_id}"
-        )
-
-        # Дополнительные действия  
-        keyboard.button(
-            text="📋 Скопировать код", 
-            callback_data=f"copy_workout_code_{workout_id}"
-        )
-        keyboard.button(
-            text="✏️ Редактировать", 
-            callback_data=f"edit_workout_{workout_id}"
-        )
-
-        # Навигация
-        keyboard.button(
-            text="🔙 К тренировкам", 
-            callback_data="workouts_menu"
-        )
-        keyboard.button(
-            text="🏠 Главное меню", 
-            callback_data="main_menu"
-        )
-
-        keyboard.adjust(2, 2, 2)  # Первые 4 кнопки в 2 ряда по 2, остальные тоже по 2
-
-        # Отправляем сообщение
-        await callback.message.edit_text(
-            text,
-            reply_markup=keyboard.as_markup(), 
-            parse_mode="Markdown"
-        )
+            text += "⚠️ Упражнений пока нет."
+        kb = InlineKeyboardBuilder()
+        kb.button(text="▶️ Начать тренировку", callback_data=f"start_workout_{wid}")
+        kb.button(text="📊 Статистика", callback_data=f"workout_stats_{wid}")
+        kb.button(text="🔗 Копировать код", callback_data=f"copy_workout_code_{wid}")
+        kb.button(text="✏️ Редактировать", callback_data=f"edit_workout_{wid}")
+        kb.button(text="🔙 В мои", callback_data="my_workouts")
+        kb.adjust(2, 2)
+        await safe_edit_or_send(callback.message, text, reply_markup=kb.as_markup(), parse_mode="Markdown")
         await callback.answer()
-
-    except ValueError as e:
-        logger.error(f"Ошибка парсинга ID тренировки: {e}")
-        await callback.answer("❌ Неверный формат ID тренировки", show_alert=True)
     except Exception as e:
-        logger.error(f"Ошибка в view_workout_details: {e}")
-        await callback.answer("❌ Ошибка загрузки тренировки", show_alert=True)
+        logger.exception("view_workout_details error: %s", e)
+        await callback.answer("❌ Ошибка при показе тренировки", show_alert=True)
 
-# ===== СОЗДАНИЕ ТРЕНИРОВКИ =====
-@workouts_router.callback_query(F.data == "create_workout")
+# ----------------- CREATE WORKOUT FLOW (FSM) -----------------
+# We use create_ prefix for creation-related callbacks to avoid conflicts with player_workouts.py
+@workouts_router.callback_query(F.data.in_({"create_workout", "create_workout_new", "workouts_create"}))
 async def start_create_workout(callback: CallbackQuery, state: FSMContext):
-    """Начать создание новой тренировки"""
-    await callback.message.edit_text(
-        "🏋️ **Создание новой тренировки**\n\n"
-        "🆕 **Блочная структура тренировки:**\n"
-        "• 🔥 Разминка - подготовка тела\n"
-        "• ⚡ Подготовка НС - активация нервной системы\n"
-        "• 💪 Основная часть - главная нагрузка\n"
-        "• 🧘 Заминка - восстановление\n\n"
-        "Введите название вашей тренировки:\n"
-        "_Например: \"Силовая тренировка верха\" или \"ОФП для новичков\"_",
-        parse_mode="Markdown"
-    )
+    logger.info("🔹 Начало создания тренировки (callback=%s) by %s", callback.data, callback.from_user.id)
+    # ask name
+    kb = InlineKeyboardBuilder()
+    kb.button(text="❌ Отменить", callback_data="create_cancel_workout")
+    kb.adjust(1)
+    await safe_edit_or_send(callback.message, "🏋️ **Создание тренировки**\n\nВведите название тренировки:", reply_markup=kb.as_markup(), parse_mode="Markdown")
     await state.set_state(CreateWorkoutStates.waiting_workout_name)
-
     await callback.answer()
 
-@workouts_router.callback_query(F.data == "skip_workout_description")
-async def skip_description(callback: CallbackQuery, state: FSMContext):
-    """Пропустить описание тренировки"""
+@workouts_router.callback_query(F.data.in_({"create_skip_description", "skip_workout_description", "skip_description"}))
+async def skip_workout_description(callback: CallbackQuery, state: FSMContext):
+    # allow legacy names too
     await state.update_data(description="")
     await show_block_selection_menu(callback.message, state)
     await callback.answer()
 
-# ===== ФУНКЦИИ СОЗДАНИЯ БЛОКОВ =====
-async def show_block_selection_menu(message: Message, state: FSMContext):
-    """Показать меню выбора блоков тренировки"""
-    data = await state.get_data()
-    selected_blocks = data.get('selected_blocks', {})
-
-    text = f"🏗️ **Структура тренировки: {data['name']}**\n\n"
-    text += f"📋 **Выберите блоки для вашей тренировки:**\n\n"
-
-    blocks = {
-        'warmup': '🔥 Разминка',
-        'nervous_prep': '⚡ Подготовка нервной системы',   
-        'main': '💪 Основная часть',
-        'cooldown': '🧘 Заминка'
-    }
-
-    for block_key, block_name in blocks.items():
-        status = "✅" if block_key in selected_blocks else "⭕"
-        text += f"{status} **{block_name}**"
-        if block_key in selected_blocks:
-            exercises_count = len(selected_blocks[block_key].get('exercises', []))
-            text += f" ({exercises_count} упр.)"
-            if selected_blocks[block_key].get('description'):
-                text += f"\n _{selected_blocks[block_key]['description'][:50]}..._"
-        text += "\n\n"
-
-    keyboard = InlineKeyboardBuilder()
-
-    for block_key, block_name in blocks.items():
-        action = "✏️ Изменить" if block_key in selected_blocks else "➕ Добавить"
-        keyboard.button(
-            text=f"{action} {block_name.split(' ', 1)[1]}", 
-            callback_data=f"select_block_{block_key}"
-        )
-
-    if selected_blocks:
-        keyboard.button(text="✅ Завершить создание", callback_data="finish_workout_creation")
-
-    keyboard.button(text="❌ Отменить", callback_data="cancel_workout_creation")
-    keyboard.adjust(2)
-
-
-    try:
-        await message.edit_text(text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
-    except:
-        await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
-
-    await state.set_state(CreateWorkoutStates.selecting_blocks)
-
-@workouts_router.callback_query(F.data.startswith("select_block_"))
-async def select_workout_block(callback: CallbackQuery, state: FSMContext):
-    """Выбрать блок для редактирования"""
-    block_key = callback.data.split("_", 2)[2]
-
-    block_info = {
-        'warmup': {
-            'name': '🔥 Разминка',
-            'description': 'Подготовка тела к нагрузке, разогрев мышц и суставов',
-            'examples': 'Легкое кардио, динамическая растяжка, суставная гимнастика'
-        },
-        'nervous_prep': {
-            'name': '⚡ Подготовка нервной системы',
-            'description': 'Активация нервной системы перед основной работой',
-            'examples': 'Взрывные движения, активационные упражнения, плиометрика'
-        },
-        'main': {
-            'name': '💪 Основная часть',
-            'description': 'Главная тренировочная нагрузка',
-            'examples': 'Основные упражнения, силовая работа, технические элементы'
-        },
-        'cooldown': {
-            'name': '🧘 Заминка',
-            'description': 'Восстановление и расслабление после тренировки',
-            'examples': 'Статическая растяжка, дыхательные упражнения, расслабление'
-        }
-    }
-
-    info = block_info[block_key]
-    await state.update_data(current_block=block_key)
-
-    text = f"📋 **{info['name']}**\n\n"
-    text += f"**Описание:**\n{info['description']}\n\n"
-    text += f"**Примеры упражнений:**\n{info['examples']}\n\n"
-    text += f"**Что вы хотите сделать с этим блоком?**"
-
-    keyboard = InlineKeyboardBuilder()
-    keyboard.button(text="📝 Добавить описание блока", callback_data="add_block_description")
-    keyboard.button(text="⏭️ Сразу к упражнениям", callback_data="skip_block_description")
-    keyboard.button(text="🗑️ Пропустить блок", callback_data="skip_entire_block")
-    keyboard.button(text="🔙 К выбору блоков", callback_data="back_to_blocks")
-    keyboard.adjust(1)
-
-    await callback.message.edit_text(
-        text,
-        reply_markup=keyboard.as_markup(),
-        parse_mode="Markdown"
-    )
+@workouts_router.callback_query(F.data == "create_cancel_workout")
+async def create_cancel_workout(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
+    kb = InlineKeyboardBuilder()
+    kb.button(text="🏋️ Мои тренировки", callback_data="my_workouts")
+    kb.button(text="➕ Создать", callback_data="create_workout")
+    kb.adjust(1)
+    await safe_edit_or_send(callback.message, "❌ Создание отменено.", reply_markup=kb.as_markup())
     await callback.answer()
 
-@workouts_router.callback_query(F.data == "add_block_description")
-async def add_block_description(callback: CallbackQuery, state: FSMContext):
-    """Добавить описание к блоку"""
+async def show_block_selection_menu(message: Message, state: FSMContext):
     data = await state.get_data()
-    block_key = data.get('current_block')
+    name = data.get('name', 'Без названия')
+    selected = data.get('selected_blocks', {})
+    text = f"🔧 **Структура тренировки: {name}**\n\nВыберите блоки и добавьте упражнения:\n\n"
+    blocks = [('warmup', '🔥 Разминка'), ('nervousprep', '⚡ Подготовка НС'), ('main', '💪 Основная'), ('cooldown', '🧘 Заминка')]
+    for k, label in blocks:
+        status = "✅" if k in selected else "⭕"
+        cnt = len(selected.get(k, {}).get('exercises', [])) if k in selected else 0
+        text += f"{status} {label} ({cnt} упр.)\n"
+    kb = InlineKeyboardBuilder()
+    # use create_ prefix to avoid conflict
+    kb.button(text="➕ Разминка", callback_data="create_add_warmup_block")
+    kb.button(text="➕ Подготовка НС", callback_data="create_add_cns_block")
+    kb.button(text="➕ Основная", callback_data="create_add_main_block")
+    kb.button(text="➕ Заминка", callback_data="create_add_cooldown_block")
+    kb.button(text="✅ Завершить создание", callback_data="create_finish_workout")
+    kb.button(text="❌ Отменить", callback_data="create_cancel_workout")
+    kb.adjust(2)
+    try:
+        await message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="Markdown")
+    except Exception:
+        await message.answer(text, reply_markup=kb.as_markup(), parse_mode="Markdown")
+    await state.set_state(CreateWorkoutStates.selecting_blocks)
 
-    block_names = {
-        'warmup': '🔥 Разминка',
-        'nervous_prep': '⚡ Подготовка нервной системы',
-        'main': '💪 Основная часть',   
-        'cooldown': '🧘 Заминка'
+# handle adding block - creation namespace
+@workouts_router.callback_query(F.data.in_({"create_add_warmup_block", "create_add_cns_block", "create_add_main_block", "create_add_cooldown_block"}))
+async def create_add_block(callback: CallbackQuery, state: FSMContext):
+    mapping = {
+        "create_add_warmup_block": "warmup",
+        "create_add_cns_block": "nervousprep",
+        "create_add_main_block": "main",
+        "create_add_cooldown_block": "cooldown"
     }
+    phase = mapping.get(callback.data)
+    if not phase:
+        await callback.answer()
+        return
+    await state.update_data(current_block=phase)
+    kb = InlineKeyboardBuilder()
+    kb.button(text="📝 Добавить/редактировать описание блока", callback_data="create_add_block_description")
+    kb.button(text="🔍 Поиск упражнений", callback_data="create_search_ex_for_block")
+    kb.button(text="🔙 К выбору блоков", callback_data="create_back_to_blocks")
+    kb.adjust(1)
+    names = {'warmup': 'Разминка', 'nervousprep': 'Подготовка НС', 'main': 'Основная', 'cooldown': 'Заминка'}
+    await safe_edit_or_send(callback.message, f"📋 **{names.get(phase)}**\n\nЧто сделать?", reply_markup=kb.as_markup(), parse_mode="Markdown")
+    await callback.answer()
 
-    await callback.message.edit_text(
-        f"📝 **Описание блока: {block_names[block_key]}**\n\n"
-        f"Введите описание для этого блока:\n"
-        f"_Например: \"10 минут легкого кардио + суставная разминка\"_\n\n"
-        f"Или опишите цели и особенности данного блока.",
-        parse_mode="Markdown"
-    )
+@workouts_router.callback_query(F.data == "create_add_block_description")
+async def create_add_block_description(callback: CallbackQuery, state: FSMContext):
+    await callback.message.edit_text("📝 Введите описание для этого блока:")
     await state.set_state(CreateWorkoutStates.adding_block_description)
     await callback.answer()
 
-# ===== ЗАВЕРШЕНИЕ СОЗДАНИЯ ТРЕНИРОВКИ =====
-@workouts_router.callback_query(F.data == "finish_workout_creation")
-async def finish_workout_creation(callback: CallbackQuery, state: FSMContext):
-    """Завершить создание тренировки"""
-    data = await state.get_data()
-    user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
-    selected_blocks = data.get('selected_blocks', {})
+# search exercises for block (creation namespace)
+@workouts_router.callback_query(F.data == "create_search_ex_for_block")
+async def create_search_ex_for_block(callback: CallbackQuery, state: FSMContext):
+    await callback.message.edit_text("🔍 Введите текст для поиска упражнений (например: присед, жим)")
+    await state.set_state("searching_exercise_for_block")
+    await callback.answer()
 
+# handle exercise search result text
+@workouts_router.callback_query(F.data.startswith("create_add_ex_"))
+async def create_add_ex_direct(callback: CallbackQuery, state: FSMContext):
+    # pattern create_add_ex_{id}
+    ex_id = parse_int_suffix(callback.data.split("create_add_ex_")[-1])
+    await callback.answer()
+
+# add exercise callback (legacy and create_ compatible)
+@workouts_router.callback_query(F.data.startswith("add_block_ex_") | F.data.startswith("create_add_block_ex_"))
+async def add_block_exercise(callback: CallbackQuery, state: FSMContext):
     try:
-        total_exercises = sum(len(block_data['exercises']) for block_data in selected_blocks.values())
-
-        if total_exercises == 0:
-            await callback.answer("❌ Добавьте хотя бы одно упражнение!")
+        # accept either add_block_ex_123 or create_add_block_ex_123
+        prefix = "add_block_ex_"
+        if callback.data.startswith("create_add_block_ex_"):
+            prefix = "create_add_block_ex_"
+        ex_id = parse_callback_id(callback.data, prefix)
+        async with db_manager.pool.acquire() as conn:
+            row = await conn.fetchrow("SELECT id, name FROM exercises WHERE id = $1", ex_id)
+        if not row:
+            await callback.answer("❌ Упражнение не найдено", show_alert=True)
             return
-
-        async with db_manager.pool.acquire() as conn:
-            workout_id = await conn.fetchval("""
-                INSERT INTO workouts (name, description, created_by, visibility, difficulty_level, estimated_duration_minutes)
-                VALUES ($1, $2, $3, 'private', 'intermediate', $4)
-                RETURNING id
-            """, data['name'], data.get('description', ''), user['id'], total_exercises * 8)
-
-            workout_unique_id = await conn.fetchval("SELECT unique_id FROM workouts WHERE id = $1", workout_id)
-
-            exercise_order = 0
-            for phase, block_data in selected_blocks.items():
-                for exercise in block_data['exercises']:
-                    exercise_order += 1
-                    await conn.execute("""
-                        INSERT INTO workout_exercises (
-                            workout_id, exercise_id, phase, order_in_phase, sets,   
-                            reps_min, reps_max, one_rm_percent, rest_seconds
-                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                    """, workout_id, exercise['id'], phase, exercise_order, exercise['sets'],   
-                    exercise['reps_min'], exercise['reps_max'],   
-                    exercise['one_rm_percent'], exercise['rest_seconds'])
-
-        text = f"🎉 **Тренировка создана успешно!**\n\n"
-        text += f"🏋️ **Название:** {data['name']}\n"
-        text += f"🆔 **Код:** `{workout_unique_id}`\n"
-        text += f"📋 **Всего упражнений:** {total_exercises}\n\n"
-
-        block_names = {
-            'warmup': '🔥 Разминка',
-            'nervous_prep': '⚡ Подготовка НС',
-            'main': '💪 Основная часть',
-            'cooldown': '🧘 Заминка'
-        }
-
-        for phase, block_data in selected_blocks.items():
-            if block_data['exercises']:
-                text += f"**{block_names[phase]}:** {len(block_data['exercises'])} упр.\n"
-                if block_data.get('description'):
-                    text += f" _{block_data['description']}_\n"
-
-        text += f"\n💡 **Поделитесь кодом** `{workout_unique_id}` с другими!"
-
-        keyboard = InlineKeyboardBuilder()
-        keyboard.button(text="🏋️ Мои тренировки", callback_data="my_workouts")
-        keyboard.button(text="➕ Создать еще", callback_data="create_workout")
-        keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
-        keyboard.adjust(2)
-
-        await callback.message.edit_text(
-            text,
-            reply_markup=keyboard.as_markup(),
-            parse_mode="Markdown"
-        )
-
-        await state.clear()
-
-    except Exception as e:
-        logger.error(f"Ошибка создания тренировки: {e}")
-        await callback.message.edit_text(f"❌ Ошибка сохранения: {e}")
-
-    await callback.answer()
-
-
-@workouts_router.callback_query(F.data == "cancel_workout_creation")
-async def cancel_workout_creation(callback: CallbackQuery, state: FSMContext):
-    """Отменить создание тренировки"""
-    await state.clear()
-    
-    keyboard = InlineKeyboardBuilder()
-    keyboard.button(text="🏋️ Мои тренировки", callback_data="my_workouts")
-    keyboard.button(text="➕ Создать новую", callback_data="create_workout")
-    keyboard.button(text="🔙 К тренировкам", callback_data="workouts_menu")
-    keyboard.adjust(2)
-    
-    await callback.message.edit_text(
-        "❌ **Создание тренировки отменено**\n\n"
-        "Данные не сохранены.",
-        reply_markup=keyboard.as_markup(),
-        parse_mode="Markdown"
-    )
-    await callback.answer()
-
-
-
-# ===== ДРУГИЕ ФУНКЦИИ =====
-@workouts_router.callback_query(F.data.startswith("start_workout_"))
-async def start_workout_session(callback: CallbackQuery):
-    """Начать выполнение тренировки"""
-    try:
-        workout_id = parse_callback_id(callback.data, "start_workout_")
-
-        # Получаем информацию о тренировке
-        async with db_manager.pool.acquire() as conn:
-            workout = await conn.fetchrow(
-                "SELECT name, unique_id FROM workouts WHERE id = $1", 
-                workout_id
-            )
-
-            if workout:
-                text = f"🏃 **Начинаем тренировку!**\n\n"
-                text += f"🏋️ **{workout['name']}**\n"
-                text += f"🆔 Код: `{workout['unique_id']}`\n\n"
-                text += f"⚠️ Функция выполнения тренировок в разработке...\n\n"
-                text += f"Скоро здесь будет:\n"
-                text += f"• ⏱️ Таймер отдыха\n"
-                text += f"• 📊 Ввод результатов\n"
-                text += f"• 📈 Оценка RPE\n"
-                text += f"• 💪 Автоматический расчет весов"
-
-                keyboard = InlineKeyboardBuilder()
-                keyboard.button(text="🔙 К деталям", callback_data=f"view_workout_{workout_id}")
-                keyboard.button(text="🏋️ Мои тренировки", callback_data="my_workouts")
-
-                await callback.message.edit_text(
-                    text,
-                    reply_markup=keyboard.as_markup(),
-                    parse_mode="Markdown"
-                )
-            else:
-                await callback.answer("❌ Тренировка не найдена", show_alert=True)
-
+        data = await state.get_data()
+        cur = data.get('current_block', 'main')
+        sel = data.get('selected_blocks', {})
+        sel.setdefault(cur, {"description": "", "exercises": []})
+        sel[cur]["exercises"].append({
+            "id": row['id'],
+            "name": row['name'],
+            "sets": 3,
+            "reps_min": 8,
+            "reps_max": 12,
+            "one_rm_percent": None,
+            "rest_seconds": 90
+        })
+        await state.update_data(selected_blocks=sel)
+        await callback.message.edit_text(f"✅ Добавлено: *{row['name']}*", parse_mode="Markdown")
+        await callback.answer()
     except ValueError:
-        await callback.answer("❌ Ошибка ID тренировки", show_alert=True)
+        await callback.answer("❌ Не удалось распознать ID упражнения", show_alert=True)
     except Exception as e:
-        logger.error(f"Ошибка запуска тренировки: {e}")
-        await callback.answer("❌ Ошибка запуска тренировки", show_alert=True)
+        logger.exception("add_block_exercise error: %s", e)
+        await callback.answer("❌ Ошибка добавления упражнения", show_alert=True)
 
+# finish creation
+@workouts_router.callback_query(F.data.in_({"create_finish_workout", "finish_workout_creation", "finish_workout"}))
+async def finish_create_workout(callback: CallbackQuery, state: FSMContext):
+    try:
+        data = await state.get_data()
+        sel = data.get('selected_blocks', {})
+        total = sum(len(b.get('exercises', [])) for b in sel.values())
+        if total == 0:
+            await callback.answer("❌ Добавьте хотя бы одно упражнение!", show_alert=True)
+            return
+        user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
+        async with db_manager.pool.acquire() as conn:
+            wid = await conn.fetchval("""
+                INSERT INTO workouts (name, description, created_by, visibility, difficulty_level, estimated_duration_minutes, created_at, is_active)
+                VALUES ($1,$2,$3,'private','intermediate',$4, now(), true) RETURNING id
+            """, data.get('name'), data.get('description',''), user['id'], total * 8)
+            order = 0
+            for phase, block in sel.items():
+                for ex in block.get('exercises', []):
+                    order += 1
+                    await conn.execute("""
+                        INSERT INTO workout_exercises (workout_id, exercise_id, phase, order_in_phase, sets, reps_min, reps_max, one_rm_percent, rest_seconds, notes)
+                        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+                    """, wid, ex['id'], phase, order, ex['sets'], ex['reps_min'], ex['reps_max'], ex.get('one_rm_percent'), ex.get('rest_seconds'), ex.get('notes'))
+            unique_id = await conn.fetchval("SELECT unique_id FROM workouts WHERE id = $1", wid)
+        await callback.message.edit_text(f"🎉 Тренировка создана! Код: `{unique_id}`\n🏋️ Упражнений: {total}", parse_mode="Markdown")
+        await state.clear()
+        await callback.answer()
+    except Exception as e:
+        logger.exception("finish_create_workout error: %s", e)
+        await callback.answer("❌ Ошибка при сохранении тренировки", show_alert=True)
+
+# ----------------- START / FINISH (player-side) -----------------
+@workouts_router.callback_query(F.data.startswith("start_workout_"))
+async def start_workout(callback: CallbackQuery):
+    wid = parse_int_suffix(callback.data)
+    if wid is None:
+        await callback.answer("❌ Неверный идентификатор тренировки", show_alert=True)
+        return
+    async with db_manager.pool.acquire() as conn:
+        workout = await conn.fetchrow("SELECT name, unique_id FROM workouts WHERE id = $1", wid)
+    if not workout:
+        await callback.answer("❌ Тренировка не найдена", show_alert=True)
+        return
+    kb = InlineKeyboardBuilder()
+    kb.button(text="✅ Завершил тренировку", callback_data=f"finish_workout_{wid}")
+    kb.button(text="📋 Детали", callback_data=f"view_workout_{wid}")
+    kb.adjust(1)
+    await safe_edit_or_send(callback.message, f"▶️ Начинаем: **{workout['name']}**\n\nПосле выполнения нажмите «Завершил тренировку»", reply_markup=kb.as_markup(), parse_mode="Markdown")
+    await callback.answer()
+
+@workouts_router.callback_query(F.data.startswith("finish_workout_"))
+async def finish_workout(callback: CallbackQuery, state: FSMContext):
+    # BE SAFE: ensure last part is numeric
+    n = parse_int_suffix(callback.data)
+    if n is None:
+        logger.warning("❗ finish_workout got non-numeric suffix: %s", callback.data)
+        await callback.answer()
+        return
+    wid = n
+    await state.update_data(finishing_workout_id=wid)
+    await callback.message.edit_text("✅ Оцени тренировку по шкале 1-10 (RPE):")
+    await state.set_state("waiting_rpe")
+    await callback.answer()
+
+# ----------------- copying code / edit / delete / stats -----------------
 @workouts_router.callback_query(F.data.startswith("copy_workout_code_"))
 async def copy_workout_code(callback: CallbackQuery):
-    """Скопировать код тренировки"""
     try:
-        workout_id = parse_callback_id(callback.data, "copy_workout_code_")
-
-        async with db_manager.pool.acquire() as conn:
-            workout = await conn.fetchrow(
-                "SELECT unique_id, name FROM workouts WHERE id = $1", 
-                workout_id
-            )
-
-            if workout:
-                text = f"📋 **Код тренировки скопирован!**\n\n"
-                text += f"🏋️ **{workout['name']}**\n"
-                text += f"🆔 Код: `{workout['unique_id']}`\n\n"
-                text += f"Отправьте этот код другим пользователям,\n"
-                text += f"чтобы они могли найти и использовать\n"
-                text += f"вашу тренировку!"
-
-                keyboard = InlineKeyboardBuilder()
-                keyboard.button(text="🔙 К деталям", callback_data=f"view_workout_{workout_id}")
-                keyboard.button(text="🏋️ Мои тренировки", callback_data="my_workouts")
-
-                await callback.message.edit_text(
-                    text,
-                    reply_markup=keyboard.as_markup(),
-                    parse_mode="Markdown"
-                )
-                await callback.answer("✅ Код скопирован в сообщение!")
-            else:
-                await callback.answer("❌ Тренировка не найдена", show_alert=True)
-
+        wid = parse_callback_id(callback.data, "copy_workout_code_")
     except ValueError:
-        await callback.answer("❌ Ошибка ID тренировки", show_alert=True)
-    except Exception as e:
-        logger.error(f"Ошибка копирования кода: {e}")
-        await callback.answer("❌ Ошибка копирования", show_alert=True)
+        await callback.answer("❌ Неверный код", show_alert=True)
+        return
+    async with db_manager.pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT unique_id, name FROM workouts WHERE id = $1", wid)
+    if not row:
+        await callback.answer("❌ Не найдено", show_alert=True)
+        return
+    text = f"🔗 Код тренировки: `{row['unique_id']}`\n{row['name']}"
+    kb = InlineKeyboardBuilder()
+    kb.button(text="📋 Посмотреть", callback_data=f"view_workout_{wid}")
+    kb.button(text="🔙 В мои", callback_data="my_workouts")
+    kb.adjust(1)
+    await safe_edit_or_send(callback.message, text, reply_markup=kb.as_markup(), parse_mode="Markdown")
+    await callback.answer("Код показан")
 
-# ===== ЗАГЛУШКИ ДЛЯ БУДУЩИХ ФУНКЦИЙ =====
-@workouts_router.callback_query(F.data.in_([
-    "find_workout", "workout_statistics", "edit_workout", "workout_stats"
-]))
-async def feature_coming_soon(callback: CallbackQuery):
-    """Заглушка для функций в разработке"""
-    feature_names = {
-        "find_workout": "Поиск тренировок",
-        "workout_statistics": "Статистика тренировок",   
-        "edit_workout": "Редактирование тренировки",
-        "workout_stats": "Статистика тренировки"
-    }
-
-    # Проверяем, есть ли ID в callback_data
-    feature_key = callback.data
-    if "_" in callback.data:
-        feature_key = "_".join(callback.data.split("_")[:-1])
-
-    feature_name = feature_names.get(feature_key, "Эта функция")
-
-    keyboard = InlineKeyboardBuilder()
-    keyboard.button(text="🔙 К тренировкам", callback_data="workouts_menu")
-
-    await callback.message.edit_text(
-        f"🚧 **{feature_name}**\n\n"
-        f"Функция находится в разработке.\n"
-        f"Скоро будет доступна!\n\n"
-        f"**Планируемые возможности:**\n"
-        f"• 📊 Детальная статистика\n"
-        f"• 📈 Анализ прогресса\n"
-        f"• 🎯 Рекомендации по улучшению\n"
-        f"• 📱 Экспорт данных",
-        reply_markup=keyboard.as_markup(),
-        parse_mode="Markdown"
-    )
+@workouts_router.callback_query(F.data.startswith("edit_workout_"))
+async def edit_workout(callback: CallbackQuery, state: FSMContext):
+    try:
+        wid = parse_callback_id(callback.data, "edit_workout_")
+    except ValueError:
+        await callback.answer("❌ Неверный ID", show_alert=True)
+        return
+    async with db_manager.pool.acquire() as conn:
+        w = await conn.fetchrow("SELECT id, name, description, created_by FROM workouts WHERE id = $1", wid)
+    if not w:
+        await callback.answer("❌ Не найдено", show_alert=True)
+        return
+    user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
+    if w['created_by'] != user['id']:
+        await callback.answer("❌ Только автор может редактировать", show_alert=True)
+        return
+    kb = InlineKeyboardBuilder()
+    kb.button(text="✏️ Переименовать", callback_data=f"rename_workout_{wid}")
+    kb.button(text="📝 Изменить описание", callback_data=f"change_desc_workout_{wid}")
+    kb.button(text="🗑️ Удалить", callback_data=f"delete_workout_{wid}")
+    kb.button(text="🔙 Назад", callback_data=f"view_workout_{wid}")
+    kb.adjust(1)
+    await safe_edit_or_send(callback.message, f"✏️ Редактирование: {w['name']}", reply_markup=kb.as_markup())
     await callback.answer()
 
-# ===== ОБРАБОТКА ТЕКСТОВОГО ВВОДА =====
+@workouts_router.callback_query(F.data.startswith("rename_workout_"))
+async def rename_workout(callback: CallbackQuery, state: FSMContext):
+    n = parse_int_suffix(callback.data)
+    if n is None:
+        await callback.answer("❌ Неверный ID", show_alert=True)
+        return
+    await state.update_data(editing_workout_id=n)
+    await callback.message.edit_text("Введите новое название:")
+    await state.set_state("renaming_workout")
+    await callback.answer()
+
+@workouts_router.callback_query(F.data.startswith("change_desc_workout_"))
+async def change_desc_workout(callback: CallbackQuery, state: FSMContext):
+    n = parse_int_suffix(callback.data)
+    if n is None:
+        await callback.answer("❌ Неверный ID", show_alert=True)
+        return
+    await state.update_data(editing_workout_id=n)
+    await callback.message.edit_text("Введите новое описание:")
+    await state.set_state("changing_workout_description")
+    await callback.answer()
+
+@workouts_router.callback_query(F.data.startswith("delete_workout_"))
+async def delete_workout(callback: CallbackQuery):
+    n = parse_int_suffix(callback.data)
+    if n is None:
+        await callback.answer("❌ Неверный ID", show_alert=True)
+        return
+    wid = n
+    try:
+        async with db_manager.pool.acquire() as conn:
+            await conn.execute("UPDATE workouts SET is_active = false WHERE id = $1", wid)
+        await callback.message.edit_text("✅ Тренировка удалена.")
+        await callback.answer()
+    except Exception as e:
+        logger.exception("delete_workout error: %s", e)
+        await callback.answer("❌ Ошибка", show_alert=True)
+
+# ----------------- CENTRAL TEXT HANDLER -----------------
 async def process_workout_text_input(message: Message, state: FSMContext):
-    """Обработка текстового ввода для создания тренировок"""
+    """Обработка текстового ввода в состояниях создания/редактирования/поиска."""
     current_state = await state.get_state()
+    try:
+        # name
+        if current_state in (CreateWorkoutStates.waiting_workout_name, CreateWorkoutStates.waiting_workout_name.state, "waiting_workout_name", "waiting_name"):
+            name = message.text.strip()
+            if len(name) < 3:
+                await message.answer("❌ Название слишком короткое (мин. 3 символа).")
+                return
+            await state.update_data(name=name)
+            kb = InlineKeyboardBuilder()
+            kb.button(text="⏭ Пропустить описание", callback_data="create_skip_description")
+            kb.button(text="❌ Отменить", callback_data="create_cancel_workout")
+            kb.adjust(2)
+            await message.answer(f"✅ Название сохранено: *{name}*\n\nВведите описание тренировки или нажмите «Пропустить»", reply_markup=kb.as_markup(), parse_mode="Markdown")
+            await state.set_state(CreateWorkoutStates.waiting_workout_description)
+            return
 
-    if current_state == CreateWorkoutStates.waiting_workout_name:
-        await process_workout_name(message, state)
-    elif current_state == CreateWorkoutStates.waiting_workout_description:
-        await process_workout_description(message, state)
+        # description
+        if current_state in (CreateWorkoutStates.waiting_workout_description, CreateWorkoutStates.waiting_workout_description.state, "waiting_description", "waiting_workout_description"):
+            desc = message.text.strip()
+            await state.update_data(description=desc)
+            await show_block_selection_menu(message, state)
+            return
 
-    else:
-        await message.answer(
-            "❓ Используйте кнопки меню для навигации.",
-            parse_mode="Markdown"
-        )
+        # block description
+        if current_state in (CreateWorkoutStates.adding_block_description, CreateWorkoutStates.adding_block_description.state, "adding_block_description"):
+            desc = message.text.strip()
+            d = await state.get_data()
+            cur = d.get('current_block', 'main')
+            sel = d.get('selected_blocks', {})
+            sel.setdefault(cur, {"description": "", "exercises": []})
+            sel[cur]['description'] = desc
+            await state.update_data(selected_blocks=sel)
+            await message.answer("✅ Описание блока сохранено.")
+            await show_block_selection_menu(message, state)
+            return
+
+        # searching exercises for block
+        if current_state in ("searching_exercise_for_block",):
+            q = message.text.strip().lower()
+            async with db_manager.pool.acquire() as conn:
+                exs = await conn.fetch("""
+                    SELECT id, name, category, muscle_group
+                    FROM exercises
+                    WHERE LOWER(name) LIKE $1 OR LOWER(category) LIKE $1 OR LOWER(muscle_group) LIKE $1
+                    ORDER BY name
+                    LIMIT 10
+                """, f"%{q}%")
+            if not exs:
+                await message.answer("❌ Ничего не найдено.")
+                return
+            kb = InlineKeyboardBuilder()
+            for e in exs:
+                cat = e.get('category') or "Без категории"
+                # we provide create_add_block_ex_ for creation flow
+                kb.button(text=f"💪 {e['name']} ({cat})", callback_data=f"create_add_block_ex_{e['id']}")
+            kb.button(text="🔍 Новый поиск", callback_data="create_search_ex_for_block")
+            kb.button(text="🔙 К упражнениям блока", callback_data="create_back_to_blocks")
+            kb.adjust(1)
+            await message.answer(f"🔎 Найдено: {len(exs)}", reply_markup=kb.as_markup())
+            await state.set_state("searching_exercise_for_block")
+            return
+
+        # renaming workout
+        if current_state == "renaming_workout":
+            new = message.text.strip()
+            if len(new) < 3:
+                await message.answer("❌ Слишком короткое название.")
+                return
+            d = await state.get_data()
+            wid = d.get('editing_workout_id')
+            if not wid:
+                await message.answer("❌ Контекст потерян.")
+                await state.clear()
+                return
+            async with db_manager.pool.acquire() as conn:
+                await conn.execute("UPDATE workouts SET name = $1 WHERE id = $2", new, wid)
+            await message.answer("✅ Название обновлено.")
+            await state.clear()
+            return
+
+        # changing workout description
+        if current_state == "changing_workout_description":
+            new = message.text.strip()
+            d = await state.get_data()
+            wid = d.get('editing_workout_id')
+            if not wid:
+                await message.answer("❌ Контекст потерян.")
+                await state.clear()
+                return
+            async with db_manager.pool.acquire() as conn:
+                await conn.execute("UPDATE workouts SET description = $1 WHERE id = $2", new, wid)
+            await message.answer("✅ Описание обновлено.")
+            await state.clear()
+            return
+
+        # waiting for RPE
+        if current_state == "waiting_rpe":
+            try:
+                rpe_val = int(message.text.strip())
+                if rpe_val < 1 or rpe_val > 10:
+                    await message.answer("❌ Введите число от 1 до 10.")
+                    return
+                await state.update_data(last_rpe=rpe_val)
+                await message.answer("📦 Укажите общий использованный вес (кг) или напишите 'пропустить':")
+                await state.set_state("waiting_weight")
+            except ValueError:
+                await message.answer("❌ Введите число от 1 до 10.")
+            return
+
+        # waiting for weight after workout finish
+        if current_state == "waiting_weight":
+            d = await state.get_data()
+            wid = d.get('finishing_workout_id')
+            txt = message.text.strip().lower()
+            weight_val = None
+            if txt not in ("пропустить", "skip", "-"):
+                try:
+                    weight_val = float(txt.replace(",", "."))
+                except Exception:
+                    await message.answer("❌ Введите число (в кг) или 'пропустить'.")
+                    return
+            user = await db_manager.get_user_by_telegram_id(message.from_user.id)
+            rpe = d.get('last_rpe', None)
+            created = datetime.utcnow()
+            # try save session/results (best-effort)
+            try:
+                async with db_manager.pool.acquire() as conn:
+                    await conn.execute("""
+                        INSERT INTO workout_sessions (user_id, workout_id, started_at, completed_at, status, rpe)
+                        VALUES ($1,$2,now(), now(), 'completed', $3)
+                    """, user['id'], wid, rpe)
+            except Exception:
+                logger.exception("Failed to insert workout_session")
+            await message.answer("✅ Результат сохранён (или поставлен в очередь). Спасибо!")
+            await state.clear()
+            return
+
+    except Exception as e:
+        logger.exception("process_workout_text_input error: %s", e)
+        await message.answer("❌ Ошибка обработки текста.")
         await state.clear()
 
-async def process_workout_name(message: Message, state: FSMContext):
-    """Обработка названия тренировки"""
-    workout_name = message.text.strip()
-
-    if len(workout_name) < 3:
-        await message.answer("❌ Название слишком короткое. Минимум 3 символа.")
-        return
-
-    if len(workout_name) > 100:
-        await message.answer("❌ Название слишком длинное. Максимум 100 символов.")
-        return
-
-    await state.update_data(name=workout_name)
-
-    keyboard = InlineKeyboardBuilder()
-    keyboard.button(text="⏭️ Пропустить описание", callback_data="skip_workout_description")
-
-    await message.answer(
-        f"✅ **Название:** {workout_name}\n\n"
-        f"📝 Теперь введите описание тренировки:\n"
-        f"_Например: \"Программа для развития силы основных групп мышц\"_\n\n"
-        f"Или нажмите кнопку чтобы пропустить:",
-        reply_markup=keyboard.as_markup(),
-        parse_mode="Markdown"
-    )
-    await state.set_state(CreateWorkoutStates.waiting_workout_description)  # ✅ ПРАВИЛЬНО
-
-
-
-async def process_workout_description(message: Message, state: FSMContext):
-    """Обработка описания тренировки"""
-    description = message.text.strip()
-    await state.update_data(description=description)
-    await show_block_selection_menu(message, state)
-
-async def process_block_description(message: Message, state: FSMContext):
-    """Обработка описания блока"""
-    description = message.text.strip()
-
-    if len(description) > 200:
-        await message.answer("❌ Описание слишком длинное. Максимум 200 символов.")
-        return
-
-    await state.update_data(current_block_description=description)
-
-    await message.answer(
-        f"✅ **Описание блока сохранено:**\n\n"
-        f"_{description}_\n\n"
-        f"Переходим к добавлению упражнений в блок...",
-        parse_mode="Markdown"
-    )
-
-    # Здесь должна быть функция show_block_exercises_menu, но она не помещается
-    # В реальном проекте она должна быть добавлена
-async def notify_team_about_workout(team_id: int, workout_id: int, workout_name: str):
-    """Отправить уведомление команде о новой тренировке"""
-    from main import bot
-    
-    # Получаем игроков с telegram_id
-    players = await teams_database.get_team_players(team_id)
-    
-    notified_count = 0
-    for player in players:
-        if player.telegram_id:
-            try:
-                await bot.send_message(
-                    player.telegram_id,
-                    f"🏋️ **Новая тренировка!**\n\n"
-                    f"📋 {workout_name}\n"
-                    f"🆔 Код: `{workout_id}`\n\n"
-                    f"Нажмите /myteam для просмотра.",
-                    parse_mode="Markdown"
-                )
-                notified_count += 1
-            except Exception as e:
-                logger.error(f"Failed to notify player {player.id}: {e}")
-    
-    logger.info(f"Notified {notified_count} players about workout {workout_id}")
-    return notified_count
-
-# ===== ФУНКЦИЯ РЕГИСТРАЦИИ =====
+# ----------------- REGISTER -----------------
 def register_workout_handlers(dp):
-    """Регистрация всех обработчиков тренировок"""
-    dp.include_router(workouts_router)
-    logger.info("🏋️ Обработчики тренировок зарегистрированы")
+    """Подключить router к диспетчеру. Безопасно при повторном вызове."""
+    try:
+        dp.include_router(workouts_router)
+        logger.info("✅ workouts_router подключен!")
+    except RuntimeError as e:
+        # Router уже был подключен — логируем и продолжаем
+        logger.warning("workouts_router уже подключён: %s", e)
+
+# экспорт
+__all__ = ["workouts_router", "register_workout_handlers", "process_workout_text_input"]
