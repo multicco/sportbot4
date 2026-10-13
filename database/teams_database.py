@@ -135,7 +135,36 @@ class TeamsDatabase:
             id=row['id']
         )
 
-
+    async def get_individual_student_by_telegram_id(self, telegram_id: int, coach_telegram_id: int) -> Optional[IndividualStudent]:
+        """Проверить, есть ли уже такой подопечный у тренера"""
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                SELECT * FROM individual_students 
+                WHERE telegram_id = $1 
+                AND coach_telegram_id = $2 
+                AND is_active = TRUE
+                """,
+                telegram_id, coach_telegram_id
+            )
+            
+            if not row:
+                return None
+                
+            return IndividualStudent(
+                coach_telegram_id=row['coach_telegram_id'],
+                first_name=row['first_name'],
+                last_name=row['last_name'],
+                telegram_id=row['telegram_id'],
+                phone=row['phone'],
+                birth_date=row['birth_date'],
+                specialization=row['specialization'],
+                level=row['level'],
+                notes=row['notes'],
+                is_active=row['is_active'],
+                created_at=row['created_at'],
+                id=row['id']
+            )
 
     async def init_tables(self):
         try:
@@ -543,6 +572,35 @@ class TeamsDatabase:
                 }
             return None
 
+    async def find_user_by_username(self, username: str) -> Optional[Dict]:
+        """Найти пользователя по username Telegram (@username)"""
+        # Убираем @ если передали с ним и приводим к нижнему регистру
+        clean_username = username.lstrip('@').strip().lower()
+        
+        if not clean_username:
+            return None
+        
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                SELECT id, telegram_id, first_name, last_name, username 
+                FROM users 
+                WHERE LOWER(username) = $1
+                LIMIT 1
+                """,
+                clean_username
+            )
+            
+            if row:
+                return {
+                    'id': row['id'],
+                    'telegram_id': row['telegram_id'],
+                    'first_name': row['first_name'],
+                    'last_name': row['last_name'],
+                    'username': row['username']
+                }
+            return None
+
     async def add_player_by_telegram_id(self, team_id: int, telegram_id: int, 
                                        added_by: int) -> Optional[TeamPlayer]:
         """Добавить игрока в команду по Telegram ID"""
@@ -607,74 +665,200 @@ class TeamsDatabase:
                 return False
 
     # ===== НАЗНАЧЕНИЕ ТРЕНИРОВОК КОМАНДАМ =====
-    async def assign_workout_to_team(self, workout_id: int, team_id: int, 
-                                   assigned_by: int, notes: str = None, 
-                                   deadline: datetime = None) -> bool:
+    async def assign_workout_to_team(
+        self,
+        workout_id: int,
+        team_id: int,
+        assigned_by: int,  # telegram-id тренера
+        notes: str = None,
+        deadline: datetime = None
+    ) -> bool:
         """Назначить тренировку команде"""
         async with self.pool.acquire() as conn:
             try:
-                # Создаем назначение команде
-                workout_team_id = await conn.fetchval("""
-                INSERT INTO workout_teams 
-                (workout_id, team_id, assigned_by, notes, deadline)
-                VALUES ($1, $2, $3, $4, $5)
-                ON CONFLICT (workout_id, team_id) 
-                DO UPDATE SET 
-                    assigned_at = CURRENT_TIMESTAMP,
-                    is_active = TRUE,
-                    notes = $4,
-                    deadline = $5
-                RETURNING id
-                """, workout_id, team_id, assigned_by, notes, deadline)
+                # 1. Получаем внутренний id тренера из users
+                user_row = await conn.fetchrow(
+                    "SELECT id FROM users WHERE telegram_id = $1", assigned_by
+                )
+                if user_row:
+                    real_user_id = user_row["id"]
+                else:
+                    # тренера ещё нет в users – добавляем
+                    real_user_id = await conn.fetchval(
+                        "INSERT INTO users (telegram_id, first_name, role, is_active) "
+                        "VALUES ($1, 'Тренер', 'coach', true) RETURNING id",
+                        assigned_by
+                    )
 
-                # Получаем всех активных игроков команды
+                # 2. Создаем назначение команде (уже real_user_id)
+                workout_team_id = await conn.fetchval("""
+                    INSERT INTO workout_teams 
+                    (workout_id, team_id, assigned_by, notes, deadline)
+                    VALUES ($1, $2, $3, $4, $5)
+                    ON CONFLICT (workout_id, team_id) 
+                    DO UPDATE SET 
+                        assigned_at = CURRENT_TIMESTAMP,
+                        is_active = TRUE,
+                        notes = $4,
+                        deadline = $5
+                    RETURNING id
+                """, workout_id, team_id, real_user_id, notes, deadline)
+
+                # 3. Получаем всех активных игроков команды
                 players = await conn.fetch("""
-                SELECT id FROM team_players
-                WHERE team_id = $1 AND is_active = TRUE
+                    SELECT id FROM team_players
+                    WHERE team_id = $1 AND is_active = TRUE
                 """, team_id)
 
-                # Создаем индивидуальные назначения для каждого игрока
+                # 4. Создаем индивидуальные назначения для каждого игрока
                 for player in players:
                     await conn.execute("""
-                    INSERT INTO workout_team_player_assignments
-                    (workout_team_id, team_player_id, status)
-                    VALUES ($1, $2, 'pending')
-                    ON CONFLICT (workout_team_id, team_player_id) DO NOTHING
+                        INSERT INTO workout_team_player_assignments
+                        (workout_team_id, team_player_id, status)
+                        VALUES ($1, $2, 'pending')
+                        ON CONFLICT (workout_team_id, team_player_id) DO NOTHING
                     """, workout_team_id, player['id'])
 
-                logger.info(f"✅ Assigned workout {workout_id} to team {team_id}, {len(players)} players")
+                logger.info(
+                    "✅ Assigned workout %s to team %s, %s players (by user-db-id %s)",
+                    workout_id, team_id, len(players), real_user_id
+                )
                 return True
 
             except Exception as e:
                 logger.error(f"Error assigning workout to team: {e}")
                 return False
 
+    # async def assign_workout_to_student(self, workout_id: int, student_id: int,
+    #                               assigned_by: int, notes: str = None,
+    #                               deadline: datetime = None) -> Dict:
+    #     """Назначить тренировку индивидуальному подопечному (создаёт новое или реактивирует архивное)"""
+    #     async with self.pool.acquire() as conn:
+    #         try:
+    #             # Проверяем, есть ли активное назначение
+    #             active = await conn.fetchrow("""
+    #                 SELECT id, status 
+    #                 FROM workout_individual_students
+    #                 WHERE workout_id = $1 
+    #                 AND student_id = $2 
+    #                 AND is_active = TRUE
+    #                 AND status IN ('pending', 'in_progress')
+    #             """, workout_id, student_id)
+                
+    #             if active:
+    #                 logger.warning(f"⚠️ Уже есть активное назначение: workout_id={workout_id}, student_id={student_id}")
+    #                 return {"error": "already_active", "message": "У подопечного уже есть активное назначение этой тренировки"}
+                
+    #             # Проверяем, было ли архивное назначение (чтобы понять, создаём новое или обновляем)
+    #             archived = await conn.fetchrow("""
+    #                 SELECT id 
+    #                 FROM workout_individual_students
+    #                 WHERE workout_id = $1 
+    #                 AND student_id = $2
+    #             """, workout_id, student_id)
+                
+    #             if archived:
+    #                 # Реактивируем существующее, сбрасывая статус и прогресс
+    #                 row = await conn.fetchrow("""
+    #                     UPDATE workout_individual_students
+    #                     SET is_active = TRUE,
+    #                         status = 'pending',
+    #                         assigned_by = $3,
+    #                         assigned_at = CURRENT_TIMESTAMP,
+    #                         notes = $4,
+    #                         deadline = $5,
+    #                         started_at = NULL,
+    #                         completed_at = NULL,
+    #                         archived_at = NULL,
+    #                         rpe = NULL,
+    #                         session_id = NULL
+    #                     WHERE workout_id = $1 AND student_id = $2
+    #                     RETURNING *
+    #                 """, workout_id, student_id, assigned_by, notes, deadline)
+                    
+    #                 logger.info(f"🔄 Реактивировано назначение: workout_id={workout_id}, student_id={student_id}")
+    #             else:
+    #                 # Создаём новое назначение
+    #                 row = await conn.fetchrow("""
+    #                     INSERT INTO workout_individual_students
+    #                     (workout_id, student_id, assigned_by, notes, deadline, status, is_active)
+    #                     VALUES ($1, $2, $3, $4, $5, 'pending', TRUE)
+    #                     RETURNING *
+    #                 """, workout_id, student_id, assigned_by, notes, deadline)
+                    
+    #                 logger.info(f"✅ Создано новое назначение: workout_id={workout_id}, student_id={student_id}")
+                
+    #             return dict(row) if row else None
+
+    #         except Exception as e:
+    #             logger.error(f"❌ Ошибка назначения тренировки: {e}", exc_info=True)
+    #             return None
+    
+
+
     async def assign_workout_to_student(self, workout_id: int, student_id: int,
-                                  assigned_by: int, notes: str = None,
-                                  deadline: datetime = None) -> Dict:
-        """Назначить тренировку индивидуальному подопечному"""
+                                    assigned_by: int, notes: str = None,
+                                    deadline: datetime = None) -> Dict:
+        """Назначить тренировку индивидуальному подопечному (создаёт новое или реактивирует архивное)"""
         async with self.pool.acquire() as conn:
             try:
-                row = await conn.fetchrow("""
-                INSERT INTO workout_individual_students
-                (workout_id, student_id, assigned_by, notes, deadline)
-                VALUES ($1, $2, $3, $4, $5)
-                ON CONFLICT (workout_id, student_id)
-                DO UPDATE SET
-                    assigned_at = CURRENT_TIMESTAMP,
-                    is_active = TRUE,
-                    notes = $4,
-                    deadline = $5
-                RETURNING *
-                """, workout_id, student_id, assigned_by, notes, deadline)
-
-                logger.info(f"✅ Assigned workout {workout_id} to student {student_id}")
-                return dict(row)
+                # Проверяем, есть ли активное назначение
+                active = await conn.fetchrow("""
+                    SELECT id, status 
+                    FROM workout_individual_students
+                    WHERE workout_id = $1 
+                    AND student_id = $2 
+                    AND is_active = TRUE
+                    AND status IN ('pending', 'in_progress')
+                """, workout_id, student_id)
+                
+                if active:
+                    logger.warning(f"⚠️ Уже есть активное назначение: workout_id={workout_id}, student_id={student_id}")
+                    return {"error": "already_active", "message": "У подопечного уже есть активное назначение этой тренировки"}
+                
+                # Проверяем, было ли архивное назначение
+                archived = await conn.fetchrow("""
+                    SELECT id 
+                    FROM workout_individual_students
+                    WHERE workout_id = $1 
+                    AND student_id = $2
+                """, workout_id, student_id)
+                
+                if archived:
+                    # Реактивируем существующее
+                    row = await conn.fetchrow("""
+                        UPDATE workout_individual_students
+                        SET is_active = TRUE,
+                            status = 'pending',
+                            assigned_by = $3,
+                            assigned_at = CURRENT_TIMESTAMP,
+                            notes = $4,
+                            deadline = $5,
+                            started_at = NULL,
+                            completed_at = NULL,
+                            archived_at = NULL,
+                            rpe = NULL
+                        WHERE workout_id = $1 AND student_id = $2
+                        RETURNING *
+                    """, workout_id, student_id, assigned_by, notes, deadline)
+                    
+                    logger.info(f"🔄 Реактивировано назначение: workout_id={workout_id}, student_id={student_id}")
+                else:
+                    # Создаём новое назначение
+                    row = await conn.fetchrow("""
+                        INSERT INTO workout_individual_students
+                        (workout_id, student_id, assigned_by, notes, deadline, status, is_active)
+                        VALUES ($1, $2, $3, $4, $5, 'pending', TRUE)
+                        RETURNING *
+                    """, workout_id, student_id, assigned_by, notes, deadline)
+                    
+                    logger.info(f"✅ Создано новое назначение: workout_id={workout_id}, student_id={student_id}")
+                
+                return dict(row) if row else None
 
             except Exception as e:
-                logger.error(f"Error assigning workout to student: {e}")
+                logger.error(f"❌ Ошибка назначения тренировки: {e}", exc_info=True)
                 return None
-    
 
 
 
@@ -746,58 +930,104 @@ class TeamsDatabase:
     #         return result    
 
 
+    # async def get_workout_with_exercises(self, workout_id: int) -> Optional[Dict]:
+    #     async with self.pool.acquire() as conn:
+    #         workout = await conn.fetchrow(
+    #             "SELECT id, name, description, created_by, created_at, unique_id FROM workouts WHERE id = $1",
+    #             workout_id
+    #         )
+    #         if not workout:
+    #             return None
+
+    #         # Блоки — без position, сортировка по id
+    #         blocks = await conn.fetch(
+    #             """
+    #             SELECT id, workout_id, name, description
+    #             FROM workout_blocks 
+    #             WHERE workout_id = $1 
+    #             ORDER BY id ASC
+    #             """,
+    #             workout_id
+    #         )
+
+    #         result = {'workout': dict(workout), 'blocks': []}
+
+    #         for block in blocks:
+    #             # Упражнения — без position, сортировка по id
+    #             exercises = await conn.fetch(
+    #                 """
+    #                 SELECT 
+    #                     wbe.id,
+    #                     wbe.exercise_id,
+    #                     e.name as exercise_name,
+    #                     e.description as exercise_description,
+    #                     e.video_url,
+    #                     e.image_url,
+    #                     wbe.sets,
+    #                     wbe.reps,
+    #                     wbe.weight,
+    #                     wbe.duration,
+    #                     wbe.rest_time
+    #                 FROM workout_block_exercises wbe
+    #                 JOIN exercises e ON wbe.exercise_id = e.id
+    #                 WHERE wbe.block_id = $1
+    #                 ORDER BY wbe.id ASC
+    #                 """,
+    #                 block['id']
+    #             )
+
+    #             result['blocks'].append({
+    #                 'block': dict(block),
+    #                 'exercises': [dict(ex) for ex in exercises]
+    #             })
+
+    #     return result
+
+
     async def get_workout_with_exercises(self, workout_id: int) -> Optional[Dict]:
-        async with self.pool.acquire() as conn:
-            workout = await conn.fetchrow(
-                "SELECT id, name, description, created_by, created_at, unique_id FROM workouts WHERE id = $1",
-                workout_id
-            )
-            if not workout:
-                return None
+     async with self.pool.acquire() as conn:
+        workout = await conn.fetchrow(
+            "SELECT id, name, description, created_by, created_at, unique_id FROM workouts WHERE id = $1",
+            workout_id
+        )
+        if not workout:
+            return None
 
-            # Блоки — без position, сортировка по id
-            blocks = await conn.fetch(
-                """
-                SELECT id, workout_id, name, description
-                FROM workout_blocks 
-                WHERE workout_id = $1 
-                ORDER BY id ASC
-                """,
-                workout_id
-            )
+        # Читаем из workout_exercises
+        exercises = await conn.fetch("""
+            SELECT 
+                phase as block_name,
+                we.id as workout_exercise_id,
+                exercise_id,
+                e.name as exercise_name,
+                e.description as exercise_description,
+                e.video_url,
+                e.image_url,
+                sets,
+                reps_min,
+                reps_max,
+                one_rm_percent,
+                rest_seconds as rest_time
+            FROM workout_exercises we
+            LEFT JOIN exercises e ON we.exercise_id = e.id
+            WHERE we.workout_id = $1
+            ORDER BY we.phase, we.order_in_phase
+        """, workout_id)
 
-            result = {'workout': dict(workout), 'blocks': []}
+        from collections import defaultdict
+        blocks_map = defaultdict(list)
+        for ex in exercises:
+            blocks_map[ex['block_name']].append(dict(ex))
 
-            for block in blocks:
-                # Упражнения — без position, сортировка по id
-                exercises = await conn.fetch(
-                    """
-                    SELECT 
-                        wbe.id,
-                        wbe.exercise_id,
-                        e.name as exercise_name,
-                        e.description as exercise_description,
-                        e.video_url,
-                        e.image_url,
-                        wbe.sets,
-                        wbe.reps,
-                        wbe.weight,
-                        wbe.duration,
-                        wbe.rest_time
-                    FROM workout_block_exercises wbe
-                    JOIN exercises e ON wbe.exercise_id = e.id
-                    WHERE wbe.block_id = $1
-                    ORDER BY wbe.id ASC
-                    """,
-                    block['id']
-                )
-
-                result['blocks'].append({
-                    'block': dict(block),
-                    'exercises': [dict(ex) for ex in exercises]
-                })
+        result = {'workout': dict(workout), 'blocks': []}
+        for phase, exs in blocks_map.items():
+            result['blocks'].append({
+                'block': {'name': phase, 'description': ''},
+                'exercises': exs
+            })
 
         return result
+
   
 
     async def get_team_workouts(self, team_id: int) -> List[WorkoutAssignment]:
@@ -838,42 +1068,68 @@ class TeamsDatabase:
                 pending=row['pending']
             ) for row in rows]
 
+    # ===== НОВЫЙ КОД =====
+    # ===== ИСПРАВЛЕННЫЙ КОД =====
     async def get_player_workouts(self, telegram_id: int) -> List[Dict]:
-        """Получить тренировки игрока (из всех команд)"""
+        """Получить ВСЕ тренировки: из команд И индивидуальные"""
         async with self.pool.acquire() as conn:
             rows = await conn.fetch("""
-            SELECT 
-                w.id as workout_id,
-                w.name as workout_name,
-                w.description,
-                w.unique_id as workout_code,
-                wt.assigned_at,
-                wt.deadline,
-                wt.notes as coach_notes,
-                wtpa.status,
-                wtpa.rpe,
-                wtpa.completed_at,
-                t.name as team_name,
-                t.id as team_id
-            FROM workout_team_player_assignments wtpa
-            JOIN workout_teams wt ON wtpa.workout_team_id = wt.id
-            JOIN workouts w ON wt.workout_id = w.id
-            JOIN team_players tp ON wtpa.team_player_id = tp.id
-            JOIN teams t ON wt.team_id = t.id
-            WHERE tp.telegram_id = $1 
-                AND tp.is_active = TRUE
-                AND wt.is_active = TRUE
-            ORDER BY 
-                CASE wtpa.status
-                    WHEN 'pending' THEN 1
-                    WHEN 'in_progress' THEN 2
-                    WHEN 'completed' THEN 3
-                    WHEN 'skipped' THEN 4
+                SELECT * FROM (
+                    SELECT
+                    w.id as workout_id,
+                    w.name as workout_name,
+                    w.description,
+                    w.unique_id as workout_code,
+                    wt.assigned_at,
+                    wt.deadline,
+                    wt.notes as coach_notes,
+                    wtpa.status,
+                    wtpa.rpe,
+                    wtpa.completed_at,
+                    t.name as team_name,
+                    t.id as team_id
+                    FROM workout_team_player_assignments wtpa
+                    JOIN workout_teams wt ON wtpa.workout_team_id = wt.id
+                    JOIN workouts w ON wt.workout_id = w.id
+                    JOIN team_players tp ON wtpa.team_player_id = tp.id
+                    JOIN teams t ON wt.team_id = t.id
+                    WHERE tp.telegram_id = $1 AND tp.is_active = TRUE AND wt.is_active = TRUE
+                    
+                    UNION ALL
+                    
+                    SELECT
+                    w.id as workout_id,
+                    w.name as workout_name,
+                    w.description,
+                    w.unique_id as workout_code,
+                    wis.assigned_at,
+                    wis.deadline,
+                    wis.notes as coach_notes,
+                    'pending'::text as status,
+                    NULL::float as rpe,
+                    NULL::timestamp as completed_at,
+                    NULL::text as team_name,
+                    NULL::int as team_id
+                    FROM workout_individual_students wis
+                    JOIN workouts w ON wis.workout_id = w.id
+                    JOIN individual_students s ON wis.student_id = s.id
+                    WHERE s.telegram_id = $1 AND s.is_active = TRUE AND wis.is_active = TRUE
+                ) AS combined
+                ORDER BY
+                CASE status
+                WHEN 'pending' THEN 1
+                WHEN 'in_progress' THEN 2
+                WHEN 'completed' THEN 3
+                WHEN 'skipped' THEN 4
                 END,
-                wt.assigned_at DESC
+                assigned_at DESC
             """, telegram_id)
-
+            
             return [dict(row) for row in rows]
+# ===== КОНЕЦ =====
+
+    # ===== КОНЕЦ НОВОГО КОДА =====
+
 
     # async def update_player_workout_status(self, telegram_id: int, workout_id: int,
     #                                      status: str, rpe: float = None,
@@ -934,8 +1190,8 @@ class TeamsDatabase:
 
 
     async def update_player_workout_status(self, telegram_id: int, workout_id: int,
-                                       status: str, rpe: float = None,
-                                       session_id: int = None, notes: str = None) -> bool:
+                                        status: str, rpe: float = None,
+                                        session_id: int = None, notes: str = None) -> bool:
         """Обновить статус выполнения тренировки (индивидуальный, команда, или сам тренер)"""
         async with self.pool.acquire() as conn:
             try:
@@ -1016,7 +1272,8 @@ class TeamsDatabase:
                 
                 if status == 'in_progress':
                     update_fields.append("started_at = CURRENT_TIMESTAMP")
-                elif status == 'completed':
+                elif status in ('completed', 'archived'):
+                    # При архивации тоже ставим completed_at
                     update_fields.append("completed_at = CURRENT_TIMESTAMP")
                 
                 if rpe:
@@ -1034,6 +1291,13 @@ class TeamsDatabase:
                     update_fields.append(f"notes = ${param_count}")
                     params.append(notes)
                 
+                # Для archived дополнительно деактивируем назначение
+                if status == 'archived':
+                    if assignment['type'] == 'individual':
+                        update_fields.append("is_active = FALSE")
+                        update_fields.append("archived_at = CURRENT_TIMESTAMP")
+                    # Для командных можно добавить логику при необходимости
+                
                 query = f"""
                     UPDATE {table_name}
                     SET {', '.join(update_fields)}
@@ -1048,7 +1312,6 @@ class TeamsDatabase:
             except Exception as e:
                 logger.error(f"❌ Ошибка обновления статуса: {e}", exc_info=True)
                 return False
-
 
 
 

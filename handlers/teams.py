@@ -17,12 +17,12 @@ from typing import Dict, List, Optional, Tuple
 from database import db_manager
 from database.teams_database import IndividualStudent, Team, TeamPlayer  # ← добавьте сюда ваши классы
 from datetime import date
-
+from aiogram.filters import StateFilter
 
 # Импортируем реализацию БД из папки database
+teams_db = None  # глобальный экземпляр TeamsDatabase, создаётся в init_teams_module_async
 try:
     from database.teams_database import init_teams_database, TeamsDatabase
-    teams_db: TeamsDatabase | None = None
 except Exception as e:
     init_teams_database = None
     TeamsDatabase = None
@@ -48,14 +48,131 @@ from database.teams_database import teams_database
 from states.team_states import JoinTeamStates, AddMemberStates
 
 logger = logging.getLogger(__name__)
-async def workout_method_my_workouts(callback: CallbackQuery, state: FSMContext):
-    """Заглушка — перенаправляем на существующий обработчик"""
-    await workout_method_my_for_trainee(callback, state)
+# async def workout_method_my_workouts(callback: CallbackQuery, state: FSMContext):
+#     """Заглушка — перенаправляем на существующий обработчик"""
+#     await workout_method_my_for_trainee(callback, state)
 
-async def select_workout(callback: CallbackQuery, state: FSMContext):
-    """Заглушка — перенаправляем на существующий обработчик"""
-    await select_workout_for_trainee(callback, state)
-# Добавить к существующему teams_router
+
+
+
+@teams_router.callback_query(
+    F.data == "workout_method_my",
+    StateFilter(AssignWorkoutStates.choosing_workout_method)
+)
+async def workout_method_my_teams(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    team_id = data.get("team_id")
+
+    async with db_manager.pool.acquire() as conn:
+        # 1. Получаем внутренний id тренера
+        user_row = await conn.fetchrow(
+            "SELECT id FROM users WHERE telegram_id = $1",
+            callback.from_user.id
+        )
+        if not user_row:
+            kb = InlineKeyboardBuilder()
+            kb.button(text="🔙 Назад", callback_data=f"assign_workout_{team_id}")
+            await callback.message.edit_text(
+                "❌ Пользователь не найден в БД",
+                reply_markup=kb.as_markup()
+            )
+            await callback.answer()
+            return
+        coach_db_id = user_row["id"]
+
+        # 2. Тренировки этого тренера
+        workouts = await conn.fetch("""
+            SELECT id, name, description, difficulty_level, estimated_duration_minutes
+            FROM workouts
+            WHERE created_by = $1 AND is_active = TRUE
+            ORDER BY created_at DESC
+        """, coach_db_id)
+
+    if not workouts:
+        kb = InlineKeyboardBuilder()
+        kb.button(text="🆕 Создать тренировку", callback_data="workout_method_create")
+        kb.button(text="🔙 Назад", callback_data=f"assign_workout_{team_id}")
+        kb.adjust(1)
+        await callback.message.edit_text(
+            "❌ У вас пока нет созданных тренировок",
+            reply_markup=kb.as_markup(),
+            parse_mode="Markdown"
+        )
+        await callback.answer()
+        return
+
+    kb = InlineKeyboardBuilder()
+    for w in workouts:
+        kb.button(
+            text=f"💪 {w['name']}",
+            callback_data=f"select_workout_team_{w['id']}"  # уникальный префикс для команд
+        )
+    kb.button(text="🔙 Назад", callback_data=f"assign_workout_{team_id}")
+    kb.adjust(1)
+
+    text = f"💪 **Ваши тренировки:**\n" + "\n".join([f"• {w['name']}" for w in workouts])
+    await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="Markdown")
+    await callback.answer()
+
+
+# async def select_workout(callback: CallbackQuery, state: FSMContext):
+#     """Заглушка — перенаправляем на существующий обработчик"""
+#     await select_workout_for_trainee(callback, state)
+# # Добавить к существующему teams_router
+
+
+@teams_router.callback_query(F.data.startswith("select_workout_team_"))
+async def select_workout_for_team(callback: CallbackQuery, state: FSMContext):
+    workout_id = int(callback.data.split("_")[-1])
+    data = await state.get_data()
+    team_id = data.get("team_id")
+
+    async with db_manager.pool.acquire() as conn:
+        # 1. внутренний id тренера
+        user_row = await conn.fetchrow(
+            "SELECT id FROM users WHERE telegram_id = $1",
+            callback.from_user.id
+        )
+        if not user_row:
+            await callback.answer("❌ Пользователь не найден в БД", show_alert=True)
+            return
+        coach_db_id = user_row["id"]
+
+        # 2. тренировка, созданная этим тренером
+        workout = await conn.fetchrow("""
+            SELECT id, name, description, difficulty_level, estimated_duration_minutes
+            FROM workouts
+            WHERE id = $1 AND created_by = $2 AND is_active = TRUE
+        """, workout_id, coach_db_id)
+
+    if not workout:
+        logger.warning(
+            "Тренировка не найдена: id=%s created_by=%s",
+            workout_id, coach_db_id
+        )
+        await callback.answer("❌ Тренировка не найдена или не ваша", show_alert=True)
+        return
+
+    # сохраняем выбор
+    await state.update_data(selected_workout=workout)
+    await state.set_state(AssignWorkoutStates.confirming_assignment)
+
+    kb = InlineKeyboardBuilder()
+    kb.button(text="✅ Назначить", callback_data="confirm_assign_workout")
+    kb.button(text="📝 Добавить комментарий", callback_data="add_assignment_notes")
+    kb.button(text="⏰ Установить дедлайн", callback_data="set_assignment_deadline")
+    kb.button(text="🔙 Назад", callback_data=f"assign_workout_{team_id}")
+    kb.adjust(1)
+
+    text = (
+        f"💪 **{workout['name']}**\n"
+        f"📝 {workout['description'] or 'Без описания'}\n"
+        f"⚡ Сложность: {workout['difficulty_level']}\n"
+        f"⏱️ Длительность: ~{workout['estimated_duration_minutes'] or 60} мин\n\n"
+        f"Назначить эту тренировку команде?"
+    )
+    await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="Markdown")
+    await callback.answer()
 
 # #ловля колбаков
 # @teams_router.callback_query()  # без фильтра – ловит ВСЁ
@@ -64,125 +181,10 @@ async def select_workout(callback: CallbackQuery, state: FSMContext):
 #     await callback.answer() 
 
 
-async def get_individual_student_by_id(self, student_id: int) -> Optional[IndividualStudent]:
-    """Получить индивидуального подопечного по ID."""
-    async with self.pool.acquire() as conn:
-        row = await conn.fetchrow(
-            """
-            SELECT id, coach_telegram_id, first_name, last_name, 
-                   telegram_id, phone, birth_date, specialization, 
-                   level, notes, is_active, created_at
-            FROM individual_students 
-            WHERE id = $1 AND is_active = TRUE
-            """,
-            student_id
-        )
-        
-        if not row:
-            logger.warning(f"Individual student {student_id} not found")
-            return None
-            
-        return IndividualStudent(
-            id=row['id'],
-            coachtelegramid=row['coach_telegram_id'],
-            firstname=row['first_name'],
-            lastname=row['last_name'],
-            telegramid=row['telegram_id'],
-            phone=row['phone'],
-            birthdate=row['birth_date'],
-            specialization=row['specialization'],
-            level=row['level'],
-            notes=row['notes'],
-            isactive=row['is_active'],
-            createdat=row['created_at']
-        )
-
-async def add_individual_student(
-    self,
-    coach_telegram_id: int,
-    first_name: str,
-    last_name: Optional[str] = None,
-    telegram_id: Optional[int] = None,
-    phone: Optional[str] = None,
-    birthdate: Optional[date] = None,
-    specialization: Optional[str] = None,
-    level: str = "beginner"
-) -> Optional[int]:
-    """Добавить нового индивидуального подопечного."""
-    async with self.pool.acquire() as conn:
-        try:
-            student_id = await conn.fetchval(
-                """
-                INSERT INTO individual_students 
-                (coach_telegram_id, first_name, last_name, telegram_id, phone, birth_date, specialization, level)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                RETURNING id
-                """,
-                coach_telegram_id, first_name, last_name, telegram_id, phone, birthdate, specialization, level
-            )
-            logger.info(f"✅ Added individual student: {first_name} {last_name or ''} (ID: {student_id})")
-            return student_id
-        except Exception as e:
-            logger.error(f"🔴 Error adding individual student: {e}")
-            return None
-
-async def get_individual_students(self, coach_telegram_id: int) -> List[IndividualStudent]:
-    """Получить всех индивидуальных подопечных тренера."""
-    async with self.pool.acquire() as conn:
-        rows = await conn.fetch(
-            """
-            SELECT id, coach_telegram_id, first_name, last_name, 
-                   telegramid, phone, birth_date, specialization, 
-                   level, notes, is_active, created_at
-            FROM individual_students
-            WHERE coach_telegram_id = $1 AND isactive = TRUE
-            ORDER BY created_at DESC
-            """,
-            coach_telegram_id
-        )
-        
-        return [
-            IndividualStudent(
-                id=row['id'],
-                coachtelegramid=row['coach_telegram_id'],
-                firstname=row['first_name'],
-                lastname=row['last_name'],
-                telegramid=row['telegram_id'],
-                phone=row['phone'],
-                birthdate=row['birth_date'],
-                specialization=row['specialization'],
-                level=row['level'],
-                notes=row['notes'],
-                isactive=row['is_active'],
-                createdat=row['created_at']
-            )
-            for row in rows
-        ]
-
-async def assign_workout_to_individual_student(
-    self,
-    workout_id: int,
-    student_id: int,
-    assigned_by: int,
-    deadline: Optional[datetime] = None,
-    notes: Optional[str] = None
-) -> bool:
-    """Назначить тренировку индивидуальному подопечному."""
-    async with self.pool.acquire() as conn:
-        try:
-            await conn.execute(
-                """
-                INSERT INTO workout_individual_students 
-                (workoutid, studentid, assignedby, deadline, notes)
-                VALUES ($1, $2, $3, $4, $5)
-                """,
-                workout_id, student_id, assigned_by, deadline, notes
-            )
-            logger.info(f"✅ Assigned workout {workout_id} to student {student_id}")
-            return True
-        except Exception as e:
-            logger.error(f"🔴 Error assigning workout: {e}")
-            return False
+# ВНИМАНИЕ: осиротевшие модульные копии методов TeamsDatabase
+# (get_individual_student_by_id / add_individual_student / get_individual_students /
+#  assign_workout_to_individual_student с self) удалены — это был мёртвый код,
+#  дублировавший database/teams_database.py.
 
 
 
@@ -203,7 +205,7 @@ async def cmd_join_team(message: Message, state: FSMContext):
         )
         return
     
-    access_code = args.strip()
+    access_code = args[1].strip()
     
     # Ищем команду по коду
     team = await teams_db.get_team_by_access_code(access_code)
@@ -264,6 +266,9 @@ async def cmd_join_team(message: Message, state: FSMContext):
 @teams_router.message(JoinTeamStates.waiting_first_name)
 async def process_join_first_name(message: Message, state: FSMContext):
     """Обработка имени"""
+    if not message.text:
+        await message.answer("❌ Пожалуйста, отправьте имя текстом.")
+        return
     first_name = message.text.strip()
     
     if len(first_name) < 2:
@@ -289,6 +294,9 @@ async def process_join_first_name(message: Message, state: FSMContext):
 @teams_router.message(JoinTeamStates.waiting_last_name)
 async def process_join_last_name(message: Message, state: FSMContext):
     """Обработка фамилии"""
+    if not message.text:
+        await message.answer("❌ Пожалуйста, отправьте фамилию текстом.")
+        return
     last_name = message.text.strip()
     await state.update_data(last_name=last_name)
     await ask_position(message, state)
@@ -323,6 +331,9 @@ async def ask_position(message: Message, state: FSMContext):
 @teams_router.message(JoinTeamStates.waiting_position)
 async def process_join_position(message: Message, state: FSMContext):
     """Обработка позиции"""
+    if not message.text:
+        await message.answer("❌ Пожалуйста, отправьте позицию текстом.")
+        return
     position = message.text.strip()
     await state.update_data(position=position)
     await ask_jersey_number(message, state)
@@ -355,6 +366,9 @@ async def ask_jersey_number(message: Message, state: FSMContext):
 @teams_router.message(JoinTeamStates.waiting_jersey_number)
 async def process_join_jersey(message: Message, state: FSMContext):
     """Обработка номера"""
+    if not message.text:
+        await message.answer("❌ Пожалуйста, отправьте номер текстом.")
+        return
     try:
         jersey_number = int(message.text.strip())
         
@@ -641,6 +655,9 @@ async def cb_create_team(callback: CallbackQuery, state: FSMContext) -> None:
 @teams_router.message(TeamStates.waiting_team_name)
 async def process_team_name(message: Message, state: FSMContext) -> None:
     """Обработка ввода названия команды."""
+    if not message.text:
+        await message.answer("❌ Пожалуйста, отправьте название текстом.")
+        return
     team_name = message.text.strip()
     logger.info("process_team_name: user=%s name=%s", message.from_user.id, team_name)
 
@@ -665,6 +682,9 @@ async def process_team_name(message: Message, state: FSMContext) -> None:
 @teams_router.message(TeamStates.waiting_team_description)
 async def process_team_description(message: Message, state: FSMContext) -> None:
     """Обработка ввода описания команды."""
+    if not message.text:
+        await message.answer("❌ Пожалуйста, отправьте описание текстом.")
+        return
     description = message.text.strip()
     if len(description) > 500:
         await message.answer("❌ Описание слишком длинное. Максимум 500 символов:")
@@ -896,23 +916,29 @@ async def start_add_player_flow(callback: CallbackQuery, state: FSMContext):
 # ===== ДОБАВЛЕНИЕ ПО TELEGRAM ID =====
 @teams_router.callback_query(F.data == "add_method_telegram_id")
 async def add_by_telegram_id_start(callback: CallbackQuery, state: FSMContext):
-    """Начало добавления по Telegram ID"""
+    """Начало добавления по Telegram ID или username"""
     data = await state.get_data()
+    assignment_type = data.get('assignment_type', 'team')
     team_id = data.get('team_id')
     
     await state.set_state(AddMemberStates.waiting_telegram_id)
     
     keyboard = InlineKeyboardBuilder()
-    keyboard.button(text="❌ Отмена", callback_data=f"view_team_{team_id}")
+    
+    if assignment_type == 'trainee':
+        keyboard.button(text="❌ Отмена", callback_data="add_trainee")
+    else:
+        keyboard.button(text="❌ Отмена", callback_data=f"view_team_{team_id}")
     
     await callback.message.edit_text(
-        "🆔 **Добавление по Telegram ID**\n\n"
-        "Введите Telegram ID игрока (только цифры):\n\n"
-        "💡 *Как узнать Telegram ID:*\n"
-        "1. Попросите игрока написать боту @userinfobot\n"
-        "2. Бот пришлет его ID\n"
-        "3. Отправьте эти цифры сюда\n\n"
-        "Пример: `123456789`",
+        "🆔 **Добавление по Telegram ID или Username**\n\n"
+        "Введите один из вариантов:\n\n"
+        "🔹 **Telegram ID** (только цифры)\n"
+        "   Например: `123456789`\n\n"
+        "🔹 **Username** (через @)\n" 
+        "   Например: `@pasha_vodoley`\n\n"
+        "💡 _Если вы не знаете ID, попросите пользователя написать боту @userinfobot "
+        "или поделиться своим контактом через Telegram_",
         reply_markup=keyboard.as_markup(),
         parse_mode="Markdown"
     )
@@ -921,6 +947,9 @@ async def add_by_telegram_id_start(callback: CallbackQuery, state: FSMContext):
 @teams_router.message(TeamStates.waiting_player_first_name)
 async def process_player_first_name(message: Message, state: FSMContext) -> None:
     """Обработка ввода имени игрока."""
+    if not message.text:
+        await message.answer("❌ Пожалуйста, отправьте имя текстом.")
+        return
     first = message.text.strip()
     if len(first) < 1:
         await message.answer("❌ Имя не может быть пустым:")
@@ -939,97 +968,504 @@ async def process_player_first_name(message: Message, state: FSMContext) -> None
     await message.answer(f"✅ Имя: <b>{first}</b>\n\n👤 Введите фамилию игрока (или пропустите):", reply_markup=kb, parse_mode="HTML")
 
 
+# @teams_router.message(AddMemberStates.waiting_telegram_id)
+# async def process_telegram_id_input(message: Message, state: FSMContext):
+#     """Обработка ввода Telegram ID (число) или @username"""
+#     data = await state.get_data()
+#     assignment_type = data.get('assignment_type', 'team')
+#     team_id = data.get('team_id')
+    
+#     input_text = message.text.strip()
+#     telegram_id = None
+#     user_info = None
+    
+#     # === Определяем тип ввода ===
+#     if input_text.startswith('@'):
+#         # Поиск по username
+#         username = input_text[1:].strip()
+        
+#         if not username:
+#             await message.answer("❌ Введите username после @\nНапример: `@pasha_vodoley`", parse_mode="Markdown")
+#             return
+        
+#         # Ищем в БД
+#         user_info = await teams_db.find_user_by_username(username)
+        
+#         if not user_info:
+#             await message.answer(
+#                 f"❌ **Пользователь {input_text} не найден**\n\n"
+#                 f"Возможные причины:\n"
+#                 f"• Пользователь еще не писал этому боту\n"
+#                 f"• У него нет username в Telegram\n"
+#                 f"• Ошибка в написании ника\n\n"
+#                 f"Попробуйте ввести цифровой Telegram ID:",
+#                 parse_mode="Markdown"
+#             )
+#             return
+        
+#         telegram_id = user_info['telegram_id']
+        
+#     else:
+#         # Поиск по ID (цифры)
+#         if not input_text.isdigit():
+#             await message.answer(
+#                 "❌ **Неверный формат**\n\n"
+#                 "Введите:\n"
+#                 "• Цифровой Telegram ID (например: `123456789`)\n"
+#                 "• Или username (например: `@pasha_vodoley`)",
+#                 parse_mode="Markdown"
+#             )
+#             return
+        
+#         telegram_id = int(input_text)
+        
+#         if telegram_id < 1 or telegram_id > 10000000000:
+#             await message.answer("❌ **Некорректный ID** (должен быть от 1 до 10 млрд)")
+#             return
+        
+#         # Ищем информацию о пользователе по ID
+#         user_info = await teams_db.find_user_by_telegram_id(telegram_id)
+    
+#     # === Дальше логика для ПОДОПЕЧНЫХ ===
+#     if assignment_type == 'trainee':
+#         # Проверяем, не является ли уже подопечным этого тренера
+#         existing = await teams_db.get_individual_student_by_telegram_id(
+#             telegram_id, message.from_user.id
+#         )
+        
+#         if existing:
+#             keyboard = InlineKeyboardBuilder()
+#             keyboard.button(text="🔙 Назад", callback_data="add_trainee")
+            
+#             await message.answer(
+#                 f"ℹ️ **Уже в подопечных**\n\n"
+#                 f"Пользователь уже является вашим подопечным ({existing.first_name}).",
+#                 reply_markup=keyboard.as_markup(),
+#                 parse_mode="Markdown"
+#             )
+#             await state.clear()
+#             return
+        
+#         await state.update_data(
+#             telegram_id=telegram_id,
+#             user_info=user_info,
+#             assignment_type='trainee'
+#         )
+#         await state.set_state(AddMemberStates.waiting_confirmation)
+        
+#         keyboard = InlineKeyboardBuilder()
+#         keyboard.button(text="✅ Подтвердить", callback_data="confirm_add_trainee_by_id")
+#         keyboard.button(text="❌ Отмена", callback_data="my_trainees")
+        
+#         if user_info:
+#             full_name = user_info['first_name']
+#             if user_info.get('last_name'):
+#                 full_name += f" {user_info['last_name']}"
+#             username_text = f"\n📱 **Username:** @{user_info['username']}" if user_info.get('username') else ""
+            
+#             text = (
+#                 f"✅ **Пользователь найден!**\n\n"
+#                 f"👤 **Имя:** {full_name}{username_text}\n"
+#                 f"🆔 **Telegram ID:** `{telegram_id}`\n\n"
+#                 f"Добавить как подопечного?"
+#             )
+#         else:
+#             text = (
+#                 f"⚠️ **Пользователь не найден в базе бота**\n\n"
+#                 f"🆔 **Telegram ID:** `{telegram_id}`\n\n"
+#                 f"Он будет добавлен, но ему нужно будет написать боту `/start`.\n\n"
+#                 f"Продолжить?"
+#             )
+        
+#         await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
+    
+#     # === Или логика для КОМАНД ===
+#     else:
+#         if not team_id:
+#             await message.answer("❌ Ошибка: команда не выбрана")
+#             return
+            
+#         is_member = await teams_db.check_player_in_team(telegram_id, team_id)
+        
+#         if is_member:
+#             keyboard = InlineKeyboardBuilder()
+#             keyboard.button(text="🔙 Назад", callback_data=f"add_player_{team_id}")
+            
+#             await message.answer(
+#                 f"ℹ️ **Игрок уже в команде**",
+#                 reply_markup=keyboard.as_markup(),
+#                 parse_mode="Markdown"
+#             )
+#             await state.clear()
+#             return
+        
+#         await state.update_data(telegram_id=telegram_id, user_info=user_info)
+#         await state.set_state(AddMemberStates.waiting_confirmation)
+        
+#         keyboard = InlineKeyboardBuilder()
+#         keyboard.button(text="✅ Подтвердить", callback_data="confirm_add_by_id")
+#         keyboard.button(text="❌ Отмена", callback_data=f"view_team_{team_id}")
+        
+#         if user_info:
+#             full_name = user_info['first_name']
+#             if user_info.get('last_name'):
+#                 full_name += f" {user_info['last_name']}"
+#             username_text = f"\n📱 **Username:** @{user_info['username']}" if user_info.get('username') else ""
+            
+#             text = (
+#                 f"✅ **Пользователь найден!**\n\n"
+#                 f"👤 **Имя:** {full_name}{username_text}\n"
+#                 f"🆔 **Telegram ID:** `{telegram_id}`\n\n"
+#                 f"Подтвердите добавление в команду:"
+#             )
+#         else:
+#             text = (
+#                 f"⚠️ **Пользователь не найден в базе**\n\n"
+#                 f"🆔 **Telegram ID:** `{telegram_id}`\n\n"
+#                 f"Он будет добавлен, но ему нужно будет написать боту `/start`.\n\n"
+#                 f"Продолжить?"
+#             )
+            
+#         await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
+
+# проблема экранирования спец символов
+# @teams_router.message(AddMemberStates.waiting_telegram_id)
+# async def process_telegram_id_input(message: Message, state: FSMContext):
+#     """Обработка ввода Telegram ID (число) или @username"""
+#     data = await state.get_data()
+#     assignment_type = data.get('assignment_type', 'team')
+#     team_id = data.get('team_id')
+    
+#     input_text = message.text.strip()
+#     telegram_id = None
+#     user_info = None
+    
+#     # === Определяем тип ввода ===
+#     if input_text.startswith('@'):
+#         # Поиск по username
+#         username = input_text[1:].strip().lower()
+        
+#         if not username:
+#             await message.answer("❌ Введите username после @\nНапример: `@pasha_vodoley`", parse_mode="Markdown")
+#             return
+        
+#         # Ищем в БД через db_manager (исправлено!)
+#         user_info = await teams_db.find_user_by_username(username)
+        
+#         if not user_info:
+#             await message.answer(
+#                 f"❌ **Пользователь {input_text} не найден**\n\n"
+#                 f"Возможные причины:\n"
+#                 f"• Пользователь ещё не писал этому боту\n"
+#                 f"• У него нет username в Telegram\n"
+#                 f"• Ошибка в написании ника\n\n"
+#                 f"Попробуйте ввести цифровой Telegram ID:",
+#                 parse_mode="Markdown"
+#             )
+#             return
+        
+#         telegram_id = user_info['telegram_id']
+        
+#     else:
+#         # Поиск по ID (цифры)
+#         if not input_text.isdigit():
+#             await message.answer(
+#                 "❌ **Неверный формат**\n\n"
+#                 "Введите:\n"
+#                 "• Цифровой Telegram ID (например: `123456789`)\n"
+#                 "• Или username (например: `@pasha_vodoley`)",
+#                 parse_mode="Markdown"
+#             )
+#             return
+        
+#         telegram_id = int(input_text)
+        
+#         if telegram_id < 1 or telegram_id > 10000000000:
+#             await message.answer("❌ **Некорректный ID** (должен быть от 1 до 10 млрд)")
+#             return
+        
+#         # Ищем информацию о пользователе по ID через db_manager (исправлено!)
+#         user_info = await db_manager.get_user_by_telegram_id(telegram_id)
+    
+#     # === Дальше логика для ПОДОПЕЧНЫХ ===
+#     if assignment_type == 'trainee':
+#         # Проверяем, не является ли уже подопечным этого тренера
+#         existing = await teams_db.get_individual_student_by_telegram_id(
+#             telegram_id, message.from_user.id
+#         )
+        
+#         if existing:
+#             keyboard = InlineKeyboardBuilder()
+#             keyboard.button(text="🔙 Назад", callback_data="add_trainee")
+            
+#             await message.answer(
+#                 f"ℹ️ **Уже в подопечных**\n\n"
+#                 f"Пользователь уже является вашим подопечным ({existing.first_name}).",
+#                 reply_markup=keyboard.as_markup(),
+#                 parse_mode="Markdown"
+#             )
+#             await state.clear()
+#             return
+        
+#         await state.update_data(
+#             telegram_id=telegram_id,
+#             user_info=user_info,
+#             assignment_type='trainee'
+#         )
+#         await state.set_state(AddMemberStates.waiting_confirmation)
+        
+#         keyboard = InlineKeyboardBuilder()
+#         keyboard.button(text="✅ Подтвердить", callback_data="confirm_add_trainee_by_id")
+#         keyboard.button(text="❌ Отмена", callback_data="my_trainees")
+        
+#         if user_info:
+#             full_name = user_info.get('first_name', 'Игрок')
+#             if user_info.get('last_name'):
+#                 full_name += f" {user_info['last_name']}"
+#             username_text = f"\n📱 **Username:** @{user_info.get('username')}" if user_info.get('username') else ""
+            
+#             text = (
+#                 f"✅ **Пользователь найден!**\n\n"
+#                 f"👤 **Имя:** {full_name}{username_text}\n"
+#                 f"🆔 **Telegram ID:** `{telegram_id}`\n\n"
+#                 f"Добавить как подопечного?"
+#             )
+#         else:
+#             text = (
+#                 f"⚠️ **Пользователь не найден в базе бота**\n\n"
+#                 f"🆔 **Telegram ID:** `{telegram_id}`\n\n"
+#                 f"Он будет добавлен, но ему нужно будет написать боту /start.\n\n"
+#                 f"Продолжить?"
+#             )
+        
+#         await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
+
+
+from aiogram import html
+
 @teams_router.message(AddMemberStates.waiting_telegram_id)
 async def process_telegram_id_input(message: Message, state: FSMContext):
-    """Обработка ввода Telegram ID"""
+    """Обработка ввода Telegram ID (число) или @username"""
     data = await state.get_data()
+    assignment_type = data.get('assignment_type', 'team')
     team_id = data.get('team_id')
     
-    # Валидация ID
-    telegram_id_str = message.text.strip()
-    
-    if not telegram_id_str.isdigit():
-        await message.answer(
-            "❌ **Неверный формат**\n\n"
-            "Telegram ID должен содержать только цифры.\n"
-            "Попробуйте еще раз:",
-            parse_mode="Markdown"
-        )
+    if not message.text:
+        await message.answer("❌ Пожалуйста, отправьте Telegram ID или @username текстом.")
         return
+    input_text = message.text.strip()
+    telegram_id = None
+    user_info = None
     
-    telegram_id = int(telegram_id_str)
-    
-    # Проверяем валидность ID (обычно от 1 до 10 миллиардов)
-    if telegram_id < 1 or telegram_id > 10000000000:
-        await message.answer(
-            "❌ **Некорректный ID**\n\n"
-            "Telegram ID должен быть числом от 1 до 10 миллиардов.\n"
-            "Проверьте правильность и попробуйте еще раз:"
-        )
-        return
-    
-    # Проверяем, не состоит ли уже в команде
-    is_member = await teams_db.check_player_in_team(telegram_id, team_id)
-    
-    if is_member:
-        keyboard = InlineKeyboardBuilder()
-        keyboard.button(text="🔙 Назад", callback_data=f"add_player_{team_id}")
+    # === Определяем тип ввода ===
+    if input_text.startswith('@'):
+        # Поиск по username
+        username = input_text[1:].strip().lower()
         
-        await message.answer(
-            f"ℹ️ **Игрок уже в команде**\n\n"
-            f"Пользователь с ID `{telegram_id}` уже является участником команды.",
-            reply_markup=keyboard.as_markup(),
-            parse_mode="Markdown"
-        )
-        await state.clear()
-        return
-    
-    # Ищем информацию о пользователе
-    user_info = await teams_db.find_user_by_telegram_id(telegram_id)
-    
-    # Сохраняем данные
-    await state.update_data(
-        telegram_id=telegram_id,
-        user_info=user_info
-    )
-    await state.set_state(AddMemberStates.waiting_confirmation)
-    
-    # Показываем информацию для подтверждения
-    keyboard = InlineKeyboardBuilder()
-    keyboard.button(text="✅ Подтвердить", callback_data="confirm_add_by_id")
-    keyboard.button(text="❌ Отмена", callback_data=f"view_team_{team_id}")
-    keyboard.adjust(1)
-    
-    if user_info:
-        # Пользователь найден в системе
-        full_name = user_info['first_name']
-        if user_info.get('last_name'):
-            full_name += f" {user_info['last_name']}"
-        username_text = f"@{user_info['username']}" if user_info.get('username') else "не указан"
+        if not username:
+            await message.answer(
+                "❌ Введите username после @\nНапример: <code>@pasha_vodoley</code>", 
+                parse_mode="HTML"
+            )
+            return
         
-        text = (
-            f"✅ **Пользователь найден!**\n\n"
-            f"👤 **Имя:** {full_name}\n"
-            f"📱 **Username:** {username_text}\n"
-            f"🆔 **Telegram ID:** `{telegram_id}`\n\n"
-            f"Подтвердите добавление в команду:"
-        )
+        # Ищем в БД через db_manager
+        user_info = await teams_db.find_user_by_username(username)
+        
+        if not user_info:
+            # Экранируем username для HTML
+            safe_username = html.quote(input_text)
+            await message.answer(
+                f"❌ <b>Пользователь {safe_username} не найден</b>\n\n"
+                f"Возможные причины:\n"
+                f"• Пользователь ещё не писал этому боту\n"
+                f"• У него нет username в Telegram\n"
+                f"• Ошибка в написании ника\n\n"
+                f"Попробуйте ввести цифровой Telegram ID:",
+                parse_mode="HTML"
+            )
+            return
+        
+        telegram_id = user_info['telegram_id']
+        
     else:
-        # Пользователь не найден
-        text = (
-            f"⚠️ **Пользователь не найден в системе**\n\n"
-            f"🆔 **Telegram ID:** `{telegram_id}`\n\n"
-            f"Пользователь будет добавлен в команду, но ему потребуется "
-            f"написать боту `/start`, чтобы завершить регистрацию.\n\n"
-            f"Продолжить?"
-        )
+        # Поиск по ID (цифры)
+        if not input_text.isdigit():
+            await message.answer(
+                "❌ <b>Неверный формат</b>\n\n"
+                "Введите:\n"
+                "• Цифровой Telegram ID (например: <code>123456789</code>)\n"
+                "• Или username (например: <code>@pasha_vodoley</code>)",
+                parse_mode="HTML"
+            )
+            return
+        
+        telegram_id = int(input_text)
+        
+        if telegram_id < 1 or telegram_id > 10000000000:
+            await message.answer(
+                "❌ <b>Некорректный ID</b> (должен быть от 1 до 10 млрд)",
+                parse_mode="HTML"
+            )
+            return
+        
+        # Ищем информацию о пользователе по ID
+        user_info = await db_manager.get_user_by_telegram_id(telegram_id)
     
-    await message.answer(
-        text,
-        reply_markup=keyboard.as_markup(),
-        parse_mode="Markdown"
-    )
+    # === Дальше логика для ПОДОПЕЧНЫХ ===
+    if assignment_type == 'trainee':
+        # Проверяем, не является ли уже подопечным этого тренера
+        existing = await teams_db.get_individual_student_by_telegram_id(
+            telegram_id, message.from_user.id
+        )
+        
+        if existing:
+            keyboard = InlineKeyboardBuilder()
+            keyboard.button(text="🔙 Назад", callback_data="add_trainee")
+            
+            # Экранируем имя для HTML
+            safe_name = html.quote(existing.first_name) if existing.first_name else "Неизвестно"
+            
+            await message.answer(
+                f"ℹ️ <b>Уже в подопечных</b>\n\n"
+                f"Пользователь уже является вашим подопечным ({safe_name}).",
+                reply_markup=keyboard.as_markup(),
+                parse_mode="HTML"
+            )
+            await state.clear()
+            return
+        
+        await state.update_data(
+            telegram_id=telegram_id,
+            user_info=user_info,
+            assignment_type='trainee'
+        )
+        await state.set_state(AddMemberStates.waiting_confirmation)
+        
+        keyboard = InlineKeyboardBuilder()
+        keyboard.button(text="✅ Подтвердить", callback_data="confirm_add_trainee_by_id")
+        keyboard.button(text="❌ Отмена", callback_data="my_trainees")
+        
+        if user_info:
+            # Экранируем все пользовательские данные для HTML
+            first_name = html.quote(user_info.get('first_name', 'Игрок'))
+            last_name = html.quote(user_info.get('last_name', '')) if user_info.get('last_name') else ''
+            username = user_info.get('username', '')
+            
+            full_name = first_name
+            if last_name:
+                full_name += f" {last_name}"
+            
+            username_text = f"\n📱 <b>Username:</b> @{html.quote(username)}" if username else ""
+            
+            text = (
+                f"✅ <b>Пользователь найден!</b>\n\n"
+                f"👤 <b>Имя:</b> {full_name}{username_text}\n"
+                f"🆔 <b>Telegram ID:</b> <code>{telegram_id}</code>\n\n"
+                f"Добавить как подопечного?"
+            )
+        else:
+            text = (
+                f"⚠️ <b>Пользователь не найден в базе бота</b>\n\n"
+                f"🆔 <b>Telegram ID:</b> <code>{telegram_id}</code>\n\n"
+                f"Он будет добавлен, но ему нужно будет написать боту /start.\n\n"
+                f"Продолжить?"
+            )
+        
+        await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="HTML")
 
+@teams_router.callback_query(F.data == "confirm_add_trainee_by_id")
+async def confirm_add_trainee_by_telegram_id(callback: CallbackQuery, state: FSMContext):
+    """Подтверждение добавления подопечного по Telegram ID/username"""
+    data = await state.get_data()
+    telegram_id = data.get('telegram_id')
+    user_info = data.get('user_info')
+    
+    try:
+        # Добавляем подопечного
+        student = await teams_db.add_individual_student(
+            coach_telegram_id=callback.from_user.id,
+            first_name=user_info.get('first_name', 'Игрок') if user_info else "Игрок",
+            last_name=user_info.get('last_name') if user_info else None,
+            telegram_id=telegram_id,
+            level="beginner"
+        )
+        
+        if student:
+            await state.clear()
+            
+            keyboard = InlineKeyboardBuilder()
+            keyboard.button(text="➕ Добавить еще", callback_data="add_trainee")
+            keyboard.button(text="👥 Мои подопечные", callback_data="my_trainees")
+            
+            full_name = f"{student.first_name} {student.last_name or ''}".strip()
+            
+            await callback.message.edit_text(
+                f"🎉 **Подопечный добавлен!**\n\n"
+                f"👤 **Имя:** {full_name}\n"
+                f"🆔 **Telegram ID:** `{telegram_id}`\n"
+                f"📅 **Добавлен:** {student.created_at.strftime('%d.%m.%Y')}\n\n"
+                f"💡 Если у пользователя есть Telegram, он получит уведомление.",
+                reply_markup=keyboard.as_markup(), parse_mode="Markdown"
+            )
+            
+            # Отправляем уведомление
+            if user_info:
+                try:
+                    from main import bot
+                    await bot.send_message(
+                        telegram_id,
+                        f"🎉 **Вы добавлены как подопечный!**\n\n"
+                        f"👤 Тренер начал с вами работать.\n"
+                        f"Используйте /myworkouts для просмотра тренировок.",
+                        parse_mode="Markdown"
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to notify trainee: {e}")
+            
+            await callback.answer("✅ Добавлено!")
+        else:
+            await callback.answer("❌ Ошибка добавления", show_alert=True)
+            
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        await callback.answer("❌ Ошибка", show_alert=True)
+
+
+@teams_router.callback_query(F.data == "generate_trainee_invite")
+async def generate_trainee_invite(callback: CallbackQuery):
+    """Генерация пригласительной ссылки для подопечного"""
+    import secrets
+    
+    # Генерируем код
+    access_code = secrets.token_urlsafe(8)[:8]
+    
+    # Сохраняем в БД (метод create_trainee_invite нужен в teams_database.py, 
+    # если вы его еще не добавили по первому ответу)
+    try:
+        await teams_db.create_trainee_invite(
+            coach_telegram_id=callback.from_user.id,
+            access_code=access_code
+        )
+    except AttributeError:
+        # Если метода нет, просто пропускаем сохранение (либо добавьте метод в БД)
+        pass
+    
+    bot_username = (await callback.bot.get_me()).username
+    invite_link = f"https://t.me/{bot_username}?start=trainee_{access_code}"
+    
+    keyboard = InlineKeyboardBuilder()
+    keyboard.button(text="📋 Скопировать код", callback_data=f"copy_trainee_code_{access_code}")
+    keyboard.button(text="🔙 Назад", callback_data="add_trainee")
+    
+    await callback.message.edit_text(
+        f"📋 **Приглашение для подопечного**\n\n"
+        f"🔗 **Ссылка:**\n`{invite_link}`\n\n"
+        f"🆔 **Код:** `{access_code}`\n\n"
+        f"Отправьте человеку. Он перейдет по ссылке и автоматически станет вашим подопечным.",
+        reply_markup=keyboard.as_markup(), parse_mode="Markdown"
+    )
+    await callback.answer()
 
 @teams_router.callback_query(F.data == "confirm_add_by_id")
 async def confirm_add_by_telegram_id(callback: CallbackQuery, state: FSMContext):
@@ -1178,6 +1614,9 @@ async def add_method_manual(callback: CallbackQuery, state: FSMContext):
 @teams_router.message(TeamStates.waiting_player_last_name)
 async def process_player_last_name(message: Message, state: FSMContext) -> None:
     """Обработка ввода фамилии игрока."""
+    if not message.text:
+        await message.answer("❌ Пожалуйста, отправьте фамилию текстом.")
+        return
     last = message.text.strip()
     if len(last) > 100:
         await message.answer("❌ Фамилия слишком длинная. Максимум 100 символов:")
@@ -1216,6 +1655,9 @@ async def ask_player_position(update: Message | CallbackQuery, state: FSMContext
 @teams_router.message(TeamStates.waiting_player_position)
 async def process_player_position(message: Message, state: FSMContext) -> None:
     """Обработка ввода позиции игрока."""
+    if not message.text:
+        await message.answer("❌ Пожалуйста, отправьте позицию текстом.")
+        return
     pos = message.text.strip()
     if len(pos) > 50:
         await message.answer("❌ Позиция слишком длинная. Максимум 50 символов:")
@@ -1256,6 +1698,9 @@ async def ask_player_jersey(update: Message | CallbackQuery, state: FSMContext, 
 @teams_router.message(TeamStates.waiting_player_jersey)
 async def process_player_jersey(message: Message, state: FSMContext) -> None:
     """Обработка ввода номера на майке."""
+    if not message.text:
+        await message.answer("❌ Пожалуйста, отправьте номер текстом.")
+        return
     txt = message.text.strip()
     try:
         jersey = int(txt)
@@ -1363,6 +1808,9 @@ async def cb_add_student(callback: CallbackQuery, state: FSMContext) -> None:
 @teams_router.message(TeamStates.waiting_student_first_name)
 async def process_student_first_name(message: Message, state: FSMContext) -> None:
     """Обработка ввода имени подопечного."""
+    if not message.text:
+        await message.answer("❌ Пожалуйста, отправьте имя текстом.")
+        return
     first = message.text.strip()
     if len(first) < 1:
         await message.answer("❌ Имя не может быть пустым:")
@@ -1381,6 +1829,9 @@ async def process_student_first_name(message: Message, state: FSMContext) -> Non
 @teams_router.message(TeamStates.waiting_student_last_name)
 async def process_student_last_name(message: Message, state: FSMContext) -> None:
     """Обработка ввода фамилии подопечного."""
+    if not message.text:
+        await message.answer("❌ Пожалуйста, отправьте фамилию текстом.")
+        return
     last = message.text.strip()
     await state.update_data(student_last_name=last)
     await ask_student_specialization(message, state, is_callback=False)
@@ -1691,73 +2142,57 @@ async def show_team_workouts(callback: CallbackQuery, state: FSMContext):
     """Показать тренировки команды"""
     await state.clear()
     team_id = int(callback.data.split("_")[-1])
-    
+
     team = await get_team_by_id(team_id)
     if not team:
         await callback.answer("❌ Команда не найдена")
         return
-    
+
+    # Определяем роль пользователя
+    user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
+    is_trainer = user and user.get('role') in ['admin', 'trainer', 'coach']
+
     # Получаем назначенные тренировки
     workouts = await teams_db.get_team_workouts(team_id)
-    
-    if not workouts:
-        keyboard = InlineKeyboardBuilder()
-        keyboard.button(text="➕ Назначить тренировку", callback_data=f"assign_workout_{team_id}")
-        keyboard.button(text="🔙 К команде", callback_data=f"view_team_{team_id}")
-        keyboard.adjust(1)
-        
-        await callback.message.edit_text(
-            f"📋 **Тренировки команды \"{team.name}\"**\n\n"
-            f"Пока нет назначенных тренировок.\n"
-            f"Назначьте первую тренировку команде!",
-            reply_markup=keyboard.as_markup(),
-            parse_mode="Markdown"
-        )
-        await callback.answer()
-        return
-    
-    # Формируем текст со списком тренировок
-    text = f"📋 **Тренировки команды \"{team.name}\"**\n\n"
-    
+
     keyboard = InlineKeyboardBuilder()
-    
-    for w in workouts:
-        # Прогресс бар
-        if w.total_players > 0:
-            progress_pct = int((w.completed / w.total_players) * 100)
+    text = f"📋 **Тренировки команды \"{team.name}\"**\n\n"
+
+    if not workouts:
+        text += "Пока нет назначенных тренировок.\nНазначьте первую тренировку команде!"
+    else:
+        for w in workouts:
+            progress_pct = int((w.completed / w.total_players) * 100) if w.total_players > 0 else 0
             progress_bar = "🟩" * (progress_pct // 10) + "⬜" * (10 - progress_pct // 10)
-        else:
-            progress_bar = "⬜" * 10
-            progress_pct = 0
-        
-        # Дедлайн
-        deadline_text = ""
-        if w.deadline:
-            deadline_text = f"\n⏰ До: {w.deadline.strftime('%d.%m.%Y')}"
-        
-        text += (
-            f"💪 **{w.workout_name}**\n"
-            f"{progress_bar} {progress_pct}%\n"
-            f"✅ Выполнили: {w.completed}/{w.total_players}\n"
-            f"⏳ В процессе: {w.in_progress}\n"
-            f"📅 Назначено: {w.assigned_at.strftime('%d.%m %H:%M')}"
-            f"{deadline_text}\n\n"
-        )
-        
-        keyboard.button(
-            text=f"📊 {w.workout_name} ({w.completed}/{w.total_players})",
-            callback_data=f"workout_progress_{w.id}"
-        )
-    
-    keyboard.button(text="➕ Назначить тренировку", callback_data=f"assign_workout_{team_id}")
+            deadline_text = f"\n⏰ До: {w.deadline.strftime('%d.%m.%Y')}" if w.deadline else ""
+
+            text += (
+                f"💪 **{w.workout_name}**\n"
+                f"{progress_bar} {progress_pct}%\n"
+                f"✅ Выполнили: {w.completed}/{w.total_players}\n"
+                f"⏳ В процессе: {w.in_progress}\n"
+                f"📅 Назначено: {w.assigned_at.strftime('%d.%m %H:%M')}{deadline_text}\n\n"
+            )
+
+            if is_trainer:
+                keyboard.button(
+                    text=f"📊 {w.workout_name} ({w.completed}/{w.total_players})",
+                    callback_data=f"workout_progress_{w.id}"
+                )
+            else:
+                keyboard.button(
+                    text=f"▶️ {w.workout_name}",
+                    callback_data=f"start_workout_{w.workout_id}"
+    )
+
+    # ❗ Только тренерам показываем кнопку «Назначить тренировку»
+    if is_trainer:
+        keyboard.button(text="➕ Назначить тренировку", callback_data=f"assign_workout_{team_id}")
+
     keyboard.button(text="🔙 К команде", callback_data=f"view_team_{team_id}")
     keyboard.adjust(1)
-    
-    await callback.message.edit_text(
-        text,
-        reply_markup=keyboard.as_markup(),
-        parse_mode="Markdown"
-    )
+
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
     await callback.answer()
 
 @teams_router.callback_query(F.data.startswith("assign_workout_"))
@@ -1820,6 +2255,9 @@ async def workout_method_code(callback: CallbackQuery, state: FSMContext):
 @teams_router.message(AssignWorkoutStates.entering_workout_code)
 async def process_workout_code(message: Message, state: FSMContext):
     """Обработка кода тренировки"""
+    if not message.text:
+        await message.answer("❌ Пожалуйста, отправьте код тренировки текстом.")
+        return
     code = message.text.strip()
     
     # Ищем тренировку по коду
@@ -1887,6 +2325,9 @@ async def add_assignment_notes(callback: CallbackQuery, state: FSMContext):
 @teams_router.message(AssignWorkoutStates.adding_notes)
 async def process_assignment_notes(message: Message, state: FSMContext):
     """Обработка комментария"""
+    if not message.text:
+        await message.answer("❌ Пожалуйста, отправьте комментарий текстом.")
+        return
     notes = message.text.strip()
     await state.update_data(assignment_notes=notes)
     
@@ -2210,7 +2651,7 @@ async def workout_method_my_workouts_trainee(callback: CallbackQuery, state: FSM
         await callback.answer()
     else:
         # Для команды используем существующий хэндлер
-        await workout_method_my_workouts(callback, state)
+        await workout_method_my_teams(callback, state)
 
 
 @teams_router.callback_query(F.data == "workout_method_code", AssignWorkoutStates.choosing_workout_method)
@@ -2263,15 +2704,29 @@ async def select_workout_for_trainee(callback: CallbackQuery, state: FSMContext)
             trainee_id = data.get('trainee_id')
             trainee_name = data.get('trainee_name')
             
-            # Получить тренировку
-            workout = await teams_database.get_workout_by_id(workout_id)
-            
-            if not workout or workout.created_by != callback.from_user.id:
+            # Получить тренировку, созданную этим тренером
+            async with db_manager.pool.acquire() as conn:
+                coach_row = await conn.fetchrow(
+                    "SELECT id FROM users WHERE telegram_id = $1",
+                    callback.from_user.id
+                )
+                workout_row = await conn.fetchrow(
+                    """
+                    SELECT id, name, description, difficulty_level, estimated_duration_minutes
+                    FROM workouts
+                    WHERE id = $1 AND created_by = $2 AND is_active = TRUE
+                    """,
+                    workout_id, coach_row["id"] if coach_row else None
+                )
+
+            if not workout_row:
                 await callback.answer("❌ Тренировка не найдена или не ваша")
                 return
-            
+
+            workout = dict(workout_row)
+
             # Сохранить выбранную тренировку
-            await state.update_data(selected_workout=workout)
+            await state.update_data(selected_workout=workout, selected_workout_id=workout_id)
             await state.set_state(AssignWorkoutStates.confirming_assignment)
             
             # Показать детали тренировки
@@ -2284,10 +2739,10 @@ async def select_workout_for_trainee(callback: CallbackQuery, state: FSMContext)
             
             text = f"""💪 **Выбрана тренировка**
 
-📋 **Название:** {workout.name}
-📝 **Описание:** {workout.description or 'не указано'}
-📊 **Сложность:** {workout.difficulty_level}
-⏱️ **Длительность:** ~{workout.estimated_duration_minutes or 60} минут
+📋 **Название:** {workout['name']}
+📝 **Описание:** {workout['description'] or 'не указано'}
+📊 **Сложность:** {workout['difficulty_level']}
+⏱️ **Длительность:** ~{workout['estimated_duration_minutes'] or 60} минут
 👤 **Подопечный:** {trainee_name}
 
 ✅ Готово к назначению?"""
@@ -2302,7 +2757,7 @@ async def select_workout_for_trainee(callback: CallbackQuery, state: FSMContext)
             await callback.answer()
         else:
             # Для команды используем существующий хэндлер
-            await select_workout(callback, state)
+            await workout_method_my_teams(callback, state)
             
     except Exception as e:
         logger.error(f"🔴 Ошибка при выборе тренировки: {e}")
@@ -2334,20 +2789,21 @@ async def confirm_assign_workout_trainee(callback: CallbackQuery, state: FSMCont
 
         # получаем объект тренировки из БД
         async with db_manager.pool.acquire() as conn:
-            workout = dict(await conn.fetchrow(
+            workout_row = await conn.fetchrow(
                 "SELECT id, name, description, estimated_duration_minutes "
                 "FROM workouts WHERE id = $1",
                 workout_id
-            ))
-        if not workout:
+            )
+        if not workout_row:
             await callback.answer("❌ Тренировка не найдена", show_alert=True)
             return
+        workout = dict(workout_row)
 
         logger.info(f"🔍 перед assign: workout_id={workout_id}, trainee_id={trainee_id}")
 
         # Назначить тренировку подопечному
         
-        success = await teams_database.assign_workout_to_student(
+        result = await teams_database.assign_workout_to_student(
             workout_id=workout_id,
             student_id=trainee_id,
             assigned_by=callback.from_user.id,
@@ -2355,7 +2811,14 @@ async def confirm_assign_workout_trainee(callback: CallbackQuery, state: FSMCont
             deadline=deadline
         )
 
-        if success:
+        if isinstance(result, dict) and result.get("error"):
+            await callback.answer(
+                f"⚠️ {result.get('message', 'Не удалось назначить тренировку')}",
+                show_alert=True
+            )
+            return
+
+        if result:
             await state.clear()
 
             keyboard = InlineKeyboardBuilder()
@@ -2688,7 +3151,7 @@ async def show_my_trainee_workouts_callback(callback: CallbackQuery, state: FSMC
                 buttons.append([
                     InlineKeyboardButton(
                         text=f"📋 {workout['workout_name']}", 
-                        callback_data=f"viewtraineeworkout_{workout['workoutid']}"
+                        callback_data=f"viewtraineeworkout_{workout['workout_id']}"
                     )
                 ])
             
@@ -2721,11 +3184,8 @@ async def show_my_trainee_workouts_callback(callback: CallbackQuery, state: FSMC
 
 # Экспорт
 def get_teams_router() -> Router:
-    """Экспорт роутера команд."""
-    logger.info("Exporting teams router")
-    return teams_router
-def get_teams_router() -> Router:
     """Возвращает роутер модуля teams."""
+    logger.info("Exporting teams router")
     return teams_router
 
 __all__ = ["get_teams_router", "init_teams_module_async"]

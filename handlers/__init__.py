@@ -2,8 +2,7 @@ import logging
 from aiogram import Router, F, Dispatcher
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
-# ← ВСТАВЬ СЮДА, рядом с другими импортами
-from . import player_workouts  # ← ЭТА СТРОКА
+from . import player_workouts
 # Импорт всех подмодулей
 from . import start
 from . import exercises
@@ -11,7 +10,7 @@ from . import workouts
 from . import tests
 from . import test_batteries
 from handlers.teams import TeamStates
-
+from . import one_rm
 # Дополнительные модули (по наличию)
 try:
     from . import team_tests
@@ -26,8 +25,7 @@ except ImportError:
 # ✅ ГЛАВНЫЕ РОУТЕРЫ
 from . import teams
 from .trainees_menu import trainees_router
-from .workouts import workouts_router  # ← ДОБАВЛЕНО!
- # ← МОЖЕТ БЫТЬ НУЖНО
+from .workouts import workouts_router
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +41,10 @@ async def handle_all_text_messages(message: Message, state: FSMContext):
     current_state = await state.get_state()
     logger.info(f"📨 Текст: '{message.text}' | FSM состояние: {current_state}")
 
+    if current_state == "waiting_speed_data":
+        await one_rm.process_speed_data(message, state)
+        return
+
     # --- 1. Без состояния
     if current_state is None:
         await message.answer(
@@ -53,7 +55,7 @@ async def handle_all_text_messages(message: Message, state: FSMContext):
 
     # --- 2. Тесты
     if current_state == "waiting_1rm_data":
-        await tests.process_1rm_test_input(message, state)
+        await one_rm.process_1rm_data(message, state)
         return
 
     if current_state in [
@@ -73,10 +75,12 @@ async def handle_all_text_messages(message: Message, state: FSMContext):
             CreateExerciseStates.waiting_name,
             CreateExerciseStates.waiting_description,
             CreateExerciseStates.waiting_instructions,
-            "waiting_new_category",
-            "waiting_new_muscle_group",
-            "waiting_custom_equipment",
-            "waiting_search",
+            CreateExerciseStates.waiting_tags,
+            CreateExerciseStates.waiting_test_type,
+            CreateExerciseStates.waiting_new_category,
+            CreateExerciseStates.waiting_new_muscle_group,
+            CreateExerciseStates.waiting_custom_equipment,
+            CreateExerciseStates.waiting_search,
         ]:
             await exercises.process_exercise_text_input(message, state)
             return
@@ -182,7 +186,7 @@ def register_all_handlers(dp: Dispatcher):
     logger.info("✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)")
 
     dp.include_router(player_workouts.get_player_workouts_router())
-    logger.info("player_workouts_router зарегистрирован")
+    logger.info("✅ player_workouts_router зарегистрирован")
     
     dp.include_router(trainees_router)
     logger.info("✅ trainees_router зарегистрирован")
@@ -190,13 +194,9 @@ def register_all_handlers(dp: Dispatcher):
     dp.include_router(workouts_router)
     logger.info("✅ workouts_router зарегистрирован")
     
-    # # Попытка регистрации exercises_router если он существует
-    # try:
-    #     №dp.include_router(exercises_router)
-    #     logger.info("✅ exercises_router зарегистрирован")
-    # except Exception as e:
-    #     logger.warning(f"⚠️ exercises_router не зарегистрирован: {e}")
-    
+
+    one_rm.register_one_rm_handlers(dp)
+
     # 3. Общий роутер в конце (самый низкий приоритет)
     dp.include_router(general_router)
     logger.info("✅ general_router зарегистрирован (последний приоритет)")
@@ -213,6 +213,7 @@ def register_all_handlers(dp: Dispatcher):
     logger.info("=" * 60)
     logger.info("🎉 ВСЕ роутеры и обработчики успешно зарегистрированы!")
     logger.info("=" * 60)
+
 
 
 __all__ = ["register_all_handlers", "handle_all_text_messages", "general_router"]

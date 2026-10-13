@@ -54,6 +54,14 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+
+# from aiogram.types import Message, CallbackQuery
+# @dp.callback_query()               # самый верхний уровень
+# async def global_debug(callback: CallbackQuery):
+#     logger.critical("GLOBAL raw callback_data = %r", callback.data)
+#     await callback.answer()
+
+
 async def setup_bot_commands():
     """Настройка команд бота"""
     try:
@@ -119,6 +127,11 @@ async def main():
         if not db_ok:
             raise Exception("Не удалось подключиться к базе данных")
         
+
+        # 2. Player workouts router (НОВЫЙ)
+        logger.info("💪 Регистрация роутера тренировок игроков...")
+        player_workouts_router = get_player_workouts_router()
+
         # Инициализация модуля команд
         logger.info("🏆 Инициализация модуля команд...")
         await init_teams_module_async(db_manager)
@@ -132,9 +145,7 @@ async def main():
         # teams_router = get_teams_router()
         # dp.include_router(teams_router)
         
-        # 2. Player workouts router (НОВЫЙ)
-        logger.info("💪 Регистрация роутера тренировок игроков...")
-        player_workouts_router = get_player_workouts_router()
+        
         # dp.include_router(player_workouts_router)
         
         #         # 2.1 Основной workouts router

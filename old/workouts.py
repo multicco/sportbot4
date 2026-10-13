@@ -299,35 +299,40 @@ async def back_to_block_exercises(callback: CallbackQuery, state: FSMContext):
 async def add_exercise_to_block(callback: CallbackQuery, state: FSMContext):
     """Добавление упражнения в блок"""
     exercise_id = int(callback.data.split("_")[3])
-    
+
     try:
         async with db_manager.pool.acquire() as conn:
             exercise = await conn.fetchrow(
                 "SELECT id, name, category, muscle_group FROM exercises WHERE id = $1", 
                 exercise_id
             )
-        
+
         if exercise:
+            # переводим в режим «ищу упражнение для блока»
+            await state.set_state(CreateWorkoutStates.searching_exercise_for_block)
+            await state.update_data(searching_in_block=True)
+
             await state.update_data(
                 current_exercise_id=exercise_id,
                 current_exercise_name=exercise['name']
             )
-            
-            text = f"⚙️ **Настройка упражнения для блока**\n\n"
-            text += f"💪 **{exercise['name']}**\n"
-            text += f"📂 {exercise['category']} • {exercise['muscle_group']}\n\n"
-            text += f"**Настройте параметры:**"
-            
+
+            text = (
+                f"⚙️ **Настройка упражнения для блок**\n\n"
+                f"💪 **{exercise['name']}**\n"
+                f"📂 {exercise['category']} • {exercise['muscle_group']}\n\n"
+                f"**Настройте параметры:**"
+            )
             keyboard = get_exercise_config_keyboard()
-            
             await callback.message.edit_text(
                 text,
                 reply_markup=keyboard,
                 parse_mode="Markdown"
             )
-            
+
     except Exception as e:
         await callback.message.edit_text(f"❌ Ошибка: {e}")
+
     await callback.answer()
 
 # ===== НАСТРОЙКА УПРАЖНЕНИЙ =====

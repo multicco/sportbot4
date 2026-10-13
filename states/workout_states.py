@@ -22,10 +22,12 @@ class CreateWorkoutStates(StatesGroup):
     searching_by_code = State()      # Поиск по коду
     searching_by_name = State()      # Поиск по названию
     
+    configuring_exercise_cardio = State()
     
-    
-
-
+    waiting_speed_data = State()
+    waiting_endurance_data = State()
+    waiting_quantity_data  = State()
+    configuring_exercise_cardio = State() 
 __all__ = ['CreateWorkoutStates']
 
 

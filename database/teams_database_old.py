@@ -153,6 +153,16 @@ class TeamsDatabase:
                 CREATE INDEX IF NOT EXISTS idx_individual_students_coach ON individual_students(coach_telegram_id);
                 CREATE INDEX IF NOT EXISTS idx_workout_teams_team ON workout_teams(team_id);
                 CREATE INDEX IF NOT EXISTS idx_workout_team_player_assignments ON workout_team_player_assignments(workout_team_id);
+                
+
+                -- Таблица инвайтов для подопечных (опционально, если хотите отдельные коды)
+                CREATE TABLE IF NOT EXISTS trainee_invites (
+                    id SERIAL PRIMARY KEY,
+                    coach_telegram_id BIGINT NOT NULL,
+                    access_code VARCHAR(20) UNIQUE NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    expires_at TIMESTAMP
+                );
                 """
                 await conn.execute(schema_sql)
                 logger.info("✅ Teams database tables initialized")

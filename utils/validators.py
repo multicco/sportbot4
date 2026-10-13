@@ -466,6 +466,36 @@ def validate_test_percent_config(sets: str, target_min: str, target_max: str, te
 
 # ===== СОВМЕСТИМОСТЬ =====
 
+# ===== НОВЫЕ ВАЛИДАТОРЫ ДЛЯ ВЫНОСЛИВОСТИ И СКОРОСТИ =====
+
+def validate_endurance_data(value: str) -> dict:
+    """Валидация данных теста выносливости (время в секундах)"""
+    result = {'valid': True, 'error': None, 'seconds': 0}
+    try:
+        sec = float(value.replace(",", "."))
+        if sec <= 0 or sec > 86400:
+            raise ValueError
+        result['seconds'] = sec
+    except ValueError:
+        result['valid'] = False
+        result['error'] = "❌ Введите корректное время в секундах (0-86400)."
+    return result
+
+
+def validate_speed_data(value: str) -> dict:
+    """Валидация данных теста скорости (время в секундах)"""
+    result = {'valid': True, 'error': None, 'seconds': 0}
+    try:
+        sec = float(value.replace(",", "."))
+        if sec <= 0 or sec > 3600:
+            raise ValueError
+        result['seconds'] = sec
+    except ValueError:
+        result['valid'] = False
+        result['error'] = "❌ Введите корректное время в секундах (0-3600)."
+    return result
+
+
 def validate_1rm_data(weight: str, reps: str) -> dict:
     """Валидация данных для теста 1ПМ (совместимость со старым кодом)"""
     return validate_strength_test_data([weight, reps])

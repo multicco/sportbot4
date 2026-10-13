@@ -1381,6 +1381,9 @@ def register_test_handlers(dp):
     # ПРОХОЖДЕНИЕ ТЕСТОВ
     dp.callback_query.register(start_exercise_test, F.data.startswith("test_"))
 
+
+
+
 __all__ = [
     'register_test_handlers',
     'process_test_text_input',
