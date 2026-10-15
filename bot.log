@@ -42624,3 +42624,1205 @@ aiogram.exceptions.TelegramBadRequest: Telegram server says - Bad Request: can't
 2026-03-27 16:21:23,099 - aiogram.dispatcher - INFO - Start polling
 2026-03-27 16:21:23,176 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
 2026-03-27 16:21:30,718 - aiogram.event - INFO - Update id=645445607 is handled. Duration 344 ms by bot id=8236074997
+2026-10-14 13:14:11,004 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2026-10-14 13:14:11,005 - __main__ - INFO - 📊 Инициализация базы данных...
+2026-10-14 13:14:11,134 - database.database - INFO - ✅ База данных инициализирована
+2026-10-14 13:14:11,135 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2026-10-14 13:14:11,138 - database.database - INFO - 🔗 PostgreSQL: 14.24
+2026-10-14 13:14:11,142 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2026-10-14 13:14:11,142 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2026-10-14 13:14:11,142 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2026-10-14 13:14:11,142 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2026-10-14 13:14:11,143 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x7ff9fb56a3b0>
+2026-10-14 13:14:11,143 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x7ff9fb05c250>
+2026-10-14 13:14:11,144 - database.teams_database - INFO - ✅ teams_database инициализирована
+2026-10-14 13:14:11,144 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x7ff9fb061870>
+2026-10-14 13:14:11,148 - database.teams_database - ERROR - ❌ Error initializing teams tables: must be owner of table teams
+Traceback (most recent call last):
+  File "/opt/sportbot4/database/teams_database.py", line 263, in init_tables
+    await conn.execute(schema_sql)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/asyncpg/connection.py", line 350, in execute
+    result = await self._protocol.query(query, timeout)
+  File "asyncpg/protocol/protocol.pyx", line 374, in query
+asyncpg.exceptions.InsufficientPrivilegeError: must be owner of table teams
+2026-10-14 13:14:11,151 - handlers.teams - ERROR - ❌ Ошибка инициализации модуля команд: must be owner of table teams
+Traceback (most recent call last):
+  File "/opt/sportbot4/handlers/teams.py", line 585, in init_teams_module_async
+    await teams_db.init_tables()
+  File "/opt/sportbot4/database/teams_database.py", line 263, in init_tables
+    await conn.execute(schema_sql)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/asyncpg/connection.py", line 350, in execute
+    result = await self._protocol.query(query, timeout)
+  File "asyncpg/protocol/protocol.pyx", line 374, in query
+asyncpg.exceptions.InsufficientPrivilegeError: must be owner of table teams
+2026-10-14 13:14:11,154 - __main__ - ERROR - ❌ Критическая ошибка: must be owner of table teams
+2026-10-14 13:14:11,154 - __main__ - INFO - 🔄 Завершение работы...
+2026-10-14 13:14:11,161 - database.database - INFO - 📊 Database pool закрыт
+2026-10-14 13:14:11,161 - __main__ - INFO - 📊 Соединения с БД закрыты
+2026-10-14 13:14:11,161 - __main__ - INFO - 🤖 Сессия бота закрыта
+2026-10-14 13:14:11,162 - __main__ - INFO - 👋 Бот остановлен
+2026-10-14 13:18:03,923 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2026-10-14 13:18:03,924 - __main__ - INFO - 📊 Инициализация базы данных...
+2026-10-14 13:18:04,034 - database.database - INFO - ✅ База данных инициализирована
+2026-10-14 13:18:04,034 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2026-10-14 13:18:04,037 - database.database - INFO - 🔗 PostgreSQL: 14.24
+2026-10-14 13:18:04,040 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2026-10-14 13:18:04,040 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2026-10-14 13:18:04,041 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2026-10-14 13:18:04,041 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2026-10-14 13:18:04,041 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x7fd0c26163b0>
+2026-10-14 13:18:04,041 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x7fd0c22fc250>
+2026-10-14 13:18:04,042 - database.teams_database - INFO - ✅ teams_database инициализирована
+2026-10-14 13:18:04,042 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x7fd0c23017b0>
+2026-10-14 13:18:04,045 - database.teams_database - ERROR - ❌ Error initializing teams tables: must be owner of table teams
+Traceback (most recent call last):
+  File "/opt/sportbot4/database/teams_database.py", line 263, in init_tables
+    await conn.execute(schema_sql)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/asyncpg/connection.py", line 350, in execute
+    result = await self._protocol.query(query, timeout)
+  File "asyncpg/protocol/protocol.pyx", line 374, in query
+asyncpg.exceptions.InsufficientPrivilegeError: must be owner of table teams
+2026-10-14 13:18:04,048 - handlers.teams - ERROR - ❌ Ошибка инициализации модуля команд: must be owner of table teams
+Traceback (most recent call last):
+  File "/opt/sportbot4/handlers/teams.py", line 585, in init_teams_module_async
+    await teams_db.init_tables()
+  File "/opt/sportbot4/database/teams_database.py", line 263, in init_tables
+    await conn.execute(schema_sql)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/asyncpg/connection.py", line 350, in execute
+    result = await self._protocol.query(query, timeout)
+  File "asyncpg/protocol/protocol.pyx", line 374, in query
+asyncpg.exceptions.InsufficientPrivilegeError: must be owner of table teams
+2026-10-14 13:18:04,051 - __main__ - ERROR - ❌ Критическая ошибка: must be owner of table teams
+2026-10-14 13:18:04,052 - __main__ - INFO - 🔄 Завершение работы...
+2026-10-14 13:18:04,061 - database.database - INFO - 📊 Database pool закрыт
+2026-10-14 13:18:04,061 - __main__ - INFO - 📊 Соединения с БД закрыты
+2026-10-14 13:18:04,062 - __main__ - INFO - 🤖 Сессия бота закрыта
+2026-10-14 13:18:04,062 - __main__ - INFO - 👋 Бот остановлен
+2026-10-14 13:23:44,922 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2026-10-14 13:23:44,922 - __main__ - INFO - 📊 Инициализация базы данных...
+2026-10-14 13:23:45,033 - database.database - INFO - ✅ База данных инициализирована
+2026-10-14 13:23:45,033 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2026-10-14 13:23:45,036 - database.database - INFO - 🔗 PostgreSQL: 14.24
+2026-10-14 13:23:45,038 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2026-10-14 13:23:45,039 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2026-10-14 13:23:45,039 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2026-10-14 13:23:45,039 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2026-10-14 13:23:45,039 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x7fa7247263b0>
+2026-10-14 13:23:45,039 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x7fa72440c250>
+2026-10-14 13:23:45,039 - database.teams_database - INFO - ✅ teams_database инициализирована
+2026-10-14 13:23:45,040 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x7fa7244157b0>
+2026-10-14 13:23:45,044 - database.teams_database - INFO - ✅ Teams database tables initialized
+2026-10-14 13:23:45,045 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x7fa7244157b0>
+2026-10-14 13:23:45,046 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2026-10-14 13:23:45,046 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2026-10-14 13:23:45,046 - handlers - INFO - ============================================================
+2026-10-14 13:23:45,046 - handlers - INFO - 🔗 Начинаю регистрацию всех роутеров и обработчиков...
+2026-10-14 13:23:45,047 - handlers - INFO - ============================================================
+2026-10-14 13:23:45,047 - handlers - INFO - ✅ start handlers зарегистрированы
+2026-10-14 13:23:45,049 - handlers - INFO - ✅ exercises handlers зарегистрированы
+2026-10-14 13:23:45,049 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2026-10-14 13:23:45,049 - handlers - INFO - ✅ workouts handlers зарегистрированы
+2026-10-14 13:23:45,051 - handlers - INFO - ✅ tests handlers зарегистрированы
+2026-10-14 13:23:45,052 - handlers - INFO - ✅ test_batteries handlers зарегистрированы
+2026-10-14 13:23:45,052 - handlers - INFO - ✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)
+2026-10-14 13:23:45,053 - handlers - INFO - ✅ player_workouts_router зарегистрирован
+2026-10-14 13:23:45,053 - handlers - INFO - ✅ trainees_router зарегистрирован
+2026-10-14 13:23:45,053 - handlers - INFO - ✅ workouts_router зарегистрирован
+2026-10-14 13:23:45,054 - handlers - INFO - ✅ general_router зарегистрирован (последний приоритет)
+2026-10-14 13:23:45,056 - handlers - INFO - ✅ team_tests handlers зарегистрированы
+2026-10-14 13:23:45,056 - handlers - INFO - ✅ player_tests handlers зарегистрированы
+2026-10-14 13:23:45,057 - handlers - INFO - ============================================================
+2026-10-14 13:23:45,057 - handlers - INFO - 🎉 ВСЕ роутеры и обработчики успешно зарегистрированы!
+2026-10-14 13:23:45,057 - handlers - INFO - ============================================================
+2026-10-14 13:23:45,205 - __main__ - INFO - ✅ Команды бота настроены
+2026-10-14 13:23:45,239 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2026-10-14 13:23:45,240 - __main__ - INFO - 🆔 ID: 8236074997
+2026-10-14 13:23:45,240 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2026-10-14 13:23:45,241 - __main__ - INFO - ✅ Бот успешно запущен!
+2026-10-14 13:23:45,241 - __main__ - INFO - 🔄 Начинаю поллинг...
+2026-10-14 13:23:45,241 - aiogram.dispatcher - INFO - Start polling
+2026-10-14 13:23:45,267 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2026-10-14 13:24:22,267 - aiogram.event - INFO - Update id=645445882 is handled. Duration 501 ms by bot id=8236074997
+2026-10-14 13:24:28,605 - handlers.workouts - INFO - === show_my_templates START user 328980170 ===
+2026-10-14 13:24:28,829 - handlers.workouts - INFO - === show_my_templates END (SUCCESS) ===
+2026-10-14 13:24:28,830 - aiogram.event - INFO - Update id=645445883 is handled. Duration 249 ms by bot id=8236074997
+2026-10-14 13:24:30,756 - aiogram.event - INFO - Update id=645445884 is handled. Duration 99 ms by bot id=8236074997
+2026-10-14 13:24:35,928 - aiogram.event - INFO - Update id=645445885 is handled. Duration 130 ms by bot id=8236074997
+2026-10-14 13:24:42,545 - aiogram.event - INFO - Update id=645445886 is handled. Duration 78 ms by bot id=8236074997
+2026-10-14 13:24:43,673 - aiogram.event - INFO - Update id=645445887 is handled. Duration 121 ms by bot id=8236074997
+2026-10-14 13:24:46,169 - handlers.workouts - INFO - create_workout_start by 328980170
+2026-10-14 13:24:46,276 - aiogram.event - INFO - Update id=645445888 is handled. Duration 128 ms by bot id=8236074997
+2026-10-14 13:24:52,955 - handlers - INFO - 📨 Текст: 'тестик' | FSM состояние: CreateWorkoutStates:waiting_workout_name
+2026-10-14 13:24:53,075 - aiogram.event - INFO - Update id=645445889 is handled. Duration 123 ms by bot id=8236074997
+2026-10-14 13:24:58,843 - handlers - INFO - 📨 Текст: 'просто тест' | FSM состояние: CreateWorkoutStates:waiting_workout_description
+2026-10-14 13:24:58,904 - aiogram.event - INFO - Update id=645445890 is handled. Duration 63 ms by bot id=8236074997
+2026-10-14 13:25:02,498 - aiogram.event - INFO - Update id=645445891 is handled. Duration 139 ms by bot id=8236074997
+2026-10-14 13:25:05,314 - handlers.workouts - INFO - workout_start_ex_search: current_block = warmup
+2026-10-14 13:25:05,587 - aiogram.event - INFO - Update id=645445892 is handled. Duration 295 ms by bot id=8236074997
+2026-10-14 13:25:06,777 - aiogram.event - INFO - Update id=645445893 is handled. Duration 98 ms by bot id=8236074997
+2026-10-14 13:25:07,705 - aiogram.event - INFO - Update id=645445894 is handled. Duration 76 ms by bot id=8236074997
+2026-10-14 13:25:09,104 - aiogram.event - INFO - Update id=645445895 is handled. Duration 133 ms by bot id=8236074997
+2026-10-14 13:25:12,729 - aiogram.event - INFO - Update id=645445896 is handled. Duration 109 ms by bot id=8236074997
+2026-10-14 13:25:25,617 - handlers.workouts - INFO - handle_create_exercise_params_input: START
+2026-10-14 13:25:25,664 - aiogram.event - INFO - Update id=645445897 is handled. Duration 50 ms by bot id=8236074997
+2026-10-14 13:25:35,147 - aiogram.event - INFO - Update id=645445898 is handled. Duration 116 ms by bot id=8236074997
+2026-10-14 13:25:38,920 - aiogram.event - INFO - Update id=645445899 is handled. Duration 102 ms by bot id=8236074997
+2026-10-14 13:26:59,757 - aiogram.event - INFO - Update id=645445900 is handled. Duration 121 ms by bot id=8236074997
+2026-10-14 13:29:39,378 - aiogram.event - INFO - Update id=645445901 is handled. Duration 127 ms by bot id=8236074997
+2026-10-14 13:29:43,499 - handlers.trainees_menu - INFO - 🟢 show_trainees_list ВЫЗВАНА! callback.data=my_trainees
+2026-10-14 13:29:43,555 - handlers.trainees_menu - INFO - ✅ Показано 7 подопечных
+2026-10-14 13:29:43,556 - aiogram.event - INFO - Update id=645445902 is handled. Duration 78 ms by bot id=8236074997
+2026-10-14 13:29:46,797 - handlers.trainees_menu - INFO - 🟢 show_trainee_profile: trainee_id=14
+2026-10-14 13:29:46,946 - handlers.trainees_menu - INFO - ✅ Профиль подопечного 14 загружен
+2026-10-14 13:29:46,947 - aiogram.event - INFO - Update id=645445903 is handled. Duration 174 ms by bot id=8236074997
+2026-10-14 13:29:48,950 - handlers.trainees_menu - INFO - 🟢 trainee_start_assign_workout: trainee_id=14
+2026-10-14 13:29:49,013 - handlers.trainees_menu - INFO - ✅ Меню назначения открыто для подопечного 14
+2026-10-14 13:29:49,036 - aiogram.event - INFO - Update id=645445904 is handled. Duration 105 ms by bot id=8236074997
+2026-10-14 13:29:52,345 - handlers.teams - INFO - admin=328980170 inner-id=1 -> ищем created_by=1
+2026-10-14 13:29:52,347 - handlers.teams - INFO - admin=328980170 inner-id=1 -> ищем created_by=1
+2026-10-14 13:29:52,423 - aiogram.event - INFO - Update id=645445905 is handled. Duration 102 ms by bot id=8236074997
+2026-10-14 13:29:55,809 - aiogram.event - INFO - Update id=645445906 is handled. Duration 104 ms by bot id=8236074997
+2026-10-14 13:29:57,147 - handlers.teams - INFO - 🟢 Подтверждение назначения тренировки подопечному
+2026-10-14 13:29:57,148 - handlers.teams - INFO - 🔍 state data: {'trainee_id': 14, 'trainee_name': 'Данк', 'assignment_type': 'trainee', 'selected_workout_id': 47}
+2026-10-14 13:29:57,148 - handlers.teams - INFO - 🔍 teams_database = <database.teams_database.TeamsDatabase object at 0x7fa7244157b0> (тип <class 'database.teams_database.TeamsDatabase'>)
+2026-10-14 13:29:57,150 - handlers.teams - INFO - 🔍 перед assign: workout_id=47, trainee_id=14
+2026-10-14 13:29:57,152 - database.teams_database - WARNING - ⚠️ Уже есть активное назначение: workout_id=47, student_id=14
+2026-10-14 13:29:57,173 - aiogram.event - INFO - Update id=645445907 is handled. Duration 44 ms by bot id=8236074997
+2026-10-14 13:30:02,517 - handlers.trainees_menu - INFO - 🟢 show_trainee_profile: trainee_id=14
+2026-10-14 13:30:02,671 - handlers.trainees_menu - INFO - ✅ Профиль подопечного 14 загружен
+2026-10-14 13:30:02,672 - aiogram.event - INFO - Update id=645445908 is handled. Duration 177 ms by bot id=8236074997
+2026-10-14 14:02:12,204 - handlers.trainees_menu - INFO - 🟢 show_trainees_list ВЫЗВАНА! callback.data=my_trainees
+2026-10-14 14:02:12,781 - handlers.trainees_menu - INFO - ✅ Показано 7 подопечных
+2026-10-14 14:02:12,787 - aiogram.event - INFO - Update id=645445909 is handled. Duration 835 ms by bot id=8236074997
+2026-10-14 14:14:14,813 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - Request timeout error
+2026-10-14 14:14:14,815 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8236074997)
+2026-10-14 14:15:26,769 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - Request timeout error
+2026-10-14 14:15:26,769 - aiogram.dispatcher - WARNING - Sleep for 1.276581 seconds and try again... (tryings = 1, bot id = 8236074997)
+2026-10-14 14:15:38,094 - aiogram.dispatcher - INFO - Connection established (tryings = 2, bot id = 8236074997)
+2026-10-14 14:19:35,696 - aiogram.dispatcher - WARNING - Received SIGINT signal
+2026-10-14 14:19:35,699 - aiogram.dispatcher - INFO - Polling stopped for bot @sportofpbot id=8236074997 - 'sportbot'
+2026-10-14 14:19:35,700 - aiogram.dispatcher - INFO - Polling stopped
+2026-10-14 14:19:35,955 - __main__ - INFO - 🔄 Завершение работы...
+2026-10-14 14:19:35,957 - database.database - INFO - 📊 Database pool закрыт
+2026-10-14 14:19:35,957 - __main__ - INFO - 📊 Соединения с БД закрыты
+2026-10-14 14:19:35,958 - __main__ - INFO - 🤖 Сессия бота закрыта
+2026-10-14 14:19:35,958 - __main__ - INFO - 👋 Бот остановлен
+2026-10-14 14:28:14,239 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2026-10-14 14:28:14,240 - __main__ - INFO - 📊 Инициализация базы данных...
+2026-10-14 14:28:14,382 - database.database - INFO - ✅ База данных инициализирована
+2026-10-14 14:28:14,383 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2026-10-14 14:28:14,386 - database.database - INFO - 🔗 PostgreSQL: 14.24
+2026-10-14 14:28:14,388 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2026-10-14 14:28:14,389 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2026-10-14 14:28:14,389 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2026-10-14 14:28:14,389 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2026-10-14 14:28:14,389 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x7f97ff99e3b0>
+2026-10-14 14:28:14,389 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x7f97ff6a0d50>
+2026-10-14 14:28:14,390 - database.teams_database - INFO - ✅ teams_database инициализирована
+2026-10-14 14:28:14,390 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x7f97ff666bf0>
+2026-10-14 14:28:14,416 - database.teams_database - INFO - ✅ Teams database tables initialized
+2026-10-14 14:28:14,417 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x7f97ff666bf0>
+2026-10-14 14:28:14,417 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2026-10-14 14:28:14,417 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2026-10-14 14:28:14,417 - handlers - INFO - ============================================================
+2026-10-14 14:28:14,418 - handlers - INFO - 🔗 Начинаю регистрацию всех роутеров и обработчиков...
+2026-10-14 14:28:14,418 - handlers - INFO - ============================================================
+2026-10-14 14:28:14,418 - handlers - INFO - ✅ start handlers зарегистрированы
+2026-10-14 14:28:14,420 - handlers - INFO - ✅ exercises handlers зарегистрированы
+2026-10-14 14:28:14,422 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2026-10-14 14:28:14,422 - handlers - INFO - ✅ workouts handlers зарегистрированы
+2026-10-14 14:28:14,423 - handlers - INFO - ✅ tests handlers зарегистрированы
+2026-10-14 14:28:14,426 - handlers - INFO - ✅ test_batteries handlers зарегистрированы
+2026-10-14 14:28:14,427 - handlers - INFO - ✅ navigation_router зарегистрирован (ПЕРВЫЙ ПРИОРИТЕТ)
+2026-10-14 14:28:14,427 - handlers - INFO - ✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)
+2026-10-14 14:28:14,427 - handlers - INFO - ✅ player_workouts_router зарегистрирован
+2026-10-14 14:28:14,428 - handlers - INFO - ✅ trainees_router зарегистрирован
+2026-10-14 14:28:14,428 - handlers - INFO - ✅ workouts_router зарегистрирован
+2026-10-14 14:28:14,429 - handlers - INFO - ✅ general_router зарегистрирован (последний приоритет)
+2026-10-14 14:28:14,432 - handlers - INFO - ✅ team_tests handlers зарегистрированы
+2026-10-14 14:28:14,434 - handlers - INFO - ✅ player_tests handlers зарегистрированы
+2026-10-14 14:28:14,436 - handlers - INFO - ============================================================
+2026-10-14 14:28:14,436 - handlers - INFO - 🎉 ВСЕ роутеры и обработчики успешно зарегистрированы!
+2026-10-14 14:28:14,436 - handlers - INFO - ============================================================
+2026-10-14 14:28:14,558 - __main__ - INFO - ✅ Команды бота настроены
+2026-10-14 14:28:14,579 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2026-10-14 14:28:14,579 - __main__ - INFO - 🆔 ID: 8236074997
+2026-10-14 14:28:14,579 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2026-10-14 14:28:14,580 - __main__ - INFO - ✅ Бот успешно запущен!
+2026-10-14 14:28:14,580 - __main__ - INFO - 🔄 Начинаю поллинг...
+2026-10-14 14:28:14,581 - aiogram.dispatcher - INFO - Start polling
+2026-10-14 14:28:14,597 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2026-10-14 14:28:20,879 - aiogram.event - INFO - Update id=645445910 is handled. Duration 274 ms by bot id=8236074997
+2026-10-14 14:28:25,057 - aiogram.event - INFO - Update id=645445911 is handled. Duration 73 ms by bot id=8236074997
+2026-10-14 14:28:28,935 - aiogram.event - INFO - Update id=645445912 is handled. Duration 70 ms by bot id=8236074997
+2026-10-14 14:28:36,814 - aiogram.event - INFO - Update id=645445913 is not handled. Duration 12 ms by bot id=8236074997
+2026-10-14 14:28:36,815 - aiogram.event - ERROR - Cause exception while process update id=645445913 by bot id=8236074997
+TypeError: ensure_back_button() takes 2 positional arguments but 3 were given
+Traceback (most recent call last):
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/error.py", line 25, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/user_context.py", line 56, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/fsm/middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 174, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 101, in wrap_outer_middleware
+    return wrapped_outer(event, data)
+TypeError: ensure_back_button() takes 2 positional arguments but 3 were given
+2026-10-14 14:30:59,857 - aiogram.dispatcher - WARNING - Received SIGINT signal
+2026-10-14 14:30:59,859 - aiogram.dispatcher - INFO - Polling stopped for bot @sportofpbot id=8236074997 - 'sportbot'
+2026-10-14 14:30:59,860 - aiogram.dispatcher - INFO - Polling stopped
+2026-10-14 14:31:00,112 - __main__ - INFO - 🔄 Завершение работы...
+2026-10-14 14:31:00,119 - database.database - INFO - 📊 Database pool закрыт
+2026-10-14 14:31:00,119 - __main__ - INFO - 📊 Соединения с БД закрыты
+2026-10-14 14:31:00,121 - __main__ - INFO - 🤖 Сессия бота закрыта
+2026-10-14 14:31:00,121 - __main__ - INFO - 👋 Бот остановлен
+2026-10-14 14:46:56,923 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2026-10-14 14:46:56,924 - __main__ - INFO - 📊 Инициализация базы данных...
+2026-10-14 14:46:57,055 - database.database - INFO - ✅ База данных инициализирована
+2026-10-14 14:46:57,057 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2026-10-14 14:46:57,061 - database.database - INFO - 🔗 PostgreSQL: 14.24
+2026-10-14 14:46:57,064 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2026-10-14 14:46:57,064 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2026-10-14 14:46:57,064 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2026-10-14 14:46:57,065 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2026-10-14 14:46:57,065 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x7f61191223b0>
+2026-10-14 14:46:57,065 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x7f6118c30d50>
+2026-10-14 14:46:57,065 - database.teams_database - INFO - ✅ teams_database инициализирована
+2026-10-14 14:46:57,066 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x7f6118df6c50>
+2026-10-14 14:46:57,070 - database.teams_database - INFO - ✅ Teams database tables initialized
+2026-10-14 14:46:57,072 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x7f6118df6c50>
+2026-10-14 14:46:57,072 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2026-10-14 14:46:57,072 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2026-10-14 14:46:57,072 - handlers - INFO - ============================================================
+2026-10-14 14:46:57,072 - handlers - INFO - 🔗 Начинаю регистрацию всех роутеров и обработчиков...
+2026-10-14 14:46:57,072 - handlers - INFO - ============================================================
+2026-10-14 14:46:57,073 - handlers - INFO - ✅ start handlers зарегистрированы
+2026-10-14 14:46:57,075 - handlers - INFO - ✅ exercises handlers зарегистрированы
+2026-10-14 14:46:57,075 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2026-10-14 14:46:57,075 - handlers - INFO - ✅ workouts handlers зарегистрированы
+2026-10-14 14:46:57,077 - handlers - INFO - ✅ tests handlers зарегистрированы
+2026-10-14 14:46:57,078 - handlers - INFO - ✅ test_batteries handlers зарегистрированы
+2026-10-14 14:46:57,078 - handlers - INFO - ✅ navigation_router зарегистрирован (ПЕРВЫЙ ПРИОРИТЕТ)
+2026-10-14 14:46:57,079 - handlers - INFO - ✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)
+2026-10-14 14:46:57,079 - handlers - INFO - ✅ player_workouts_router зарегистрирован
+2026-10-14 14:46:57,079 - handlers - INFO - ✅ trainees_router зарегистрирован
+2026-10-14 14:46:57,079 - handlers - INFO - ✅ workouts_router зарегистрирован
+2026-10-14 14:46:57,080 - handlers - INFO - ✅ general_router зарегистрирован (последний приоритет)
+2026-10-14 14:46:57,082 - handlers - INFO - ✅ team_tests handlers зарегистрированы
+2026-10-14 14:46:57,083 - handlers - INFO - ✅ player_tests handlers зарегистрированы
+2026-10-14 14:46:57,083 - handlers - INFO - ============================================================
+2026-10-14 14:46:57,083 - handlers - INFO - 🎉 ВСЕ роутеры и обработчики успешно зарегистрированы!
+2026-10-14 14:46:57,083 - handlers - INFO - ============================================================
+2026-10-14 14:46:57,146 - __main__ - INFO - ✅ Команды бота настроены
+2026-10-14 14:46:57,160 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2026-10-14 14:46:57,161 - __main__ - INFO - 🆔 ID: 8236074997
+2026-10-14 14:46:57,161 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2026-10-14 14:46:57,161 - __main__ - INFO - ✅ Бот успешно запущен!
+2026-10-14 14:46:57,161 - __main__ - INFO - 🔄 Начинаю поллинг...
+2026-10-14 14:46:57,163 - aiogram.dispatcher - INFO - Start polling
+2026-10-14 14:46:57,173 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2026-10-14 14:47:01,114 - aiogram.event - INFO - Update id=645445914 is handled. Duration 325 ms by bot id=8236074997
+2026-10-14 14:47:02,144 - aiogram.event - INFO - Update id=645445915 is handled. Duration 80 ms by bot id=8236074997
+2026-10-14 14:47:03,476 - aiogram.event - INFO - Update id=645445916 is not handled. Duration 17 ms by bot id=8236074997
+2026-10-14 14:47:03,477 - aiogram.event - ERROR - Cause exception while process update id=645445916 by bot id=8236074997
+TypeError: object async_generator can't be used in 'await' expression
+Traceback (most recent call last):
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/error.py", line 25, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/user_context.py", line 56, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/fsm/middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 174, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+TypeError: object async_generator can't be used in 'await' expression
+2026-10-14 14:47:06,359 - aiogram.event - INFO - Update id=645445917 is not handled. Duration 12 ms by bot id=8236074997
+2026-10-14 14:47:06,359 - aiogram.event - ERROR - Cause exception while process update id=645445917 by bot id=8236074997
+TypeError: object async_generator can't be used in 'await' expression
+Traceback (most recent call last):
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/error.py", line 25, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/user_context.py", line 56, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/fsm/middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 174, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+TypeError: object async_generator can't be used in 'await' expression
+2026-10-14 14:47:08,430 - aiogram.event - INFO - Update id=645445918 is not handled. Duration 12 ms by bot id=8236074997
+2026-10-14 14:47:08,431 - aiogram.event - ERROR - Cause exception while process update id=645445918 by bot id=8236074997
+TypeError: object async_generator can't be used in 'await' expression
+Traceback (most recent call last):
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/error.py", line 25, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/user_context.py", line 56, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/fsm/middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 174, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+TypeError: object async_generator can't be used in 'await' expression
+2026-10-14 14:47:09,892 - aiogram.event - INFO - Update id=645445919 is not handled. Duration 11 ms by bot id=8236074997
+2026-10-14 14:47:09,892 - aiogram.event - ERROR - Cause exception while process update id=645445919 by bot id=8236074997
+TypeError: object async_generator can't be used in 'await' expression
+Traceback (most recent call last):
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/error.py", line 25, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/user_context.py", line 56, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/fsm/middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 174, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+TypeError: object async_generator can't be used in 'await' expression
+2026-10-14 14:55:59,759 - aiogram.dispatcher - WARNING - Received SIGINT signal
+2026-10-14 14:55:59,762 - aiogram.dispatcher - INFO - Polling stopped for bot @sportofpbot id=8236074997 - 'sportbot'
+2026-10-14 14:55:59,762 - aiogram.dispatcher - INFO - Polling stopped
+2026-10-14 14:56:00,014 - __main__ - INFO - 🔄 Завершение работы...
+2026-10-14 14:56:00,020 - database.database - INFO - 📊 Database pool закрыт
+2026-10-14 14:56:00,020 - __main__ - INFO - 📊 Соединения с БД закрыты
+2026-10-14 14:56:00,021 - __main__ - INFO - 🤖 Сессия бота закрыта
+2026-10-14 14:56:00,021 - __main__ - INFO - 👋 Бот остановлен
+2026-10-14 14:56:06,720 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2026-10-14 14:56:06,722 - __main__ - INFO - 📊 Инициализация базы данных...
+2026-10-14 14:56:06,849 - database.database - INFO - ✅ База данных инициализирована
+2026-10-14 14:56:06,850 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2026-10-14 14:56:06,852 - database.database - INFO - 🔗 PostgreSQL: 14.24
+2026-10-14 14:56:06,855 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2026-10-14 14:56:06,856 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2026-10-14 14:56:06,856 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2026-10-14 14:56:06,856 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2026-10-14 14:56:06,856 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x7f00d90ae3b0>
+2026-10-14 14:56:06,856 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x7f00d8bbcca0>
+2026-10-14 14:56:06,857 - database.teams_database - INFO - ✅ teams_database инициализирована
+2026-10-14 14:56:06,857 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x7f00d8d82c50>
+2026-10-14 14:56:06,861 - database.teams_database - INFO - ✅ Teams database tables initialized
+2026-10-14 14:56:06,862 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x7f00d8d82c50>
+2026-10-14 14:56:06,862 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2026-10-14 14:56:06,862 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2026-10-14 14:56:06,862 - handlers - INFO - ============================================================
+2026-10-14 14:56:06,862 - handlers - INFO - 🔗 Начинаю регистрацию всех роутеров и обработчиков...
+2026-10-14 14:56:06,862 - handlers - INFO - ============================================================
+2026-10-14 14:56:06,863 - handlers - INFO - ✅ start handlers зарегистрированы
+2026-10-14 14:56:06,865 - handlers - INFO - ✅ exercises handlers зарегистрированы
+2026-10-14 14:56:06,865 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2026-10-14 14:56:06,865 - handlers - INFO - ✅ workouts handlers зарегистрированы
+2026-10-14 14:56:06,866 - handlers - INFO - ✅ tests handlers зарегистрированы
+2026-10-14 14:56:06,868 - handlers - INFO - ✅ test_batteries handlers зарегистрированы
+2026-10-14 14:56:06,868 - handlers - INFO - ✅ navigation_router зарегистрирован (ПЕРВЫЙ ПРИОРИТЕТ)
+2026-10-14 14:56:06,868 - handlers - INFO - ✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)
+2026-10-14 14:56:06,868 - handlers - INFO - ✅ player_workouts_router зарегистрирован
+2026-10-14 14:56:06,868 - handlers - INFO - ✅ trainees_router зарегистрирован
+2026-10-14 14:56:06,868 - handlers - INFO - ✅ workouts_router зарегистрирован
+2026-10-14 14:56:06,869 - handlers - INFO - ✅ general_router зарегистрирован (последний приоритет)
+2026-10-14 14:56:06,870 - handlers - INFO - ✅ team_tests handlers зарегистрированы
+2026-10-14 14:56:06,871 - handlers - INFO - ✅ player_tests handlers зарегистрированы
+2026-10-14 14:56:06,871 - handlers - INFO - ============================================================
+2026-10-14 14:56:06,871 - handlers - INFO - 🎉 ВСЕ роутеры и обработчики успешно зарегистрированы!
+2026-10-14 14:56:06,871 - handlers - INFO - ============================================================
+2026-10-14 14:56:06,991 - __main__ - INFO - ✅ Команды бота настроены
+2026-10-14 14:56:07,022 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2026-10-14 14:56:07,023 - __main__ - INFO - 🆔 ID: 8236074997
+2026-10-14 14:56:07,023 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2026-10-14 14:56:07,023 - __main__ - INFO - ✅ Бот успешно запущен!
+2026-10-14 14:56:07,024 - __main__ - INFO - 🔄 Начинаю поллинг...
+2026-10-14 14:56:07,025 - aiogram.dispatcher - INFO - Start polling
+2026-10-14 14:56:07,038 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2026-10-14 14:56:11,950 - aiogram.event - INFO - Update id=645445920 is not handled. Duration 16 ms by bot id=8236074997
+2026-10-14 14:56:11,950 - aiogram.event - ERROR - Cause exception while process update id=645445920 by bot id=8236074997
+TypeError: Router.propagate_event.<locals>._wrapped() got an unexpected keyword argument 'dispatcher'
+Traceback (most recent call last):
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/error.py", line 25, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/user_context.py", line 56, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/fsm/middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 174, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/handlers/navigation.py", line 208, in ensure_back_button
+    result = await handler(callback, **data)
+TypeError: Router.propagate_event.<locals>._wrapped() got an unexpected keyword argument 'dispatcher'
+2026-10-14 14:56:14,674 - aiogram.event - INFO - Update id=645445921 is handled. Duration 263 ms by bot id=8236074997
+2026-10-14 14:56:16,101 - aiogram.event - INFO - Update id=645445922 is handled. Duration 70 ms by bot id=8236074997
+2026-10-14 14:56:17,396 - aiogram.event - INFO - Update id=645445923 is not handled. Duration 26 ms by bot id=8236074997
+2026-10-14 14:56:17,396 - aiogram.event - ERROR - Cause exception while process update id=645445923 by bot id=8236074997
+TypeError: Router.propagate_event.<locals>._wrapped() got an unexpected keyword argument 'dispatcher'
+Traceback (most recent call last):
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/error.py", line 25, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/user_context.py", line 56, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/fsm/middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 174, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/handlers/navigation.py", line 208, in ensure_back_button
+    result = await handler(callback, **data)
+TypeError: Router.propagate_event.<locals>._wrapped() got an unexpected keyword argument 'dispatcher'
+2026-10-14 14:56:27,859 - aiogram.dispatcher - WARNING - Received SIGINT signal
+2026-10-14 14:56:27,860 - aiogram.dispatcher - INFO - Polling stopped for bot @sportofpbot id=8236074997 - 'sportbot'
+2026-10-14 14:56:27,860 - aiogram.dispatcher - INFO - Polling stopped
+2026-10-14 14:56:28,112 - __main__ - INFO - 🔄 Завершение работы...
+2026-10-14 14:56:28,115 - database.database - INFO - 📊 Database pool закрыт
+2026-10-14 14:56:28,115 - __main__ - INFO - 📊 Соединения с БД закрыты
+2026-10-14 14:56:28,117 - __main__ - INFO - 🤖 Сессия бота закрыта
+2026-10-14 14:56:28,121 - __main__ - INFO - 👋 Бот остановлен
+2026-10-14 15:26:37,092 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2026-10-14 15:26:37,093 - __main__ - INFO - 📊 Инициализация базы данных...
+2026-10-14 15:26:37,210 - database.database - INFO - ✅ База данных инициализирована
+2026-10-14 15:26:37,211 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2026-10-14 15:26:37,214 - database.database - INFO - 🔗 PostgreSQL: 14.24
+2026-10-14 15:26:37,216 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2026-10-14 15:26:37,216 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2026-10-14 15:26:37,217 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2026-10-14 15:26:37,217 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2026-10-14 15:26:37,217 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x7fa46598e3b0>
+2026-10-14 15:26:37,217 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x7fa46549cca0>
+2026-10-14 15:26:37,218 - database.teams_database - INFO - ✅ teams_database инициализирована
+2026-10-14 15:26:37,218 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x7fa465662ce0>
+2026-10-14 15:26:37,222 - database.teams_database - INFO - ✅ Teams database tables initialized
+2026-10-14 15:26:37,223 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x7fa465662ce0>
+2026-10-14 15:26:37,223 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2026-10-14 15:26:37,223 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2026-10-14 15:26:37,223 - handlers - INFO - ============================================================
+2026-10-14 15:26:37,223 - handlers - INFO - 🔗 Начинаю регистрацию всех роутеров и обработчиков...
+2026-10-14 15:26:37,223 - handlers - INFO - ============================================================
+2026-10-14 15:26:37,224 - handlers - INFO - ✅ start handlers зарегистрированы
+2026-10-14 15:26:37,226 - handlers - INFO - ✅ exercises handlers зарегистрированы
+2026-10-14 15:26:37,226 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2026-10-14 15:26:37,226 - handlers - INFO - ✅ workouts handlers зарегистрированы
+2026-10-14 15:26:37,227 - handlers - INFO - ✅ tests handlers зарегистрированы
+2026-10-14 15:26:37,229 - handlers - INFO - ✅ test_batteries handlers зарегистрированы
+2026-10-14 15:26:37,229 - handlers - INFO - ✅ navigation_router зарегистрирован (ПЕРВЫЙ ПРИОРИТЕТ)
+2026-10-14 15:26:37,229 - handlers - INFO - ✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)
+2026-10-14 15:26:37,229 - handlers - INFO - ✅ player_workouts_router зарегистрирован
+2026-10-14 15:26:37,230 - handlers - INFO - ✅ trainees_router зарегистрирован
+2026-10-14 15:26:37,230 - handlers - INFO - ✅ workouts_router зарегистрирован
+2026-10-14 15:26:37,231 - handlers - INFO - ✅ general_router зарегистрирован (последний приоритет)
+2026-10-14 15:26:37,232 - handlers - INFO - ✅ team_tests handlers зарегистрированы
+2026-10-14 15:26:37,233 - handlers - INFO - ✅ player_tests handlers зарегистрированы
+2026-10-14 15:26:37,233 - handlers - INFO - ============================================================
+2026-10-14 15:26:37,233 - handlers - INFO - 🎉 ВСЕ роутеры и обработчики успешно зарегистрированы!
+2026-10-14 15:26:37,233 - handlers - INFO - ============================================================
+2026-10-14 15:26:37,347 - __main__ - INFO - ✅ Команды бота настроены
+2026-10-14 15:26:37,363 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2026-10-14 15:26:37,364 - __main__ - INFO - 🆔 ID: 8236074997
+2026-10-14 15:26:37,364 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2026-10-14 15:26:37,365 - __main__ - INFO - ✅ Бот успешно запущен!
+2026-10-14 15:26:37,365 - __main__ - INFO - 🔄 Начинаю поллинг...
+2026-10-14 15:26:37,366 - aiogram.dispatcher - INFO - Start polling
+2026-10-14 15:26:37,378 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2026-10-14 15:26:39,580 - aiogram.event - INFO - Update id=645445924 is handled. Duration 293 ms by bot id=8236074997
+2026-10-14 15:26:40,491 - aiogram.event - INFO - Update id=645445925 is handled. Duration 72 ms by bot id=8236074997
+2026-10-14 15:26:41,612 - handlers.workouts - INFO - === show_my_templates START user 328980170 ===
+2026-10-14 15:26:41,747 - handlers.workouts - INFO - === show_my_templates END (SUCCESS) ===
+2026-10-14 15:26:41,747 - aiogram.event - INFO - Update id=645445926 is handled. Duration 159 ms by bot id=8236074997
+2026-10-14 15:26:49,174 - aiogram.event - INFO - Update id=645445927 is handled. Duration 82 ms by bot id=8236074997
+2026-10-14 15:26:50,186 - aiogram.event - INFO - Update id=645445928 is handled. Duration 60 ms by bot id=8236074997
+2026-10-14 15:26:54,338 - aiogram.event - INFO - Update id=645445929 is not handled. Duration 26 ms by bot id=8236074997
+2026-10-14 15:27:03,059 - aiogram.event - INFO - Update id=645445930 is handled. Duration 83 ms by bot id=8236074997
+2026-10-14 15:27:07,606 - aiogram.event - INFO - Update id=645445931 is handled. Duration 95 ms by bot id=8236074997
+2026-10-14 15:27:13,140 - aiogram.event - INFO - Update id=645445932 is handled. Duration 170 ms by bot id=8236074997
+2026-10-15 10:23:17,062 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2026-10-15 10:23:17,092 - __main__ - INFO - 📊 Инициализация базы данных...
+2026-10-15 10:23:17,438 - database.database - INFO - ✅ База данных инициализирована
+2026-10-15 10:23:17,438 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2026-10-15 10:23:17,477 - database.database - INFO - 🔗 PostgreSQL: 14.24
+2026-10-15 10:23:17,484 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2026-10-15 10:23:17,485 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2026-10-15 10:23:17,485 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2026-10-15 10:23:17,485 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2026-10-15 10:23:17,486 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x7f69b6b963b0>
+2026-10-15 10:23:17,486 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x7f69b6698d50>
+2026-10-15 10:23:17,489 - database.teams_database - INFO - ✅ teams_database инициализирована
+2026-10-15 10:23:17,489 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x7f69b668b4c0>
+2026-10-15 10:23:17,579 - database.teams_database - INFO - ✅ Teams database tables initialized
+2026-10-15 10:23:17,581 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x7f69b668b4c0>
+2026-10-15 10:23:17,581 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2026-10-15 10:23:17,582 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2026-10-15 10:23:17,582 - handlers - INFO - ============================================================
+2026-10-15 10:23:17,582 - handlers - INFO - 🔗 Начинаю регистрацию всех роутеров и обработчиков...
+2026-10-15 10:23:17,582 - handlers - INFO - ============================================================
+2026-10-15 10:23:17,583 - handlers - INFO - ✅ start handlers зарегистрированы
+2026-10-15 10:23:17,589 - handlers - INFO - ✅ exercises handlers зарегистрированы
+2026-10-15 10:23:17,590 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2026-10-15 10:23:17,590 - handlers - INFO - ✅ workouts handlers зарегистрированы
+2026-10-15 10:23:17,591 - handlers - INFO - ✅ tests handlers зарегистрированы
+2026-10-15 10:23:17,595 - handlers - INFO - ✅ test_batteries handlers зарегистрированы
+2026-10-15 10:23:17,597 - handlers - INFO - ✅ navigation_router зарегистрирован (ПЕРВЫЙ ПРИОРИТЕТ)
+2026-10-15 10:23:17,597 - handlers - INFO - ✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)
+2026-10-15 10:23:17,598 - handlers - INFO - ✅ player_workouts_router зарегистрирован
+2026-10-15 10:23:17,598 - handlers - INFO - ✅ trainees_router зарегистрирован
+2026-10-15 10:23:17,598 - handlers - INFO - ✅ workouts_router зарегистрирован
+2026-10-15 10:23:17,600 - handlers - INFO - ✅ general_router зарегистрирован (последний приоритет)
+2026-10-15 10:23:17,601 - handlers - INFO - ✅ team_tests handlers зарегистрированы
+2026-10-15 10:23:17,603 - handlers - INFO - ✅ player_tests handlers зарегистрированы
+2026-10-15 10:23:17,603 - handlers - INFO - ============================================================
+2026-10-15 10:23:17,603 - handlers - INFO - 🎉 ВСЕ роутеры и обработчики успешно зарегистрированы!
+2026-10-15 10:23:17,604 - handlers - INFO - ============================================================
+2026-10-15 10:23:17,916 - __main__ - INFO - ✅ Команды бота настроены
+2026-10-15 10:23:17,935 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2026-10-15 10:23:17,935 - __main__ - INFO - 🆔 ID: 8236074997
+2026-10-15 10:23:17,936 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2026-10-15 10:23:17,936 - __main__ - INFO - ✅ Бот успешно запущен!
+2026-10-15 10:23:17,936 - __main__ - INFO - 🔄 Начинаю поллинг...
+2026-10-15 10:23:17,937 - aiogram.dispatcher - INFO - Start polling
+2026-10-15 10:23:17,953 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2026-10-15 10:23:18,164 - aiogram.event - INFO - Update id=645445934 is not handled. Duration 3 ms by bot id=8236074997
+2026-10-15 10:23:18,593 - aiogram.event - INFO - Update id=645445933 is handled. Duration 439 ms by bot id=8236074997
+2026-10-15 10:23:26,039 - aiogram.event - INFO - Update id=645445935 is handled. Duration 63 ms by bot id=8236074997
+2026-10-15 10:23:43,159 - aiogram.event - INFO - Update id=645445936 is handled. Duration 114 ms by bot id=8236074997
+2026-10-15 10:23:44,375 - aiogram.event - INFO - Update id=645445937 is handled. Duration 77 ms by bot id=8236074997
+2026-10-15 13:03:57,439 - aiogram.event - INFO - Update id=645445938 is handled. Duration 277 ms by bot id=8236074997
+2026-10-15 13:03:59,441 - aiogram.event - INFO - Update id=645445939 is handled. Duration 513 ms by bot id=8236074997
+2026-10-15 13:04:01,262 - handlers.workouts - INFO - create_workout_start by 328980170
+2026-10-15 13:04:01,336 - aiogram.event - INFO - Update id=645445940 is handled. Duration 126 ms by bot id=8236074997
+2026-10-15 13:04:07,049 - handlers - INFO - 📨 Текст: 'База' | FSM состояние: CreateWorkoutStates:waiting_workout_name
+2026-10-15 13:04:07,144 - aiogram.event - INFO - Update id=645445941 is handled. Duration 136 ms by bot id=8236074997
+2026-10-15 13:04:22,959 - handlers - INFO - 📨 Текст: 'Базовая тренировка на все группы' | FSM состояние: CreateWorkoutStates:waiting_workout_description
+2026-10-15 13:04:23,201 - aiogram.event - INFO - Update id=645445942 is handled. Duration 245 ms by bot id=8236074997
+2026-10-15 13:04:25,863 - aiogram.event - INFO - Update id=645445943 is handled. Duration 206 ms by bot id=8236074997
+2026-10-15 13:04:40,800 - aiogram.event - INFO - Update id=645445944 is handled. Duration 97 ms by bot id=8236074997
+2026-10-15 13:07:31,231 - aiogram.event - INFO - Update id=645445945 is handled. Duration 196 ms by bot id=8236074997
+2026-10-15 13:07:38,912 - aiogram.event - INFO - Update id=645445946 is not handled. Duration 54 ms by bot id=8236074997
+2026-10-15 13:07:38,914 - aiogram.event - ERROR - Cause exception while process update id=645445946 by bot id=8236074997
+AttributeError: type object 'Dispatcher' has no attribute 'get_current'
+Traceback (most recent call last):
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/error.py", line 25, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/user_context.py", line 56, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/fsm/middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 174, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/handlers/navigation.py", line 208, in ensure_back_button
+    result = await handler(callback, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 166, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/handlers/navigation.py", line 86, in handle_universal_back
+    dp = Dispatcher.get_current()
+AttributeError: type object 'Dispatcher' has no attribute 'get_current'
+2026-10-15 13:07:41,089 - aiogram.event - INFO - Update id=645445947 is not handled. Duration 39 ms by bot id=8236074997
+2026-10-15 13:07:41,091 - aiogram.event - ERROR - Cause exception while process update id=645445947 by bot id=8236074997
+AttributeError: type object 'Dispatcher' has no attribute 'get_current'
+Traceback (most recent call last):
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/error.py", line 25, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/user_context.py", line 56, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/fsm/middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 174, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/handlers/navigation.py", line 208, in ensure_back_button
+    result = await handler(callback, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 166, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/handlers/navigation.py", line 86, in handle_universal_back
+    dp = Dispatcher.get_current()
+AttributeError: type object 'Dispatcher' has no attribute 'get_current'
+2026-10-15 13:07:50,251 - aiogram.event - INFO - Update id=645445948 is not handled. Duration 45 ms by bot id=8236074997
+2026-10-15 13:07:50,252 - aiogram.event - ERROR - Cause exception while process update id=645445948 by bot id=8236074997
+AttributeError: type object 'Dispatcher' has no attribute 'get_current'
+Traceback (most recent call last):
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/error.py", line 25, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/user_context.py", line 56, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/fsm/middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 174, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/handlers/navigation.py", line 208, in ensure_back_button
+    result = await handler(callback, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 166, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/handlers/navigation.py", line 86, in handle_universal_back
+    dp = Dispatcher.get_current()
+AttributeError: type object 'Dispatcher' has no attribute 'get_current'
+2026-10-15 13:07:50,866 - aiogram.event - INFO - Update id=645445949 is not handled. Duration 49 ms by bot id=8236074997
+2026-10-15 13:07:50,866 - aiogram.event - ERROR - Cause exception while process update id=645445949 by bot id=8236074997
+AttributeError: type object 'Dispatcher' has no attribute 'get_current'
+Traceback (most recent call last):
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/error.py", line 25, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/user_context.py", line 56, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/fsm/middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 174, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/handlers/navigation.py", line 208, in ensure_back_button
+    result = await handler(callback, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 166, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/handlers/navigation.py", line 86, in handle_universal_back
+    dp = Dispatcher.get_current()
+AttributeError: type object 'Dispatcher' has no attribute 'get_current'
+2026-10-15 13:07:51,523 - aiogram.event - INFO - Update id=645445950 is not handled. Duration 69 ms by bot id=8236074997
+2026-10-15 13:07:51,527 - aiogram.event - ERROR - Cause exception while process update id=645445950 by bot id=8236074997
+AttributeError: type object 'Dispatcher' has no attribute 'get_current'
+Traceback (most recent call last):
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/error.py", line 25, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/user_context.py", line 56, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/fsm/middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 174, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/handlers/navigation.py", line 208, in ensure_back_button
+    result = await handler(callback, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 166, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/handlers/navigation.py", line 86, in handle_universal_back
+    dp = Dispatcher.get_current()
+AttributeError: type object 'Dispatcher' has no attribute 'get_current'
+2026-10-15 13:07:55,691 - aiogram.event - INFO - Update id=645445951 is not handled. Duration 75 ms by bot id=8236074997
+2026-10-15 13:07:55,693 - aiogram.event - ERROR - Cause exception while process update id=645445951 by bot id=8236074997
+AttributeError: type object 'Dispatcher' has no attribute 'get_current'
+Traceback (most recent call last):
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/error.py", line 25, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/user_context.py", line 56, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/fsm/middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 174, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/handlers/navigation.py", line 208, in ensure_back_button
+    result = await handler(callback, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 166, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/handlers/navigation.py", line 86, in handle_universal_back
+    dp = Dispatcher.get_current()
+AttributeError: type object 'Dispatcher' has no attribute 'get_current'
+2026-10-15 13:07:56,112 - aiogram.event - INFO - Update id=645445952 is not handled. Duration 49 ms by bot id=8236074997
+2026-10-15 13:07:56,113 - aiogram.event - ERROR - Cause exception while process update id=645445952 by bot id=8236074997
+AttributeError: type object 'Dispatcher' has no attribute 'get_current'
+Traceback (most recent call last):
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/error.py", line 25, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/user_context.py", line 56, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/fsm/middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 174, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/handlers/navigation.py", line 208, in ensure_back_button
+    result = await handler(callback, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 166, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/handlers/navigation.py", line 86, in handle_universal_back
+    dp = Dispatcher.get_current()
+AttributeError: type object 'Dispatcher' has no attribute 'get_current'
+2026-10-15 13:07:56,337 - aiogram.event - INFO - Update id=645445953 is not handled. Duration 40 ms by bot id=8236074997
+2026-10-15 13:07:56,338 - aiogram.event - ERROR - Cause exception while process update id=645445953 by bot id=8236074997
+AttributeError: type object 'Dispatcher' has no attribute 'get_current'
+Traceback (most recent call last):
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/error.py", line 25, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/user_context.py", line 56, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/fsm/middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 174, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/handlers/navigation.py", line 208, in ensure_back_button
+    result = await handler(callback, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 166, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/handlers/navigation.py", line 86, in handle_universal_back
+    dp = Dispatcher.get_current()
+AttributeError: type object 'Dispatcher' has no attribute 'get_current'
+2026-10-15 13:07:56,528 - aiogram.event - INFO - Update id=645445954 is not handled. Duration 36 ms by bot id=8236074997
+2026-10-15 13:07:56,529 - aiogram.event - ERROR - Cause exception while process update id=645445954 by bot id=8236074997
+AttributeError: type object 'Dispatcher' has no attribute 'get_current'
+Traceback (most recent call last):
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/error.py", line 25, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/user_context.py", line 56, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/fsm/middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 174, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/handlers/navigation.py", line 208, in ensure_back_button
+    result = await handler(callback, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 166, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/handlers/navigation.py", line 86, in handle_universal_back
+    dp = Dispatcher.get_current()
+AttributeError: type object 'Dispatcher' has no attribute 'get_current'
+2026-10-15 13:07:58,402 - aiogram.event - INFO - Update id=645445955 is handled. Duration 87 ms by bot id=8236074997
+2026-10-15 13:08:03,537 - aiogram.event - INFO - Update id=645445956 is handled. Duration 90 ms by bot id=8236074997
+2026-10-15 13:08:05,090 - aiogram.event - INFO - Update id=645445957 is not handled. Duration 70 ms by bot id=8236074997
+2026-10-15 13:08:05,093 - aiogram.event - ERROR - Cause exception while process update id=645445957 by bot id=8236074997
+AttributeError: type object 'Dispatcher' has no attribute 'get_current'
+Traceback (most recent call last):
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/error.py", line 25, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/user_context.py", line 56, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/fsm/middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 174, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/handlers/navigation.py", line 208, in ensure_back_button
+    result = await handler(callback, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 166, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/handlers/navigation.py", line 86, in handle_universal_back
+    dp = Dispatcher.get_current()
+AttributeError: type object 'Dispatcher' has no attribute 'get_current'
+2026-10-15 13:08:05,610 - aiogram.event - INFO - Update id=645445958 is not handled. Duration 58 ms by bot id=8236074997
+2026-10-15 13:08:05,614 - aiogram.event - ERROR - Cause exception while process update id=645445958 by bot id=8236074997
+AttributeError: type object 'Dispatcher' has no attribute 'get_current'
+Traceback (most recent call last):
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/error.py", line 25, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/user_context.py", line 56, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/fsm/middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 174, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/handlers/navigation.py", line 208, in ensure_back_button
+    result = await handler(callback, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 166, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/handlers/navigation.py", line 86, in handle_universal_back
+    dp = Dispatcher.get_current()
+AttributeError: type object 'Dispatcher' has no attribute 'get_current'
+2026-10-15 13:26:40,395 - handlers - INFO - 📨 Текст: '/menu' | FSM состояние: CreateWorkoutStates:adding_exercises
+2026-10-15 13:26:40,399 - handlers - WARNING - ⚠️ Неизвестное FSM состояние: CreateWorkoutStates:adding_exercises — очищаем
+2026-10-15 13:26:40,400 - aiogram.event - INFO - Update id=645445959 is handled. Duration 16 ms by bot id=8236074997
+2026-10-15 13:26:50,030 - aiogram.event - INFO - Update id=645445960 is not handled. Duration 8 ms by bot id=8236074997
+2026-10-15 13:39:10,603 - aiogram.event - INFO - Update id=645445961 is handled. Duration 427 ms by bot id=8236074997
+2026-10-15 13:39:14,865 - aiogram.event - INFO - Update id=645445962 is handled. Duration 249 ms by bot id=8236074997
+2026-10-15 13:39:16,763 - aiogram.event - INFO - Update id=645445963 is handled. Duration 80 ms by bot id=8236074997
+2026-10-15 13:39:20,897 - aiogram.event - INFO - Update id=645445964 is handled. Duration 186 ms by bot id=8236074997
+2026-10-15 13:39:31,944 - handlers.workouts - INFO - === show_my_templates START user 328980170 ===
+2026-10-15 13:39:32,133 - handlers.workouts - INFO - === show_my_templates END (SUCCESS) ===
+2026-10-15 13:39:32,135 - aiogram.event - INFO - Update id=645445965 is handled. Duration 240 ms by bot id=8236074997
+2026-10-15 13:39:50,467 - aiogram.event - INFO - Update id=645445966 is handled. Duration 169 ms by bot id=8236074997
+2026-10-15 13:39:54,742 - aiogram.event - INFO - Update id=645445967 is handled. Duration 208 ms by bot id=8236074997
+2026-10-15 13:39:59,833 - aiogram.event - INFO - Update id=645445968 is not handled. Duration 72 ms by bot id=8236074997
+2026-10-15 13:40:06,336 - aiogram.event - INFO - Update id=645445969 is handled. Duration 157 ms by bot id=8236074997
+2026-10-15 13:40:08,593 - aiogram.event - INFO - Update id=645445970 is handled. Duration 162 ms by bot id=8236074997
+2026-10-15 13:40:12,302 - aiogram.event - INFO - Update id=645445971 is not handled. Duration 105 ms by bot id=8236074997
+2026-10-15 13:40:14,351 - aiogram.event - INFO - Update id=645445972 is handled. Duration 83 ms by bot id=8236074997
+2026-10-15 13:40:17,082 - aiogram.event - INFO - Update id=645445973 is handled. Duration 155 ms by bot id=8236074997
+2026-10-15 13:40:19,364 - aiogram.event - INFO - Update id=645445974 is handled. Duration 179 ms by bot id=8236074997
+2026-10-15 13:40:20,886 - aiogram.event - INFO - Update id=645445975 is handled. Duration 240 ms by bot id=8236074997
+2026-10-15 13:40:23,276 - aiogram.event - INFO - Update id=645445976 is handled. Duration 85 ms by bot id=8236074997
+2026-10-15 13:40:36,848 - aiogram.event - INFO - Update id=645445977 is handled. Duration 105 ms by bot id=8236074997
+2026-10-15 15:52:52,409 - aiogram.event - INFO - Update id=645445978 is handled. Duration 621 ms by bot id=8236074997
+2026-10-15 15:52:54,587 - aiogram.event - INFO - Update id=645445979 is handled. Duration 731 ms by bot id=8236074997
+2026-10-15 15:52:56,358 - handlers.workouts - INFO - create_workout_start by 328980170
+2026-10-15 15:52:56,435 - aiogram.event - INFO - Update id=645445980 is handled. Duration 285 ms by bot id=8236074997
+2026-10-15 15:53:05,671 - handlers - INFO - 📨 Текст: 'тест5' | FSM состояние: CreateWorkoutStates:waiting_workout_name
+2026-10-15 15:53:05,741 - aiogram.event - INFO - Update id=645445981 is handled. Duration 112 ms by bot id=8236074997
+2026-10-15 15:53:07,279 - aiogram.event - INFO - Update id=645445982 is handled. Duration 196 ms by bot id=8236074997
+2026-10-15 15:53:08,399 - aiogram.event - INFO - Update id=645445983 is handled. Duration 89 ms by bot id=8236074997
+2026-10-15 15:53:18,215 - aiogram.event - INFO - Update id=645445984 is handled. Duration 100 ms by bot id=8236074997
+2026-10-15 15:53:20,567 - aiogram.event - INFO - Update id=645445985 is handled. Duration 91 ms by bot id=8236074997
+2026-10-15 15:53:23,597 - aiogram.event - INFO - Update id=645445986 is not handled. Duration 48 ms by bot id=8236074997
+2026-10-15 15:53:23,600 - aiogram.event - ERROR - Cause exception while process update id=645445986 by bot id=8236074997
+AttributeError: type object 'Dispatcher' has no attribute 'get_current'
+Traceback (most recent call last):
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/error.py", line 25, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/middlewares/user_context.py", line 56, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/fsm/middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 174, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/opt/sportbot4/handlers/navigation.py", line 208, in ensure_back_button
+    result = await handler(callback, data)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/router.py", line 166, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/opt/sportbot4/.venv/lib/python3.10/site-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/opt/sportbot4/handlers/navigation.py", line 86, in handle_universal_back
+    dp = Dispatcher.get_current()
+AttributeError: type object 'Dispatcher' has no attribute 'get_current'

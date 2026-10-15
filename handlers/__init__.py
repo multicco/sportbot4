@@ -26,6 +26,7 @@ except ImportError:
 from . import teams
 from .trainees_menu import trainees_router
 from .workouts import workouts_router
+from .navigation import navigation_router
 
 logger = logging.getLogger(__name__)
 
@@ -182,6 +183,12 @@ def register_all_handlers(dp: Dispatcher):
     logger.info("✅ test_batteries handlers зарегистрированы")
     
     # 2. ✅ ГЛАВНЫЕ РОУТЕРЫ - включаем в правильном порядке!
+
+    # Навигационный слой — ПЕРВЫМ, чтобы его middleware/хуки оборачивали
+    # все остальные роутеры (кнопка «Назад», сохранение процесса).
+    dp.include_router(navigation_router)
+    logger.info("✅ navigation_router зарегистрирован (ПЕРВЫЙ ПРИОРИТЕТ)")
+
     dp.include_router(teams.teams_router)
     logger.info("✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)")
 

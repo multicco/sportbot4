@@ -611,20 +611,26 @@ async def cmd_teams(message: Message, state: FSMContext) -> None:
 
 @teams_router.callback_query(F.data == "main_menu")
 async def cb_main_menu(callback: CallbackQuery, state: FSMContext) -> None:
-    """Обработчик возврата в главное меню."""
+    """Возврат в ГЛАВНОЕ меню бота.
+
+    Важно: раньше этот обработчик показывал только меню команд (для тренера),
+    из-за чего при нажатии "Главное меню" из любого раздела пользователь терял
+    навигацию (не было кнопок "Тренировки", "Тесты", "Найти упражнение").
+    Теперь здесь открывается полноценное главное меню, а процесс (FSM) очищается,
+    чтобы неактивные состояния не мешали дальнейшим действиям.
+    """
+    from keyboards.main_keyboards_old import get_main_menu_keyboard
+
     await state.clear()
-    stats = await get_coach_stats(callback.from_user.id)
+    user = callback.from_user
     text = (
-        f"🏟️ <b>Управление командами и подопечными</b>\n\n"
-        f"🏆 Команд: {stats['teams_count']}\n"
-        f"👥 Игроков в командах: {stats['team_players_count']}\n"
-        f"👤 Индивидуальных подопечных: {stats['individual_students_count']}\n"
-        f"🎯 Всего спортсменов: {stats['total_athletes']}\n\n"
+        f"🏠 <b>Главное меню</b>\n\n"
+        f"Добро пожаловать, {user.first_name}!\n\n"
         "Выберите раздел:"
     )
-    await safe_edit_text(callback.message, text, reply_markup=build_main_menu())
+    await safe_edit_text(callback.message, text, reply_markup=get_main_menu_keyboard(), parse_mode="HTML")
     await callback.answer()
-    logger.info("User %s returned to main menu", callback.from_user.id)
+    logger.info("User %s returned to bot main menu", user.id)
 
 
 @teams_router.callback_query(F.data == "teams_menu")
