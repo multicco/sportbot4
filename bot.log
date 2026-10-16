@@ -44582,3 +44582,115 @@ ValueError: invalid literal for int() with base 10: 'back'
 2026-10-16 11:10:07,663 - aiogram.event - INFO - Update id=645446116 is handled. Duration 59 ms by bot id=8236074997
 2026-10-16 11:58:32,461 - aiogram.event - INFO - Update id=645446117 is handled. Duration 691 ms by bot id=8236074997
 2026-10-16 11:58:35,122 - aiogram.event - INFO - Update id=645446118 is handled. Duration 78 ms by bot id=8236074997
+2026-10-16 10:45:39,207 - database.database - ERROR - ❌ Ошибка инициализации БД: Multiple exceptions: [Errno 111] Connect call failed ('::1', 5432, 0, 0), [Errno 111] Connect call failed ('127.0.0.1', 5432)
+2026-10-16 10:45:47,796 - main - ERROR - ❌ Ошибка подключения к БД: Пул подключений не инициализирован
+2026-10-16 10:45:53,145 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2026-10-16 10:45:53,145 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x7f91927d94e0>
+2026-10-16 10:45:53,145 - handlers.teams - INFO - Проверка db_manager.pool: None
+2026-10-16 10:45:53,146 - handlers.teams - ERROR - ❌ Ошибка инициализации модуля команд: db_manager.pool is not initialized
+Traceback (most recent call last):
+  File "/workspace/handlers/teams.py", line 580, in init_teams_module_async
+    raise RuntimeError("db_manager.pool is not initialized")
+RuntimeError: db_manager.pool is not initialized
+2026-10-16 10:45:59,415 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2026-10-16 10:45:59,415 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x7fb3607ad580>
+2026-10-16 10:45:59,415 - handlers.teams - INFO - Проверка db_manager.pool: <object object at 0x7fb361169d10>
+2026-10-16 10:45:59,415 - database.teams_database - INFO - ✅ teams_database инициализирована
+2026-10-16 10:45:59,415 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x7fb360360890>
+2026-10-16 10:45:59,415 - database.teams_database - ERROR - ❌ Error initializing teams tables: 'object' object has no attribute 'acquire'
+Traceback (most recent call last):
+  File "/workspace/database/teams_database.py", line 171, in init_tables
+    async with self.pool.acquire() as conn:
+               ^^^^^^^^^^^^^^^^^
+AttributeError: 'object' object has no attribute 'acquire'
+2026-10-16 10:45:59,416 - handlers.teams - ERROR - ❌ Ошибка инициализации модуля команд: 'object' object has no attribute 'acquire'
+Traceback (most recent call last):
+  File "/workspace/handlers/teams.py", line 585, in init_teams_module_async
+    await teams_db.init_tables()
+  File "/workspace/database/teams_database.py", line 171, in init_tables
+    async with self.pool.acquire() as conn:
+               ^^^^^^^^^^^^^^^^^
+AttributeError: 'object' object has no attribute 'acquire'
+2026-10-16 10:46:08,379 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2026-10-16 10:46:08,379 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x7f23f8cb9620>
+2026-10-16 10:46:08,380 - handlers.teams - INFO - Проверка db_manager.pool: <__main__.t.<locals>.FakePool object at 0x7f23f88fe2a0>
+2026-10-16 10:46:08,380 - database.teams_database - INFO - ✅ teams_database инициализирована
+2026-10-16 10:46:08,380 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x7f23f8a31ee0>
+2026-10-16 10:46:08,380 - database.teams_database - INFO - ✅ Teams database tables initialized
+2026-10-16 10:46:08,380 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x7f23f8a31ee0>
+2026-10-16 10:46:08,380 - handlers - INFO - ============================================================
+2026-10-16 10:46:08,380 - handlers - INFO - 🔗 Начинаю регистрацию всех роутеров и обработчиков...
+2026-10-16 10:46:08,380 - handlers - INFO - ============================================================
+2026-10-16 10:46:08,380 - handlers - INFO - ✅ start handlers зарегистрированы
+2026-10-16 10:46:08,381 - handlers - INFO - ✅ exercises handlers зарегистрированы
+2026-10-16 10:46:08,381 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2026-10-16 10:46:08,381 - handlers - INFO - ✅ workouts handlers зарегистрированы
+2026-10-16 10:46:08,382 - handlers - INFO - ✅ tests handlers зарегистрированы
+2026-10-16 10:46:08,382 - handlers - INFO - ✅ test_batteries handlers зарегистрированы
+2026-10-16 10:46:08,382 - handlers - INFO - ✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)
+2026-10-16 10:46:08,382 - handlers - INFO - ✅ player_workouts_router зарегистрирован
+2026-10-16 10:46:08,382 - handlers - INFO - ✅ trainees_router зарегистрирован
+2026-10-16 10:46:08,382 - handlers - INFO - ✅ workouts_router зарегистрирован
+2026-10-16 10:46:08,382 - handlers - INFO - ✅ navigation_router зарегистрирован (ПЕРВЫЙ ПРИОРИТЕТ)
+2026-10-16 10:46:08,383 - handlers - INFO - ✅ general_router зарегистрирован (последний приоритет)
+2026-10-16 10:46:08,384 - handlers - INFO - ✅ team_tests handlers зарегистрированы
+2026-10-16 10:46:08,384 - handlers - INFO - ✅ player_tests handlers зарегистрированы
+2026-10-16 10:46:08,384 - handlers - INFO - ============================================================
+2026-10-16 10:46:08,384 - handlers - INFO - 🎉 ВСЕ роутеры и обработчики успешно зарегистрированы!
+2026-10-16 10:46:08,384 - handlers - INFO - ============================================================
+2026-10-16 10:46:29,462 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2026-10-16 10:46:29,462 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x7fdd9717d940>
+2026-10-16 10:46:29,462 - handlers.teams - INFO - Проверка db_manager.pool: <__main__.t.<locals>.FakePool object at 0x7fdd9795bb00>
+2026-10-16 10:46:29,462 - database.teams_database - INFO - ✅ teams_database инициализирована
+2026-10-16 10:46:29,462 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x7fdd96d9c140>
+2026-10-16 10:46:29,462 - database.teams_database - INFO - ✅ Teams database tables initialized
+2026-10-16 10:46:29,462 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x7fdd96d9c140>
+2026-10-16 10:46:29,462 - handlers - INFO - ============================================================
+2026-10-16 10:46:29,462 - handlers - INFO - 🔗 Начинаю регистрацию всех роутеров и обработчиков...
+2026-10-16 10:46:29,462 - handlers - INFO - ============================================================
+2026-10-16 10:46:29,463 - handlers - INFO - ✅ start handlers зарегистрированы
+2026-10-16 10:46:29,464 - handlers - INFO - ✅ exercises handlers зарегистрированы
+2026-10-16 10:46:29,464 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2026-10-16 10:46:29,464 - handlers - INFO - ✅ workouts handlers зарегистрированы
+2026-10-16 10:46:29,464 - handlers - INFO - ✅ tests handlers зарегистрированы
+2026-10-16 10:46:29,465 - handlers - INFO - ✅ test_batteries handlers зарегистрированы
+2026-10-16 10:46:29,465 - handlers - INFO - ✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)
+2026-10-16 10:46:29,465 - handlers - INFO - ✅ player_workouts_router зарегистрирован
+2026-10-16 10:46:29,465 - handlers - INFO - ✅ trainees_router зарегистрирован
+2026-10-16 10:46:29,465 - handlers - INFO - ✅ workouts_router зарегистрирован
+2026-10-16 10:46:29,465 - handlers - INFO - ✅ navigation_router зарегистрирован (ПЕРВЫЙ ПРИОРИТЕТ)
+2026-10-16 10:46:29,466 - handlers - INFO - ✅ general_router зарегистрирован (последний приоритет)
+2026-10-16 10:46:29,466 - handlers - INFO - ✅ team_tests handlers зарегистрированы
+2026-10-16 10:46:29,466 - handlers - INFO - ✅ player_tests handlers зарегистрированы
+2026-10-16 10:46:29,466 - handlers - INFO - ============================================================
+2026-10-16 10:46:29,466 - handlers - INFO - 🎉 ВСЕ роутеры и обработчики успешно зарегистрированы!
+2026-10-16 10:46:29,467 - handlers - INFO - ============================================================
+2026-10-16 10:46:29,467 - database.database - INFO - ⚠️ Пользователь 1 уже существует
+2026-10-16 10:46:30,851 - aiogram.event - INFO - Update id=1 is not handled. Duration 1384 ms by bot id=123456
+2026-10-16 10:46:45,224 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2026-10-16 10:46:45,225 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x7fb4fa2bd4e0>
+2026-10-16 10:46:45,225 - handlers.teams - INFO - Проверка db_manager.pool: <__main__.FakePool object at 0x7fb4faa7fb60>
+2026-10-16 10:46:45,225 - database.teams_database - INFO - ✅ teams_database инициализирована
+2026-10-16 10:46:45,225 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x7fb4f6c4b4d0>
+2026-10-16 10:46:45,225 - database.teams_database - INFO - ✅ Teams database tables initialized
+2026-10-16 10:46:45,225 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x7fb4f6c4b4d0>
+2026-10-16 10:46:45,225 - handlers - INFO - ============================================================
+2026-10-16 10:46:45,225 - handlers - INFO - 🔗 Начинаю регистрацию всех роутеров и обработчиков...
+2026-10-16 10:46:45,225 - handlers - INFO - ============================================================
+2026-10-16 10:46:45,225 - handlers - INFO - ✅ start handlers зарегистрированы
+2026-10-16 10:46:45,226 - handlers - INFO - ✅ exercises handlers зарегистрированы
+2026-10-16 10:46:45,226 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2026-10-16 10:46:45,226 - handlers - INFO - ✅ workouts handlers зарегистрированы
+2026-10-16 10:46:45,227 - handlers - INFO - ✅ tests handlers зарегистрированы
+2026-10-16 10:46:45,227 - handlers - INFO - ✅ test_batteries handlers зарегистрированы
+2026-10-16 10:46:45,227 - handlers - INFO - ✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)
+2026-10-16 10:46:45,227 - handlers - INFO - ✅ player_workouts_router зарегистрирован
+2026-10-16 10:46:45,228 - handlers - INFO - ✅ trainees_router зарегистрирован
+2026-10-16 10:46:45,228 - handlers - INFO - ✅ workouts_router зарегистрирован
+2026-10-16 10:46:45,228 - handlers - INFO - ✅ navigation_router зарегистрирован (ПЕРВЫЙ ПРИОРИТЕТ)
+2026-10-16 10:46:45,228 - handlers - INFO - ✅ general_router зарегистрирован (последний приоритет)
+2026-10-16 10:46:45,229 - handlers - INFO - ✅ team_tests handlers зарегистрированы
+2026-10-16 10:46:45,229 - handlers - INFO - ✅ player_tests handlers зарегистрированы
+2026-10-16 10:46:45,229 - handlers - INFO - ============================================================
+2026-10-16 10:46:45,229 - handlers - INFO - 🎉 ВСЕ роутеры и обработчики успешно зарегистрированы!
+2026-10-16 10:46:45,229 - handlers - INFO - ============================================================

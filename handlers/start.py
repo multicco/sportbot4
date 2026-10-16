@@ -128,10 +128,25 @@ async def tests_menu_handler(callback: CallbackQuery):  # ← НОВАЯ ФУН�
 
 async def teams_menu(callback: CallbackQuery):
     """Меню команд"""
+    # ФАТАЛЬНОЕ ИСПРАВЛЕНИЕ: раньше при отсутствии пользователя в БД
+    # user был None и user['role'] вызывал TypeError — кнопка «Команды» падала.
     user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
-    keyboard = get_teams_menu_keyboard(user['role'])
-    
-    role_text = "тренера" if user['role'] in ['coach', 'admin'] else "игрока"
+
+    if not user:
+        # Пользователя ещё нет в БД — регистрируем его автоматически
+        await db_manager.create_user(
+            telegram_id=callback.from_user.id,
+            first_name=callback.from_user.first_name,
+            last_name=callback.from_user.last_name,
+            username=callback.from_user.username
+        )
+        user = await db_manager.get_user_by_telegram_id(callback.from_user.id) or {}
+
+    role = (user.get('role') if isinstance(user, dict) else getattr(user, 'role', None)) or 'player'
+
+    keyboard = get_teams_menu_keyboard(role)
+
+    role_text = "тренера" if role in ['coach', 'admin'] else "игрока"
     
     await callback.message.edit_text(
         f"👥 **Командная система**\n\n"
