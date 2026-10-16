@@ -186,8 +186,7 @@ def register_all_handlers(dp: Dispatcher):
 
     # Навигационный слой — ПЕРВЫМ, чтобы его middleware/хуки оборачивали
     # все остальные роутеры (кнопка «Назад», сохранение процесса).
-    dp.include_router(navigation_router)
-    logger.info("✅ navigation_router зарегистрирован (ПЕРВЫЙ ПРИОРИТЕТ)")
+   
 
     dp.include_router(teams.teams_router)
     logger.info("✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)")
@@ -200,6 +199,10 @@ def register_all_handlers(dp: Dispatcher):
     
     dp.include_router(workouts_router)
     logger.info("✅ workouts_router зарегистрирован")
+
+
+    dp.include_router(navigation_router)
+    logger.info("✅ navigation_router зарегистрирован (ПЕРВЫЙ ПРИОРИТЕТ)")
     
 
     one_rm.register_one_rm_handlers(dp)

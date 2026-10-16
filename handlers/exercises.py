@@ -72,7 +72,14 @@ def register_exercise_handlers(dp):
     dp.callback_query.register(show_muscle_group_exercises, F.data.startswith("muscle_"))
 
     # Детальный просмотр упражнения + универсальная кнопка "Назад"
-    dp.callback_query.register(show_exercise_details, F.data.startswith("exercise_"))
+    # dp.callback_query.register(show_exercise_details, F.data.startswith("exercise_"))
+    # Стало (исключить навигационные колбэки exercise_back / exercise_cancel):
+    dp.callback_query.register(
+    show_exercise_details,
+    F.data.startswith("exercise_") & ~F.data.in_(["exercise_back", "exercise_cancel"])
+    )
+
+
     dp.callback_query.register(universal_back, F.data == "exercise_back")
     # Старый callback оставлен для совместимости со старыми сообщениями
     dp.callback_query.register(back_from_exercise_details, F.data == "back_from_exercise")
