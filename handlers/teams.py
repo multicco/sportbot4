@@ -30,6 +30,44 @@ except Exception as e:
 
 logger = logging.getLogger(__name__)
 
+
+# ===== ФАТАЛЬНОЕ ИСПРАВЛЕНИЕ: безопасный доступ к teams_db =====
+# Если init_teams_module_async не выполнен или упал, teams_db остаётся None,
+# и любой вызов teams_db.<method>() падал с AttributeError на первом же клике.
+def _require_teams_db(handler_name: str):
+    """Возвращает teams_db или None (с логом ошибки), если модуль не инициализирован."""
+    if teams_db is None:
+        logger.error(
+            "❌ %s: teams_db не инициализирована (init_teams_module_async не выполнен или упал)",
+            handler_name,
+        )
+    return teams_db
+
+
+async def _teams_unavailable(update) -> None:
+    """Вежливый ответ пользователю, когда модуль команд недоступен."""
+    try:
+        from aiogram.types import CallbackQuery as _CB
+        if isinstance(update, _CB):
+            await update.answer("⚠️ Модуль команд временно недоступен", show_alert=True)
+            return
+    except Exception:
+        pass
+    try:
+        await update.message.answer("⚠️ Модуль команд временно недоступен, попробуйте позже.")
+    except Exception:
+        pass
+# ===== КОНЕЦ ФАТАЛЬНОГО ИСПРАВЛЕНИЯ =====
+
+def _get_teams_database():
+    """ФАТАЛЬНОЕ ИСПРАВЛЕНИЕ: возвращает инициализированный экземпляр
+    TeamsDatabase (или None). Раньше хендлеры использовали импортированный
+    на старте модуля глобальный `teams_database`, который всегда был None —
+    это вызывало AttributeError при клике."""
+    return teams_db if teams_db is not None else globals().get("teams_database")
+
+
+
 # Роутер
 teams_router = Router(name="teams")
 
@@ -208,7 +246,11 @@ async def cmd_join_team(message: Message, state: FSMContext):
     access_code = args[1].strip()
     
     # Ищем команду по коду
-    team = await teams_db.get_team_by_access_code(access_code)
+    _db = _require_teams_db("cmd_join_team")
+    if _db is None:
+        await _teams_unavailable(message)
+        return
+    team = await _db.get_team_by_access_code(access_code)
     
     if not team:
         await message.answer(
@@ -219,7 +261,11 @@ async def cmd_join_team(message: Message, state: FSMContext):
         return
     
     # Проверяем, не состоит ли уже в команде
-    already_in = await teams_db.check_player_in_team(
+    _db = _require_teams_db("cmd_join_team")
+    if _db is None:
+        await _teams_unavailable(message)
+        return
+    already_in = await _db.check_player_in_team(
         message.from_user.id, 
         team.id
     )
@@ -397,7 +443,11 @@ async def complete_join(message: Message, state: FSMContext):
     
     try:
         # Добавляем игрока в команду
-        player = await teams_db.add_team_player(
+        _db = _require_teams_db("complete_join")
+        if _db is None:
+            await _teams_unavailable(message)
+            return
+        player = await _db.add_team_player(
             team_id=data['team_id'],
             first_name=data['first_name'],
             last_name=data.get('last_name'),
@@ -435,8 +485,12 @@ async def complete_join(message: Message, state: FSMContext):
         )
         
         # Отправляем уведомление тренеру
-        from main import bot
-        team = await teams_db.get_team_by_id(data['team_id'])
+        from bot_instance import bot
+        _db = _require_teams_db("complete_join")
+        if _db is None:
+            await _teams_unavailable(message)
+            return
+        team = await _db.get_team_by_id(data['team_id'])
         
         try:
             await bot.send_message(
@@ -462,7 +516,11 @@ async def complete_join(message: Message, state: FSMContext):
 @teams_router.message(Command("myteam"))
 async def cmd_my_teams(message: Message):
     """Показать команды игрока"""
-    teams = await teams_db.get_player_teams(message.from_user.id)
+    _db = _require_teams_db("cmd_my_teams")
+    if _db is None:
+        await _teams_unavailable(message)
+        return
+    teams = await _db.get_player_teams(message.from_user.id)
     
     if not teams:
         await message.answer(
@@ -1276,7 +1334,11 @@ async def process_telegram_id_input(message: Message, state: FSMContext):
             return
         
         # Ищем в БД через db_manager
-        user_info = await teams_db.find_user_by_username(username)
+        _db = _require_teams_db("process_telegram_id_input")
+        if _db is None:
+            await _teams_unavailable(message)
+            return
+        user_info = await _db.find_user_by_username(username)
         
         if not user_info:
             # Экранируем username для HTML
@@ -1321,7 +1383,11 @@ async def process_telegram_id_input(message: Message, state: FSMContext):
     # === Дальше логика для ПОДОПЕЧНЫХ ===
     if assignment_type == 'trainee':
         # Проверяем, не является ли уже подопечным этого тренера
-        existing = await teams_db.get_individual_student_by_telegram_id(
+        _db = _require_teams_db("process_telegram_id_input")
+        if _db is None:
+            await _teams_unavailable(message)
+            return
+        existing = await _db.get_individual_student_by_telegram_id(
             telegram_id, message.from_user.id
         )
         
@@ -1389,7 +1455,11 @@ async def confirm_add_trainee_by_telegram_id(callback: CallbackQuery, state: FSM
     
     try:
         # Добавляем подопечного
-        student = await teams_db.add_individual_student(
+        _db = _require_teams_db("confirm_add_trainee_by_telegram_id")
+        if _db is None:
+            await _teams_unavailable(callback)
+            return
+        student = await _db.add_individual_student(
             coach_telegram_id=callback.from_user.id,
             first_name=user_info.get('first_name', 'Игрок') if user_info else "Игрок",
             last_name=user_info.get('last_name') if user_info else None,
@@ -1418,7 +1488,7 @@ async def confirm_add_trainee_by_telegram_id(callback: CallbackQuery, state: FSM
             # Отправляем уведомление
             if user_info:
                 try:
-                    from main import bot
+                    from bot_instance import bot
                     await bot.send_message(
                         telegram_id,
                         f"🎉 **Вы добавлены как подопечный!**\n\n"
@@ -1449,7 +1519,11 @@ async def generate_trainee_invite(callback: CallbackQuery):
     # Сохраняем в БД (метод create_trainee_invite нужен в teams_database.py, 
     # если вы его еще не добавили по первому ответу)
     try:
-        await teams_db.create_trainee_invite(
+        _db = _require_teams_db("confirm_add_by_telegram_id")
+        if _db is None:
+            await _teams_unavailable(callback)
+            return
+        await _db.create_trainee_invite(
             coach_telegram_id=callback.from_user.id,
             access_code=access_code
         )
@@ -1483,7 +1557,11 @@ async def confirm_add_by_telegram_id(callback: CallbackQuery, state: FSMContext)
     
     try:
         # Добавляем игрока в команду
-        player = await teams_db.add_player_by_telegram_id(
+        _db = _require_teams_db("confirm_add_by_telegram_id")
+        if _db is None:
+            await _teams_unavailable(callback)
+            return
+        player = await _db.add_player_by_telegram_id(
             team_id=team_id,
             telegram_id=telegram_id,
             added_by=callback.from_user.id
@@ -1528,7 +1606,7 @@ async def confirm_add_by_telegram_id(callback: CallbackQuery, state: FSMContext)
             # Отправляем уведомление игроку (если он есть в системе)
             if user_info:
                 try:
-                    from main import bot
+                    from bot_instance import bot
                     await bot.send_message(
                         telegram_id,
                         f"🎉 **Вы добавлены в команду!**\n\n"
@@ -1565,7 +1643,11 @@ async def generate_team_invite(callback: CallbackQuery):
         import secrets
         access_code = secrets.token_urlsafe(8)[:8]
         # Сохраняем в БД (нужно добавить метод в teams_database.py)
-        await teams_db.update_team_access_code(team_id, access_code)
+        _db = _require_teams_db("generate_team_invite")
+        if _db is None:
+            await _teams_unavailable(callback)
+            return
+        await _db.update_team_access_code(team_id, access_code)
     else:
         access_code = team.access_code
     
@@ -1980,7 +2062,11 @@ async def view_trainee_workout_callback(callback: CallbackQuery, state: FSMConte
         workout_id = int(callback.data.split('_')[1])
         
         # Получить тренировку с упражнениями
-        workout_data = await teams_db.get_workout_with_exercises(workout_id)
+        _db = _require_teams_db("view_trainee_workout_callback")
+        if _db is None:
+            await _teams_unavailable(callback)
+            return
+        workout_data = await _db.get_workout_with_exercises(workout_id)
         
         if not workout_data:
             await callback.answer("❌ Тренировка не найдена", show_alert=True)
@@ -2159,7 +2245,11 @@ async def show_team_workouts(callback: CallbackQuery, state: FSMContext):
     is_trainer = user and user.get('role') in ['admin', 'trainer', 'coach']
 
     # Получаем назначенные тренировки
-    workouts = await teams_db.get_team_workouts(team_id)
+    _db = _require_teams_db("show_team_workouts")
+    if _db is None:
+        await _teams_unavailable(callback)
+        return
+    workouts = await _db.get_team_workouts(team_id)
 
     keyboard = InlineKeyboardBuilder()
     text = f"📋 **Тренировки команды \"{team.name}\"**\n\n"
@@ -2267,7 +2357,11 @@ async def process_workout_code(message: Message, state: FSMContext):
     code = message.text.strip()
     
     # Ищем тренировку по коду
-    workout = await teams_db.get_workout_by_code(code, message.from_user.id)
+    _db = _require_teams_db("process_workout_code")
+    if _db is None:
+        await _teams_unavailable(message)
+        return
+    workout = await _db.get_workout_by_code(code, message.from_user.id)
     
     if not workout:
         await message.answer(
@@ -2359,7 +2453,11 @@ async def confirm_assign_workout(callback: CallbackQuery, state: FSMContext):
     deadline = data.get('assignment_deadline')
     
     # Назначаем тренировку
-    success = await teams_db.assign_workout_to_team(
+    _db = _require_teams_db("confirm_assign_workout")
+    if _db is None:
+        await _teams_unavailable(callback)
+        return
+    success = await _db.assign_workout_to_team(
         workout_id=workout['id'],
         team_id=team_id,
         assigned_by=callback.from_user.id,
@@ -2396,10 +2494,14 @@ async def confirm_assign_workout(callback: CallbackQuery, state: FSMContext):
 
 async def notify_team_about_workout(team_id: int, workout: Dict, notes: str = None):
     """Отправить уведомления игрокам о новой тренировке"""
-    from main import bot
+    from bot_instance import bot
     
     # Получаем игроков команды с telegram_id
-    players = await teams_db.get_team_players(team_id)
+    _db = _require_teams_db("notify_team_about_workout")
+    if _db is None:
+        logger.warning("⚠️ Пропускаю уведомления игрокам: модуль команд недоступен")
+        return
+    players = await _db.get_team_players(team_id)
     
     notes_text = f"\n\n💬 **Комментарий тренера:**\n{notes}" if notes else ""
     
@@ -2431,7 +2533,11 @@ async def show_workout_progress(callback: CallbackQuery):
     workout_team_id = int(callback.data.split("_")[-1])
     
     # Получаем детальный прогресс
-    progress = await teams_db.get_team_workout_progress(workout_team_id)
+    _db = _require_teams_db("show_workout_progress")
+    if _db is None:
+        await _teams_unavailable(callback)
+        return
+    progress = await _db.get_team_workout_progress(workout_team_id)
     
     if not progress:
         await callback.answer("❌ Данные не найдены")
@@ -2542,7 +2648,11 @@ async def start_assign_workout_to_trainee(callback: CallbackQuery, state: FSMCon
     
     # Получить подопечного
     try:
-        trainee = await teams_database.get_individual_student_by_id(trainee_id)
+        _tdb = _get_teams_database()
+        if _tdb is None:
+            await _teams_unavailable(callback)
+            return
+        trainee = await _tdb.get_individual_student_by_id(trainee_id)
         
         if not trainee:
             await callback.answer("❌ Подопечный не найден")
@@ -2612,7 +2722,11 @@ async def workout_method_my_workouts_trainee(callback: CallbackQuery, state: FSM
         trainee_name = data.get('trainee_name')
         
         # Получить мои тренировки
-        workouts = await teams_database.get_coach_workouts(callback.from_user.id)
+        _tdb = _get_teams_database()
+        if _tdb is None:
+            await _teams_unavailable(callback)
+            return
+        workouts = await _tdb.get_coach_workouts(callback.from_user.id)
         
         if not workouts:
             keyboard = InlineKeyboardBuilder()
@@ -2809,7 +2923,11 @@ async def confirm_assign_workout_trainee(callback: CallbackQuery, state: FSMCont
 
         # Назначить тренировку подопечному
         
-        result = await teams_database.assign_workout_to_student(
+        _tdb = _get_teams_database()
+        if _tdb is None:
+            await _teams_unavailable(callback)
+            return
+        result = await _tdb.assign_workout_to_student(
             workout_id=workout_id,
             student_id=trainee_id,
             assigned_by=callback.from_user.id,
@@ -2849,10 +2967,14 @@ async def confirm_assign_workout_trainee(callback: CallbackQuery, state: FSMCont
             await callback.answer("✅ Тренировка назначена подопечному!")
 
             # Уведомить подопечного, если у него есть Telegram ID
-            trainee = await teams_database.get_individual_student_by_id(trainee_id)
+            _tdb = _get_teams_database()
+            if _tdb is None:
+                await _teams_unavailable(callback)
+                return
+            trainee = await _tdb.get_individual_student_by_id(trainee_id)
             if trainee and trainee.telegram_id:
                 try:
-                    from main import bot
+                    from bot_instance import bot
 
                     keyboard_notify = InlineKeyboardBuilder()
                     keyboard_notify.button(text="▶️ Начать тренировку", callback_data=f"start_workout_{workout_id}")
@@ -2898,14 +3020,22 @@ async def view_trainee_profile(callback: CallbackQuery, state: FSMContext) -> No
         trainee_id = int(callback.data.split("_")[-1])
         
         # Получить подопечного
-        trainee = await teams_database.get_individual_student_by_id(trainee_id)
+        _tdb = _get_teams_database()
+        if _tdb is None:
+            await _teams_unavailable(callback)
+            return
+        trainee = await _tdb.get_individual_student_by_id(trainee_id)
         
         if not trainee or trainee.coach_telegram_id != callback.from_user.id:
             await callback.answer("❌ Подопечный не найден")
             return
         
         # Получить количество назначенных тренировок
-        workouts = await teams_database.get_student_workouts(trainee_id)
+        _tdb = _get_teams_database()
+        if _tdb is None:
+            await _teams_unavailable(callback)
+            return
+        workouts = await _tdb.get_student_workouts(trainee_id)
         workouts_count = len(workouts) if workouts else 0
         
         keyboard = InlineKeyboardBuilder()
@@ -3142,7 +3272,11 @@ async def show_my_trainee_workouts_callback(callback: CallbackQuery, state: FSMC
             student_id = user['id']
         
         # Получить тренировки
-        workouts = await teams_db.get_student_workouts(student_id)
+        _db = _require_teams_db("show_my_trainee_workouts_callback")
+        if _db is None:
+            await _teams_unavailable(callback)
+            return
+        workouts = await _db.get_student_workouts(student_id)
         
         if not workouts:
             text = "❌ У вас пока нет назначенных тренировок"

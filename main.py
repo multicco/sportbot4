@@ -15,10 +15,13 @@ from handlers import register_all_handlers
 from config import config
 
 # ВАЖНО: Создаем диспетчер здесь с правильным FSM storage
-from aiogram import Bot, Dispatcher
+from aiogram import Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.client.default import DefaultBotProperties
-from aiogram.enums import ParseMode
+
+# ФАТАЛЬНОЕ ИСПРАВЛЕНИЕ: единственный экземпляр бота — в bot_instance.py.
+# Раньше Bot() создавался и здесь, и в bot.py — два экземпляра с одним токеном
+# одновременно поллили апдейты и теряли сообщения.
+from bot_instance import bot
 
 # После инициализации основной БД добавь:
 from handlers.teams import get_teams_router, init_teams_module_async
@@ -33,11 +36,7 @@ from handlers.workouts import workouts_router
 # Создаем storage для FSM состояний
 storage = MemoryStorage()
 
-# ИСПРАВЛЕНИЕ 1: Правильное создание бота
-bot = Bot(
-    token=config.BOT_TOKEN,
-    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
-)
+# ИСПРАВЛЕНИЕ 1: Бот создаётся ОДИН РАЗ в bot_instance.py (см. импорт выше)
 
 # Создаем диспетчер с storage
 dp = Dispatcher(storage=storage)
@@ -178,9 +177,12 @@ async def main():
         logger.info("🔄 Начинаю поллинг...")
         
         # Запуск поллинга
+        # ФАТАЛЬНОЕ ИСПРАВЛЕНИЕ: параметр skip_updates удалён из aiogram 3.x —
+        # его передача вызывала TypeError при старте. Пропуск старых апдейтов
+        # теперь делается через bot.delete_webhook(drop_pending_updates=True).
+        await bot.delete_webhook(drop_pending_updates=True)
         await dp.start_polling(
             bot,
-            skip_updates=True,
             allowed_updates=dp.resolve_used_update_types()
         )
         
@@ -192,6 +194,14 @@ async def main():
     finally:
         logger.info("🔄 Завершение работы...")
         
+        # ФАТАЛЬНОЕ ИСПРАВЛЕНИЕ: корректное завершение (graceful shutdown) —
+        # закрытие поллинга и session-пула бота в обязательном порядке.
+        try:
+            await bot.close()
+            logger.info("🤖 Бот остановлен, сессия и поллинг закрыты")
+        except Exception as e:
+            logger.error(f"❌ Ошибка при закрытии бота: {e}")
+        
         # Закрытие соединений с БД
         try:
             if 'db_manager' in globals() and db_manager:
@@ -199,13 +209,6 @@ async def main():
                 logger.info("📊 Соединения с БД закрыты")
         except Exception as e:
             logger.error(f"❌ Ошибка при закрытии БД: {e}")
-        
-        # Закрытие сессии бота
-        try:
-            await bot.session.close()
-            logger.info("🤖 Сессия бота закрыта")
-        except Exception as e:
-            logger.error(f"❌ Ошибка при закрытии сессии: {e}")
         
         logger.info("👋 Бот остановлен")
 

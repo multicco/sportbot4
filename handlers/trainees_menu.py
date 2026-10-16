@@ -108,7 +108,7 @@ async def add_trainee_by_id(callback: CallbackQuery, state: FSMContext):
 @trainees_router.callback_query(F.data == "generate_trainee_invite")
 async def generate_trainee_invite(callback: CallbackQuery):
     import secrets
-    from main import bot
+    from bot_instance import bot
 
     coach_id = callback.from_user.id
     access_code = secrets.token_urlsafe(8)[:8]
