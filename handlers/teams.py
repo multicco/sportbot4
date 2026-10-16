@@ -570,6 +570,116 @@ async def join_new_team_button(callback: CallbackQuery):
     await callback.answer()
 
 
+# ===== ИСПРАВЛЕНИЕ: кнопки «Присоединиться к команде» и «Найти тренера» =====
+# Клавиатура меню команд отдаёт callback_data="join_team" и "find_coach",
+# но обработчиков на эти данные не существовало — Telegram показывал
+# «Бот не ответил на нажатие», и кнопки выглядели сломанными.
+
+@teams_router.callback_query(F.data == "join_team")
+async def cb_join_team(callback: CallbackQuery, state: FSMContext) -> None:
+    """Открыть процесс присоединения к команде по коду."""
+    _db = _require_teams_db("cb_join_team")
+    if _db is None:
+        await _teams_unavailable(callback)
+        return
+
+    keyboard = InlineKeyboardBuilder()
+    keyboard.button(text="❌ Отмена", callback_data="teams_menu")
+    keyboard.adjust(1)
+
+    # ИСПРАВЛЕНИЕ: состояние не выставляется — текст-код перехватывает
+    # general_router и просит использовать /join (см. handlers/__init__.py).
+    await safe_edit_text(
+        callback.message,
+        "🔗 <b>Присоединение к команде</b>\n\n"
+        "Попросите тренера отправить вам код приглашения.\n\n"
+        "Затем отправьте команду с кодом:\n"
+        "<code>/join abc12345</code>",
+        reply_markup=keyboard.as_markup(),
+    )
+    await callback.answer()
+
+
+@teams_router.callback_query(F.data == "find_coach")
+async def cb_find_coach(callback: CallbackQuery, state: FSMContext) -> None:
+    """Меню поиска тренера / входа по коду приглашения."""
+    _db = _require_teams_db("cb_find_coach")
+    if _db is None:
+        await _teams_unavailable(callback)
+        return
+
+    keyboard = InlineKeyboardBuilder()
+    keyboard.button(text="🎟️ Войти по коду приглашения", callback_data="join_team")
+    keyboard.button(text="🏆 Мои команды", callback_data="my_team")
+    keyboard.button(text="🔙 К командам", callback_data="teams_menu")
+    keyboard.adjust(1)
+
+    await safe_edit_text(
+        callback.message,
+        "👨‍🏫 <b>Поиск тренера</b>\n\n"
+        "Чтобы начать заниматься с тренером:\n\n"
+        "1️⃣ Договоритесь с тренером о сотрудничестве\n"
+        "2️⃣ Тренер создаст набор тестов или пригласит вас как подопечного\n"
+        "3️⃣ Введите полученный <b>код приглашения</b> кнопкой ниже\n\n"
+        "💡 Коды выдаются тренерами через раздел «Подопечные».",
+        reply_markup=keyboard.as_markup(),
+    )
+    await callback.answer()
+
+
+@teams_router.callback_query(F.data == "my_team")
+async def cb_my_team(callback: CallbackQuery) -> None:
+    """Показать команды текущего игрока (кнопка из меню команд).
+
+    ИСПРАВЛЕНИЕ: раньше обработчик был только в player_workouts_router,
+    который регистрируется в диспетчере ПОСЛЕ teams_router, — и этот более
+    ранний роутер перехватывал клик без ответа («Бот не ответил на нажатие»).
+    Теперь полный экран «Моя команда» обрабатывается здесь.
+    """
+    _db = _require_teams_db("cb_my_team")
+    if _db is None:
+        await _teams_unavailable(callback)
+        return
+
+    # Основная информация о первой команде — из основной БД (как в player_workouts)
+    row = None
+    try:
+        async with db_manager.pool.acquire() as conn:
+            row = await conn.fetchrow("""
+                SELECT t.id, t.name, t.description, t.sport_type, t.max_players, t.access_code
+                FROM teams t
+                JOIN team_players tp ON tp.team_id = t.id
+                WHERE tp.telegram_id = $1 AND tp.is_active = TRUE
+                LIMIT 1
+            """, callback.from_user.id)
+    except Exception:
+        logger.exception("cb_my_team: ошибка запроса команды")
+
+    kb = InlineKeyboardBuilder()
+    if not row:
+        text = (
+            "ℹ️ Вы пока не состоите ни в одной команде.\n\n"
+            "Получите код приглашения у тренера и нажмите "
+            "«🔗 Присоединиться к команде»."
+        )
+    else:
+        text = (
+            f"🏆 <b>{row['name']}</b>\n"
+            f"📝 {row['description'] or 'Без описания'}\n"
+            f"🏃 Вид спорта: {row['sport_type']}\n"
+            f"👥 Игроков: до {row['max_players']}\n"
+            f"🆔 Код: <code>{row['access_code']}</code>"
+        )
+        kb.button(text="📋 Тренировки команды", callback_data=f"team_workouts_player_{row['id']}")
+    kb.button(text="➕ Присоединиться к команде", callback_data="join_team")
+    kb.button(text="👨‍🏫 Найти тренера", callback_data="find_coach")
+    kb.button(text="🔙 К командам", callback_data="teams_menu")
+    kb.adjust(1)
+
+    await safe_edit_text(callback.message, text, reply_markup=kb.as_markup())
+    await callback.answer()
+
+
 # Глобальный экземпляр БД для модуля
 #teams_db: TeamsDatabase | None = None
 
