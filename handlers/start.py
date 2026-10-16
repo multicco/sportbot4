@@ -142,11 +142,17 @@ async def teams_menu(callback: CallbackQuery):
         )
         user = await db_manager.get_user_by_telegram_id(callback.from_user.id) or {}
 
-    role = (user.get('role') if isinstance(user, dict) else getattr(user, 'role', None)) or 'player'
+    raw_role = (user.get('role') if isinstance(user, dict) else getattr(user, 'role', None)) or 'player'
+
+    # ИСПРАВЛЕНИЕ: в БД тренер может быть сохранён как 'trainer', 'coach' или
+    # 'assistant_coach'. Клавиатура меню команд раньше знала только 'coach'/'admin',
+    # из-за чего действующий тренер видел меню игрока («Присоединиться», «Найти тренера»).
+    COACH_ROLES = {'coach', 'trainer', 'admin', 'assistant_coach'}
+    role = 'coach' if raw_role in COACH_ROLES else raw_role
 
     keyboard = get_teams_menu_keyboard(role)
 
-    role_text = "тренера" if role in ['coach', 'admin'] else "игрока"
+    role_text = "тренера" if role == 'coach' else "игрока"
     
     await callback.message.edit_text(
         f"👥 **Командная система**\n\n"
