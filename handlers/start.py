@@ -1,9 +1,11 @@
 # ===== ОБНОВЛЕННЫЙ START.PY С ПОДДЕРЖКОЙ УНИВЕРСАЛЬНЫХ ТЕСТОВ =====
-
+import logging
+logger = logging.getLogger(__name__)
 from aiogram import F
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 from database import db_manager
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from keyboards.main_keyboards_old import (
     get_main_menu_keyboard, get_workouts_menu_keyboard, 
     get_tests_menu_keyboard, get_teams_menu_keyboard  # ← ОБНОВЛЕНО!
@@ -82,21 +84,41 @@ async def back_to_main_menu(callback: CallbackQuery):
     await callback.answer()
 
 async def workouts_menu(callback: CallbackQuery):
-    """Меню тренировок"""
-    keyboard = get_workouts_menu_keyboard()
-    
-    await callback.message.edit_text(
-        "🏋️ **Меню тренировок**\n\n"
-        "🆕 **Новые возможности:**\n"
-        "• 🧱 **Блочная структура:** разминка → подготовка НС → основная → заминка\n"
-        "• 🎯 **Проценты от тестов:** используйте личные рекорды в упражнениях\n"
-        "• 📊 **Умные расчеты:** автоматический подбор нагрузки\n"
-        "• 🔗 **Интеграция с тестами:** все ваши рекорды учитываются\n\n"
-        "Выберите действие:",
-        reply_markup=keyboard,
-        parse_mode="Markdown"
-    )
-    await callback.answer()
+    """Меню тренировок — с правильными кнопками в зависимости от роли"""
+    try:
+        user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
+        role = user.get('role', 'player') if user else 'player'
+
+        kb = InlineKeyboardBuilder()
+
+        # Общие кнопки
+        kb.button(text="Найти тренировку", callback_data="find_workout")
+
+        if role in ['admin', 'trainer', 'coach']:
+            kb.button(text="Мои шаблоны", callback_data="my_templates")        # ← Правильно для тренера
+            kb.button(text="Создать тренировку", callback_data="create_workout")
+            kb.button(text="Статистика", callback_data="workout_statistics")
+        else:
+            kb.button(text="Мои тренировки", callback_data="my_workouts")      # ← Правильно для игрока
+            kb.button(text="Мои достижения", callback_data="my_achievements")
+
+        kb.button(text="Главное меню", callback_data="main_menu")
+        kb.adjust(1)
+
+        text = "<b>Меню тренировок</b>\n\n"
+        text += "Новые возможности:\n"
+        text += "• Блочная структура: разминка → подготовка НС → основная → заминка\n"
+        text += "• Проценты от тестов: используйте личные рекорды в упражнениях\n"
+        text += "• Умные расчеты: автоматический подбор нагрузки\n"
+        text += "• Интеграция с тестами: все ваши рекорды учитываются\n\n"
+        text += "Выберите действие:"
+
+        await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="HTML")
+        await callback.answer()
+
+    except Exception as e:
+        logger.exception("Ошибка в workouts_menu")
+        await callback.answer("Ошибка", show_alert=True)
 
 async def tests_menu_handler(callback: CallbackQuery):  # ← НОВАЯ ФУНКЦИЯ!
     """Обработчик меню тестов - перенаправляет в модуль тестов"""
@@ -106,10 +128,25 @@ async def tests_menu_handler(callback: CallbackQuery):  # ← НОВАЯ ФУН�
 
 async def teams_menu(callback: CallbackQuery):
     """Меню команд"""
+    # ФАТАЛЬНОЕ ИСПРАВЛЕНИЕ: раньше при отсутствии пользователя в БД
+    # user был None и user['role'] вызывал TypeError — кнопка «Команды» падала.
     user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
-    keyboard = get_teams_menu_keyboard(user['role'])
-    
-    role_text = "тренера" if user['role'] in ['coach', 'admin'] else "игрока"
+
+    if not user:
+        # Пользователя ещё нет в БД — регистрируем его автоматически
+        await db_manager.create_user(
+            telegram_id=callback.from_user.id,
+            first_name=callback.from_user.first_name,
+            last_name=callback.from_user.last_name,
+            username=callback.from_user.username
+        )
+        user = await db_manager.get_user_by_telegram_id(callback.from_user.id) or {}
+
+    role = (user.get('role') if isinstance(user, dict) else getattr(user, 'role', None)) or 'player'
+
+    keyboard = get_teams_menu_keyboard(role)
+
+    role_text = "тренера" if role in ['coach', 'admin'] else "игрока"
     
     await callback.message.edit_text(
         f"👥 **Командная система**\n\n"

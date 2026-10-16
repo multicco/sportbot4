@@ -1,20 +1,17 @@
 
 # ===== КОНФИГУРАЦИЯ БОТА =====
-# ИСПРАВЛЕННАЯ ВЕРСИЯ ДЛЯ AIOGRAM 3.7.0+
+# ФАТАЛЬНОЕ ИСПРАВЛЕНИЕ: раньше здесь создавался ВТОРОЙ экземпляр Bot
+# с тем же токеном, что и в main.py — два экземпляра одновременно
+# поллили апдейты и «съедали» их друг у друга.
+# Теперь bot.py — тонкая обёртка над единственным экземпляром из bot_instance.py.
 
-from aiogram import Bot
-from aiogram.client.default import DefaultBotProperties
-from aiogram.enums import ParseMode
-from config import config
 import logging
+
+from bot_instance import bot  # единственный экземпляр Bot во всём проекте
 
 logger = logging.getLogger(__name__)
 
-# ИСПРАВЛЕНИЕ: Новый способ создания бота в aiogram 3.7.0+
-bot = Bot(
-    token=config.BOT_TOKEN,
-    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
-)
-
 # НЕ создаем здесь диспетчер! Он создается в main.py с правильным FSM storage
-logger.info("🤖 Bot instance created (aiogram 3.7.0+ compatible)")
+logger.info("🤖 Bot instance imported from bot_instance (single shared instance)")
+
+__all__ = ["bot"]

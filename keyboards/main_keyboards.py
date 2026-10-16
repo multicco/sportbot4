@@ -124,7 +124,7 @@ def get_teams_menu_keyboard(user_role):
         keyboard.button(text="🏗️ Создать команду", callback_data="create_team")
         keyboard.button(text="👤 Добавить подопечного", callback_data="add_student")
         keyboard.button(text="🏆 Мои команды", callback_data="my_teams")
-        keyboard.button(text="👥 Мои подопечные", callback_data="my_students")
+        keyboard.button(text="👥 Мои подопечные", callback_data="my_trainees")
     else:
         keyboard.button(text="🔗 Присоединиться к команде", callback_data="join_team")
         keyboard.button(text="👨‍🏫 Найти тренера", callback_data="find_coach")
