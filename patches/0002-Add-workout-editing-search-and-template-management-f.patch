@@ -1,0 +1,408 @@
+From 96d2f43cec5232ff0b7af6ca53c88dc67f664425 Mon Sep 17 00:00:00 2001
+From: "qwen.ai[bot]" <qwenlm-intl@service.alibaba.com>
+Date: Sun, 25 Oct 2026 14:00:05 +0000
+Subject: [PATCH 2/5] Add workout editing, search, and template management
+ features
+
+- handlers/__init__.py: Added renaming_workout and changing_workout_description states to general text handler routing logic
+- handlers/workouts.py: Implemented edit_composition flow for full structure modification, including loading existing exercises into FSM state
+- handlers/workouts.py: Added rename_workout and change_desc_workout callback handlers with corresponding text input processing in process_workout_text_input
+- handlers/workouts.py: Updated create_finish to support both new creation and updating of existing workouts based on editing_workout_id context
+- handlers/workouts.py: Enhanced _show_block_selection to display dynamic headers and buttons depending on edit vs create mode
+- handlers/workouts.py: Improved access control checks in edit_workout to allow admins and authors
+---
+ handlers/__init__.py |   2 +
+ handlers/workouts.py | 287 ++++++++++++++++++++++++++++++++++++++-----
+ 2 files changed, 261 insertions(+), 28 deletions(-)
+
+diff --git a/handlers/__init__.py b/handlers/__init__.py
+index 32a36f4..53f8233 100644
+--- a/handlers/__init__.py
++++ b/handlers/__init__.py
+@@ -107,6 +107,8 @@ async def handle_all_text_messages(message: Message, state: FSMContext):
+             CreateWorkoutStates.manual_exercise_input,
+             CreateWorkoutStates.waiting_rpe,
+             CreateWorkoutStates.configuring_exercise,
++            CreateWorkoutStates.renaming_workout,
++            CreateWorkoutStates.changing_workout_description,
+         ]
+         if current_state in WORKOUT_TEXT_STATES:
+             await workouts.process_workout_text_input(message, state)
+diff --git a/handlers/workouts.py b/handlers/workouts.py
+index 5ff1ea6..a2df32d 100644
+--- a/handlers/workouts.py
++++ b/handlers/workouts.py
+@@ -352,7 +352,9 @@ async def _show_block_selection(message, state: FSMContext):
+     data = await state.get_data()
+     name = data.get('name', 'Без названия')
+     selected = data.get('selected_blocks', {})
+-    text = f"🔧 **Структура тренировки:** {name}\n\nВыберите блок и добавьте упражнения:\n\n"
++    edit_mode = bool(data.get('editing_workout_id'))
++    header = "🔧 **Редактирование структуры тренировки:**" if edit_mode else "🔧 **Структура тренировки:**"
++    text = f"{header} {name}\n\nВыберите блок и добавьте упражнения:\n\n"
+     blocks = [('warmup', '🔥 Разминка'), ('nervousprep', '⚡ Подготовка НС'), ('main', '💪 Основная'), ('cooldown', '🧘 Заминка')]
+     for k, label in blocks:
+         status = "✅" if k in selected else "⭕"
+@@ -363,13 +365,28 @@ async def _show_block_selection(message, state: FSMContext):
+     kb.button(text="➕ Подготовка НС", callback_data="create_add_nervousprep")
+     kb.button(text="➕ Основная", callback_data="create_add_main")
+     kb.button(text="➕ Заминка", callback_data="create_add_cooldown")
+-    kb.button(text="✅ Готово — сохранить тренировку", callback_data="create_finish")
+-    kb.button(text="❌ Отменить", callback_data="create_cancel")
++    kb.button(text="🗑 Очистить все блоки", callback_data="create_clear_blocks")
++    finish_text = "✅ Сохранить изменения" if edit_mode else "✅ Готово — сохранить тренировку"
++    kb.button(text=finish_text, callback_data="create_finish")
++    cancel_text = "❌ Отменить редактирование" if edit_mode else "❌ Отменить"
++    kb.button(text=cancel_text, callback_data="create_cancel")
+     kb.adjust(2)
+     await _safe_edit_or_send(message, text, reply_markup=kb.as_markup(), parse_mode="Markdown")
+     await state.set_state(CreateWorkoutStates.selecting_blocks)
+ 
+ 
++@workouts_router.callback_query(F.data == "create_clear_blocks")
++async def create_clear_blocks(callback: CallbackQuery, state: FSMContext):
++    """Очищает все блоки текущей тренировки (при создании и при редактировании состава)."""
++    data = await state.get_data()
++    if not data.get('editing_workout_id') and not data.get('selected_blocks'):
++        await callback.answer("Блоки уже пусты", show_alert=True)
++        return
++    await state.update_data(selected_blocks={}, current_block=None)
++    await _show_block_selection(callback.message, state)
++    await callback.answer("Все блоки очищены")
++
++
+ # handlers/workouts.py - ТОЛЬКО ОБРАБОТЧИКИ ДЛЯ ПОИСКА (вставить в конец файла перед "# ====" или другими комментариями)
+ 
+ # =====================================================
+@@ -1205,7 +1222,6 @@ async def create_confirm_add_pending_ex(callback: CallbackQuery, state: FSMConte
+ 
+ 
+ # Обработка текстового ввода параметров для pending exercise
+-@workouts_router.message(StateFilter(CreateWorkoutStates.configuring_exercise))
+ async def configuring_pending_ex_input(message: Message, state: FSMContext):
+     text = message.text.strip().lower()
+     data = await state.get_data()
+@@ -1388,7 +1404,7 @@ async def start_1rm_test_for(callback: CallbackQuery, state: FSMContext):
+ 
+ @workouts_router.callback_query(F.data == "create_finish")
+ async def create_finish(callback: CallbackQuery, state: FSMContext):
+-    """✨ Финал: сохраняем тренировку в БД (без speed_percent, только one_rm_percent)"""
++    """✨ Финал: сохраняем тренировку в БД (создание ИЛИ редактирование существующей)"""
+     try:
+         data = await state.get_data()
+         name = data.get("name")
+@@ -1407,20 +1423,44 @@ async def create_finish(callback: CallbackQuery, state: FSMContext):
+             await callback.answer("❗ Пользователь не найден в БД", show_alert=True)
+             return
+ 
++        edit_wid = data.get("editing_workout_id")
++
+         async with db_manager.pool.acquire() as conn:
+-            # 1. Создаём тренировку
+-            wid = await conn.fetchval(
+-                """
+-                INSERT INTO workouts (name, description, created_by, created_at, is_active, estimated_duration_minutes)
+-                VALUES ($1, $2, $3, NOW(), TRUE, 0)
+-                RETURNING id
+-                """,
+-                name.strip(),
+-                (data.get("description") or "").strip(),
+-                user["id"],
+-            )
++            if edit_wid:
++                # === РЕЖИМ РЕДАКТИРОВАНИЯ: проверяем права и обновляем шапку ===
++                w = await conn.fetchrow(
++                    "SELECT id, created_by FROM workouts WHERE id = $1", edit_wid
++                )
++                if not w:
++                    await callback.answer("❌ Тренировка не найдена", show_alert=True)
++                    return
++                role = (user or {}).get('role', 'player')
++                if w['created_by'] != user['id'] and role != 'admin':
++                    await callback.answer("Редактировать может только автор или админ", show_alert=True)
++                    return
++                wid = edit_wid
++                await conn.execute(
++                    "UPDATE workouts SET name = $1, description = $2 WHERE id = $3",
++                    name.strip(),
++                    (data.get("description") or "").strip(),
++                    wid,
++                )
++                # Перезаписываем состав: удаляем старые строки и вставляем новые
++                await conn.execute("DELETE FROM workout_exercises WHERE workout_id = $1", wid)
++            else:
++                # === РЕЖИМ СОЗДАНИЯ ===
++                wid = await conn.fetchval(
++                    """
++                    INSERT INTO workouts (name, description, created_by, created_at, is_active, estimated_duration_minutes)
++                    VALUES ($1, $2, $3, NOW(), TRUE, 0)
++                    RETURNING id
++                    """,
++                    name.strip(),
++                    (data.get("description") or "").strip(),
++                    user["id"],
++                )
+ 
+-            # 2. Вставляем упражнения
++            # Вставляем упражнения (общий код для создания и редактирования)
+             order = 0
+             for phase, block in selected.items():
+                 for ex in block.get("exercises", []):
+@@ -1453,19 +1493,28 @@ async def create_finish(callback: CallbackQuery, state: FSMContext):
+                         sets, reps_min, reps_max, one_rm_pct, rest_sec, notes,
+                     )
+ 
+-            # 3. Уникальный код
++            # Уникальный код
+             unique = await conn.fetchval(
+                 "SELECT unique_id FROM workouts WHERE id = $1", wid
+             )
+ 
+-        # 4. Красивое завершение
+-        await callback.message.edit_text(
+-            f"🎉 <b>Тренировка создана!</b>\n\n"
+-            f"📋 Название: <code>{name}</code>\n"
+-            f"🔢 Упражнений: {total_exs}\n"
+-            f"📌 Код для подопечных: <code>{unique}</code>",
+-            parse_mode="HTML",
+-        )
++        # Красивое завершение
++        if edit_wid:
++            await callback.message.edit_text(
++                f"🎉 <b>Тренировка обновлена!</b>\n\n"
++                f"📋 Название: <code>{name}</code>\n"
++                f"🔢 Упражнений: {total_exs}\n"
++                f"📌 Код для подопечных: <code>{unique}</code>",
++                parse_mode="HTML",
++            )
++        else:
++            await callback.message.edit_text(
++                f"🎉 <b>Тренировка создана!</b>\n\n"
++                f"📋 Название: <code>{name}</code>\n"
++                f"🔢 Упражнений: {total_exs}\n"
++                f"📌 Код для подопечных: <code>{unique}</code>",
++                parse_mode="HTML",
++            )
+         await state.clear()
+ 
+     except Exception as e:
+@@ -1515,18 +1564,125 @@ async def edit_workout(callback: CallbackQuery, state: FSMContext):
+         await callback.answer("Не найдено", show_alert=True)
+         return
+     user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
+-    if w['created_by'] != user['id']:
+-        await callback.answer("Только автор может редактировать", show_alert=True)
++    role = (user or {}).get('role', 'player')
++    if not user or (w['created_by'] != user['id'] and role != 'admin'):
++        await callback.answer("Редактировать может только автор или админ", show_alert=True)
+         return
+     kb = InlineKeyboardBuilder()
+     kb.button(text="✏️ Переименовать", callback_data=f"rename_workout_{wid}")
+     kb.button(text="📝 Изменить описание", callback_data=f"change_desc_workout_{wid}")
++    kb.button(text="🛠 Редактировать состав (упражнения)", callback_data=f"edit_composition_{wid}")
+     kb.button(text="🗑️ Удалить", callback_data=f"delete_workout_{wid}")
+     kb.button(text="🔙 К тренировке", callback_data=f"view_workout_{wid}")
+     kb.adjust(1)
+     await _safe_edit_or_send(callback.message, f"✏️ Редактирование: {w['name']}", reply_markup=kb.as_markup())
+     await callback.answer()
+ 
++
++@workouts_router.callback_query(F.data.startswith("rename_workout_"))
++async def rename_workout(callback: CallbackQuery, state: FSMContext):
++    wid = _parse_int_suffix(callback.data)
++    if wid is None:
++        await callback.answer("Некорректный ID", show_alert=True)
++        return
++    await state.update_data(editing_workout_id=wid)
++    kb = InlineKeyboardBuilder()
++    kb.button(text="❌ Отменить", callback_data=f"view_workout_{wid}")
++    kb.adjust(1)
++    await _safe_edit_or_send(
++        callback.message,
++        "✏️ Введите новое название тренировки:",
++        reply_markup=kb.as_markup(),
++    )
++    await state.set_state(CreateWorkoutStates.renaming_workout)
++    await callback.answer()
++
++
++@workouts_router.callback_query(F.data.startswith("change_desc_workout_"))
++async def change_desc_workout(callback: CallbackQuery, state: FSMContext):
++    wid = _parse_int_suffix(callback.data)
++    if wid is None:
++        await callback.answer("Некорректный ID", show_alert=True)
++        return
++    await state.update_data(editing_workout_id=wid)
++    kb = InlineKeyboardBuilder()
++    kb.button(text="❌ Отменить", callback_data=f"view_workout_{wid}")
++    kb.adjust(1)
++    await _safe_edit_or_send(
++        callback.message,
++        "📝 Введите новое описание тренировки:",
++        reply_markup=kb.as_markup(),
++    )
++    await state.set_state(CreateWorkoutStates.changing_workout_description)
++    await callback.answer()
++
++
++# ----------------- FULL COMPOSITION EDIT -----------------
++@workouts_router.callback_query(F.data.startswith("edit_composition_"))
++async def edit_composition(callback: CallbackQuery, state: FSMContext):
++    """Загружает существующую тренировку в FSM-конструктор для полного редактирования состава."""
++    wid = _parse_int_suffix(callback.data)
++    if wid is None:
++        await callback.answer("Некорректный ID", show_alert=True)
++        return
++    try:
++        async with db_manager.pool.acquire() as conn:
++            w = await conn.fetchrow(
++                "SELECT id, name, description, created_by FROM workouts WHERE id = $1", wid
++            )
++            if not w:
++                await callback.answer("Тренировка не найдена", show_alert=True)
++                return
++            user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
++            role = (user or {}).get('role', 'player')
++            if not user or (w['created_by'] != user['id'] and role != 'admin'):
++                await callback.answer("Редактировать может только автор или админ", show_alert=True)
++                return
++
++            rows = await conn.fetch(
++                """
++                SELECT we.id, we.exercise_id, we.phase, we.order_in_phase,
++                       we.sets, we.reps_min, we.reps_max,
++                       we.one_rm_percent, we.rest_seconds, we.notes,
++                       e.name AS ex_name
++                FROM workout_exercises we
++                LEFT JOIN exercises e ON e.id = we.exercise_id
++                WHERE we.workout_id = $1
++                ORDER BY we.order_in_phase, we.id
++                """,
++                wid,
++            )
++
++        selected: Dict[str, Dict[str, Any]] = {}
++        for r in rows:
++            phase = r['phase'] if r['phase'] in ("warmup", "nervousprep", "main", "cooldown") else "main"
++            block = selected.setdefault(phase, {"description": "", "exercises": []})
++            block["exercises"].append({
++                "id": r['exercise_id'],          # None для ручных упражнений
++                "db_row_id": r['id'],
++                "name": r['ex_name'] or (r['notes'] if r['exercise_id'] is None else None),
++                "sets": r['sets'],
++                "reps_min": r['reps_min'],
++                "reps_max": r['reps_max'],
++                "one_rm_percent": float(r['one_rm_percent']) if r['one_rm_percent'] is not None else None,
++                "rest_seconds": r['rest_seconds'],
++                "notes": r['notes'],
++            })
++
++        await state.update_data(
++            editing_workout_id=wid,
++            name=w['name'],
++            description=w['description'] or "",
++            selected_blocks=selected,
++            pending_exercise=None,
++            current_block=None,
++        )
++        await _show_block_selection(callback.message, state)
++        await callback.answer("Режим редактирования состава")
++    except Exception as e:
++        logger.exception("edit_composition error: %s", e)
++        await callback.answer("Ошибка при загрузке тренировки", show_alert=True)
++
+ @workouts_router.callback_query(F.data.startswith("delete_workout_"))
+ async def delete_workout(callback: CallbackQuery):
+     wid = _parse_int_suffix(callback.data)
+@@ -1565,6 +1721,23 @@ async def process_workout_text_input(message: Message, state: FSMContext):
+         if len(name) < 3:
+             await message.answer("Название слишком короткое (мин. 3 символа).")
+             return
++        # Если это редактирование существующей тренировки — сразу обновляем name
++        edit_wid = data.get('editing_workout_id')
++        if edit_wid:
++            async with db_manager.pool.acquire() as conn:
++                await conn.execute("UPDATE workouts SET name = $1 WHERE id = $2", name, edit_wid)
++            await state.update_data(name=name)
++            kb = InlineKeyboardBuilder()
++            kb.button(text="🛠 К редактированию состава", callback_data=f"edit_composition_{edit_wid}")
++            kb.button(text="📋 К тренировке", callback_data=f"view_workout_{edit_wid}")
++            kb.adjust(1)
++            await message.answer(
++                f"✅ Название обновлено на: *{name}*",
++                reply_markup=kb.as_markup(),
++                parse_mode="Markdown",
++            )
++            await state.clear()
++            return
+         await state.update_data(name=name)
+         kb = InlineKeyboardBuilder()
+         kb.button(text="Пропустить описание", callback_data="create_skip_description")
+@@ -1578,6 +1751,64 @@ async def process_workout_text_input(message: Message, state: FSMContext):
+         await state.set_state(CreateWorkoutStates.waiting_workout_description)
+         return
+ 
++    # -------------------------------------------------
++    # 1b. ПЕРЕИМЕНОВАНИЕ СУЩЕСТВУЮЩЕЙ ТРЕНИРОВКИ
++    # -------------------------------------------------
++    if current == CreateWorkoutStates.renaming_workout:
++        new_name = message.text.strip()
++        if len(new_name) < 3:
++            await message.answer("❌ Название слишком короткое (мин. 3 символа).")
++            return
++        wid = data.get('editing_workout_id')
++        if not wid:
++            await message.answer("❌ Контекст потерян, начните заново.")
++            await state.clear()
++            return
++        try:
++            async with db_manager.pool.acquire() as conn:
++                await conn.execute("UPDATE workouts SET name = $1 WHERE id = $2", new_name, wid)
++            kb = InlineKeyboardBuilder()
++            kb.button(text="📋 К тренировке", callback_data=f"view_workout_{wid}")
++            kb.button(text="🏋️ Мои тренировки", callback_data="my_workouts")
++            kb.adjust(1)
++            await message.answer(
++                f"✅ Название обновлено на: *{new_name}*",
++                reply_markup=kb.as_markup(),
++                parse_mode="Markdown",
++            )
++        except Exception as e:
++            logger.exception("rename_workout text handler error: %s", e)
++            await message.answer("❌ Ошибка при сохранении названия.")
++        await state.clear()
++        return
++
++    # -------------------------------------------------
++    # 1c. ИЗМЕНЕНИЕ ОПИСАНИЯ СУЩЕСТВУЮЩЕЙ ТРЕНИРОВКИ
++    # -------------------------------------------------
++    if current == CreateWorkoutStates.changing_workout_description:
++        new_desc = message.text.strip()
++        wid = data.get('editing_workout_id')
++        if not wid:
++            await message.answer("❌ Контекст потерян, начните заново.")
++            await state.clear()
++            return
++        try:
++            async with db_manager.pool.acquire() as conn:
++                await conn.execute("UPDATE workouts SET description = $1 WHERE id = $2", new_desc, wid)
++            kb = InlineKeyboardBuilder()
++            kb.button(text="📋 К тренировке", callback_data=f"view_workout_{wid}")
++            kb.button(text="🏋️ Мои тренировки", callback_data="my_workouts")
++            kb.adjust(1)
++            await message.answer(
++                "✅ Описание обновлено.",
++                reply_markup=kb.as_markup(),
++            )
++        except Exception as e:
++            logger.exception("change_desc_workout text handler error: %s", e)
++            await message.answer("❌ Ошибка при сохранении описания.")
++        await state.clear()
++        return
++
+     # -------------------------------------------------
+     # 2. ОПИСАНИЕ ТРЕНИРОВКИ
+     # -------------------------------------------------
+-- 
+2.39.5
+
