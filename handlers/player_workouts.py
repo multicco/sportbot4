@@ -625,6 +625,19 @@ async def get_or_create_session(user_id: int, workout_id: int) -> int:
             SELECT id FROM workout_sessions WHERE user_id = $1 AND workout_id = $2
         """, user_id, workout_id)
         if sess:
+            # После редактирования состава тренировки строки прогресса могут
+            # остаться без workout_exercise_id (мы отвязываем их от удалённых
+            # строк workout_exercises). Перепривязываем/дополняем по актуальному составу.
+            stale = await conn.fetchval("""
+                SELECT COUNT(*) FROM workout_session_exercises
+                WHERE session_id = $1 AND workout_exercise_id IS NULL
+            """, sess['id'])
+            if stale:
+                await conn.execute("""
+                    DELETE FROM workout_session_exercises
+                    WHERE session_id = $1 AND workout_exercise_id IS NULL
+                """, sess['id'])
+                await fill_session_exercises_from_blocks(sess['id'], workout_id)
             return sess['id']
         
         new_id = await conn.fetchval("""

@@ -1526,7 +1526,20 @@ async def create_finish(callback: CallbackQuery, state: FSMContext):
                     (data.get("description") or "").strip(),
                     wid,
                 )
-                # Перезаписываем состав: удаляем старые строки и вставляем новые
+                # Перезаписываем состав: сначала отвязываем строки прогресса
+                # учеников (workout_session_exercises ссылается на workout_exercises FK),
+                # затем удаляем старые строки и вставляем новые.
+                await conn.execute(
+                    """
+                    UPDATE workout_session_exercises wse
+                       SET workout_exercise_id = NULL
+                      FROM workout_sessions ws
+                     WHERE wse.session_id = ws.id
+                       AND ws.workout_id = $1
+                       AND wse.workout_exercise_id IS NOT NULL
+                    """,
+                    wid,
+                )
                 await conn.execute("DELETE FROM workout_exercises WHERE workout_id = $1", wid)
             else:
                 # === РЕЖИМ СОЗДАНИЯ ===
