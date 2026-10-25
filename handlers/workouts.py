@@ -813,10 +813,44 @@ async def _show_exercises_for_block(message, state: FSMContext):
     kb = InlineKeyboardBuilder()
     kb.button(text="🔍 Поиск упражнения", callback_data="workout_start_ex_search")
     kb.button(text="📝 Добавить вручную", callback_data="manual_add_exercise")
+    # Кнопки удаления для каждого упражнения (по индексу в блоке) — работают и при создании, и при редактировании состава
+    for idx, ex in enumerate(block['exercises']):
+        short_name = (ex['name'] or '?')[:24]
+        kb.button(
+            text=f"🗑 Удалить: {short_name}",
+            callback_data=f"block_remove_ex_{cur}_{idx}",
+        )
     kb.button(text="🔙 К блокам", callback_data="create_back_to_blocks")
     kb.adjust(1)
     await _safe_edit_or_send(message, text, reply_markup=kb.as_markup(), parse_mode="Markdown")
     await state.set_state(CreateWorkoutStates.adding_exercises)
+
+
+@workouts_router.callback_query(F.data.startswith("block_remove_ex_"))
+async def block_remove_exercise(callback: CallbackQuery, state: FSMContext):
+    """Удаляет упражнение из блока тренировки (в конструкторе/редакторе состава)."""
+    try:
+        parts = callback.data.split("_")
+        # block_remove_ex_<phase>_<index>
+        idx = int(parts[-1])
+        phase = "_".join(parts[3:-1])  # на случай фаз с '_' в названии
+        data = await state.get_data()
+        selected = data.get("selected_blocks", {})
+        block = selected.get(phase)
+        if not block or not block.get("exercises"):
+            await callback.answer("Блок не найден или пуст", show_alert=True)
+            return
+        if idx < 0 or idx >= len(block["exercises"]):
+            await callback.answer("Упражнение уже удалено, список обновлён", show_alert=True)
+            await _show_exercises_for_block(callback.message, state)
+            return
+        removed = block["exercises"].pop(idx)
+        await state.update_data(selected_blocks=selected, current_block=phase)
+        await _show_exercises_for_block(callback.message, state)
+        await callback.answer(f"🗑 Удалено: {removed.get('name', '?')}")
+    except Exception as e:
+        logger.exception("block_remove_exercise error: %s", e)
+        await callback.answer("Ошибка при удалении", show_alert=True)
 
 @workouts_router.callback_query(F.data.startswith("workout_add_ex_"))
 async def workout_add_exercise(callback: CallbackQuery, state: FSMContext):

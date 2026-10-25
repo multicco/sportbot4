@@ -1,0 +1,205 @@
+From 2ac8ada85ad3585fe20a45caf11766bf48f5d9fd Mon Sep 17 00:00:00 2001
+From: "qwen.ai[bot]" <qwenlm-intl@service.alibaba.com>
+Date: Sun, 25 Oct 2026 14:16:41 +0000
+Subject: [PATCH 4/5] Fix undefined column error in exercise handlers by
+ removing non-existent DB fields
+
+- Updated `handlers/exercise_params.py` to fetch only existing columns (`id`, `name`, `muscle_group`, etc.) and retrieve 1RM from `user_tests` instead of `exercises.one_rm_kg`.
+- Modified `handlers/workouts.py` to remove references to `default_sets`, `default_reps_min`, and `one_rm_kg` in SQL queries, using hardcoded defaults or dynamic 1RM lookup.
+- Implemented `_get_user_one_rm` helper to safely fetch the latest test weight for a user-exercise pair.
+- Adjusted parameter parsing and finalization logic to handle missing default values gracefully without crashing on database schema mismatches.
+---
+ handlers/exercise_params.py | 38 +++++++++++++++++++------
+ handlers/workouts.py        | 57 +++++++++++++++++++++++++++++--------
+ 2 files changed, 74 insertions(+), 21 deletions(-)
+
+diff --git a/handlers/exercise_params.py b/handlers/exercise_params.py
+index 965a3c9..f77b9fc 100644
+--- a/handlers/exercise_params.py
++++ b/handlers/exercise_params.py
+@@ -115,8 +115,7 @@ async def add_exercise_with_params_start(callback: CallbackQuery, state: FSMCont
+                 """
+                 SELECT 
+                     id, name, muscle_group, category, 
+-                    default_sets, default_reps_min, default_reps_max,
+-                    one_rm_kg, description
++                    description
+                 FROM exercises
+                 WHERE id = $1 AND is_active = true
+                 """,
+@@ -127,26 +126,47 @@ async def add_exercise_with_params_start(callback: CallbackQuery, state: FSMCont
+             await callback.answer("❌ Упражнение не найдено", show_alert=True)
+             return
+         
++        # 1ПМ берём из последних результатов тестов пользователя
++        # (колонки one_rm_kg в таблице exercises нет)
++        one_rm_kg = None
++        try:
++            user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
++            if user:
++                async with db_manager.pool.acquire() as conn:
++                    val = await conn.fetchval(
++                        """
++                        SELECT test_weight FROM user_tests
++                        WHERE user_id = $1 AND exercise_id = $2
++                          AND test_weight IS NOT NULL
++                        ORDER BY tested_at DESC
++                        LIMIT 1
++                        """,
++                        user["id"], exercise_id,
++                    )
++                one_rm_kg = float(val) if val else None
++        except Exception:
++            one_rm_kg = None
++
+         # Сохраняем упражнение в state
+         await state.update_data(
+             selected_exercise_id=exercise_id,
+             selected_exercise_name=exercise['name'],
+-            selected_exercise_1rm=exercise.get('one_rm_kg'),
++            selected_exercise_1rm=one_rm_kg,
+             selected_exercise_defaults={
+-                'sets': exercise.get('default_sets') or 3,
+-                'reps': exercise.get('default_reps_min') or 8,
++                'sets': 3,
++                'reps': 8,
+                 'percent': 75,
+                 'rest': 120,
+             }
+         )
+         
+         # Формируем подсказку по формату
+-        defaults = exercise.get('default_sets') or 3
+-        default_reps = exercise.get('default_reps_min') or 8
++        defaults = 3
++        default_reps = 8
+         one_rm_info = ""
+         
+-        if exercise.get('one_rm_kg'):
+-            one_rm_info = f"\n\n💡 **1ПМ известен: {exercise['one_rm_kg']} кг**\nПосле ввода % будет показан точный вес"
++        if one_rm_kg:
++            one_rm_info = f"\n\n💡 **1ПМ известен: {one_rm_kg} кг**\nПосле ввода % будет показан точный вес"
+         
+         text = f"""
+ 🏋️ **{exercise['name']}**
+diff --git a/handlers/workouts.py b/handlers/workouts.py
+index 14b485b..c4601a7 100644
+--- a/handlers/workouts.py
++++ b/handlers/workouts.py
+@@ -28,6 +28,33 @@ async def back_to_constructor(callback: CallbackQuery, state: FSMContext):
+ 
+ 
+ # ----------------- HELPERS -----------------
++async def _get_user_one_rm(telegram_id: int, exercise_id: int) -> Optional[float]:
++    """Получить 1ПМ пользователя по упражнению из последних результатов тестов.
++
++    В таблице exercises нет колонки one_rm_kg — вес берётся из user_tests
++    (последний результат с test_weight для силовых упражнений).
++    """
++    try:
++        user = await db_manager.get_user_by_telegram_id(telegram_id)
++        if not user:
++            return None
++        async with db_manager.pool.acquire() as conn:
++            val = await conn.fetchval(
++                """
++                SELECT test_weight FROM user_tests
++                WHERE user_id = $1 AND exercise_id = $2
++                  AND test_weight IS NOT NULL
++                ORDER BY tested_at DESC
++                LIMIT 1
++                """,
++                user["id"], exercise_id,
++            )
++        return float(val) if val else None
++    except Exception:
++        logging.getLogger(__name__).debug("Не удалось получить 1ПМ", exc_info=True)
++        return None
++
++
+ def _parse_int_suffix(callback_data: str) -> Optional[int]:
+     """Возвращает целый суффикс после '_' или None."""
+     try:
+@@ -955,22 +982,25 @@ async def create_add_ex(callback: CallbackQuery, state: FSMContext):
+ 
+     try:
+         async with db_manager.pool.acquire() as conn:
++            # В таблице exercises нет колонок default_sets/default_reps/one_rm_kg —
++            # выбираем только существующие поля, дефолты константные.
+             row = await conn.fetchrow(
+-                "SELECT id, name, muscle_group, category, default_sets, default_reps_min, default_reps_max, one_rm_kg FROM exercises WHERE id = $1",
++                "SELECT id, name, muscle_group, category FROM exercises WHERE id = $1",
+                 ex_id
+             )
+         if not row:
+             await callback.answer("Упражнение не найдено", show_alert=True)
+             return
++        one_rm_kg = await _get_user_one_rm(callback.from_user.id, ex_id)
+ 
+         # Сохраняем ВСЕ нужные данные
+         await state.update_data(
+             selected_exercise_id=ex_id,
+             selected_exercise_name=row['name'],
+-            selected_exercise_1rm=row.get('one_rm_kg'),
++            selected_exercise_1rm=one_rm_kg,
+             selected_exercise_defaults={
+-                'sets': row.get('default_sets') or 3,
+-                'reps': row.get('default_reps_min') or 8,
++                'sets': 3,
++                'reps': 8,
+                 'percent': 75,
+                 'rest': 120,
+             },
+@@ -979,11 +1009,11 @@ async def create_add_ex(callback: CallbackQuery, state: FSMContext):
+         
+         # Показываем информацию об упражнении и запрашиваем параметры
+         one_rm_info = ""
+-        if row.get('one_rm_kg'):
+-            one_rm_info = f"\n\n💡 **1ПМ известен: {row['one_rm_kg']} кг**\nПосле ввода % будет показан точный вес"
++        if one_rm_kg:
++            one_rm_info = f"\n\n💡 **1ПМ известен: {one_rm_kg} кг**\nПосле ввода % будет показан точный вес"
+         
+-        defaults = row.get('default_sets') or 3
+-        default_reps = row.get('default_reps_min') or 8
++        defaults = 3
++        default_reps = 8
+         
+         text = f"""
+ 🏋️ **{row['name']}**
+@@ -2083,26 +2113,29 @@ async def use_in_workout_with_params(callback: CallbackQuery, state: FSMContext)
+     
+     try:
+         async with db_manager.pool.acquire() as conn:
++            # Колонок default_sets/default_reps_min/one_rm_kg в exercises нет —
++            # берём только существующие поля.
+             ex = await conn.fetchrow(
+-                "SELECT name, test_type, default_sets, default_reps_min, one_rm_kg FROM exercises WHERE id = $1", 
++                "SELECT name, test_type FROM exercises WHERE id = $1",
+                 ex_id
+             )
+         
+         if not ex:
+             await callback.answer("Упражнение не найдено.", show_alert=True)
+             return
++        one_rm_kg = await _get_user_one_rm(callback.from_user.id, ex_id)
+         
+         # Сохраняем данные упражнения
+         await state.update_data(
+             selected_exercise_id=ex_id,
+             selected_exercise_name=ex["name"],
+-            selected_exercise_1rm=ex.get('one_rm_kg'),
++            selected_exercise_1rm=one_rm_kg,
+             current_block=block
+         )
+         
+         # Показываем форму параметров
+-        defaults = ex.get('default_sets') or 3
+-        default_reps = ex.get('default_reps_min') or 8
++        defaults = 3
++        default_reps = 8
+         
+         text = f"""
+ 🏋️ **{ex['name']}**
+-- 
+2.39.5
+
