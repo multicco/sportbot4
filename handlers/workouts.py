@@ -90,43 +90,60 @@ async def workouts_menu(callback: CallbackQuery):
         logger.exception("Ошибка в workouts_menu")
         await callback.answer("Ошибка", show_alert=True)
 
-@workouts_router.message(StateFilter(CreateWorkoutStates.manual_exercise_input))
-async def handle_manual_exercise_input(message: Message, state: FSMContext):
-    text = message.text.strip()
-    if not text:
-        await message.answer("Введите текст упражнения.")
-        return
-
+async def _add_manual_exercise_to_block(state: FSMContext, text: str) -> str:
+    """Добавляет ручное упражнение в текущий блок. Возвращает имя блока."""
     data = await state.get_data()
-    # Текущий блок (если не задан, используем 'main' по умолчанию)
     cur_block = data.get("current_block", "main")
     selected = data.get("selected_blocks", {})
     selected.setdefault(cur_block, {"description": "", "exercises": []})
 
-    # Добавляем ручное упражнение как запись без exercise_id, с текстом в notes
+    # Ручное упражнение — запись без exercise_id, весь текст в notes
+    first_line = text.splitlines()[0].strip()
+    display_name = first_line[:40] + ("…" if len(first_line) > 40 else "")
     selected[cur_block]["exercises"].append({
-        "id": None,  # Нет связи с таблицей exercises
-        "name": None,  # Имя не нужно, весь текст в notes
+        "id": None,            # нет связи с таблицей exercises
+        "name": display_name,  # короткое имя для списков блоков
         "sets": None,
         "reps_min": None,
         "reps_max": None,
         "one_rm_percent": None,
         "rest_seconds": None,
-        "notes": text  # Произвольный текст тренера
+        "notes": text,         # произвольный текст тренера
     })
 
     await state.update_data(selected_blocks=selected)
+    return cur_block
 
-    await message.answer(f"✅ Добавлено ручное упражнение:\n\n{text}")
 
-    # Клавиатура для следующего шага
+@workouts_router.callback_query(F.data == "manual_add_exercise")
+
+async def add_exercise_manually(callback: CallbackQuery, state: FSMContext):
+    """Ручное добавление упражнения — кнопка работает!"""
+
+    # Узнаём, в каком блоке сейчас находимся (это важно!)
+    data = await state.get_data()
+    current_block = data.get("current_block", "main")
+
     kb = InlineKeyboardBuilder()
-    kb.button(text="➕ Добавить ещё", callback_data="manual_add_exercise")
-    kb.button(text="⬅️ Назад", callback_data="back_to_constructor")
+    kb.button(text="🔙 К блокам", callback_data="create_back_to_blocks")
+    kb.button(text="❌ Отменить", callback_data="create_cancel")
     kb.adjust(1)
-    await message.answer("Что дальше?", reply_markup=kb.as_markup())
 
-    await state.set_state(CreateWorkoutStates.adding_exercises)
+    await _safe_edit_or_send(
+        callback.message,
+        "Введите упражнение вручную:\n\n"
+        f"Блок: *{_pretty_block_name(current_block)}*\n\n"
+        "Примеры:\n"
+        "• Жим лёжа 4×8-10, 75%, отдых 2 мин\n"
+        "• Бёрпи 3 круга по 20 сек\n"
+        "• Растяжка спины — 3 минуты\n\n"
+        "_Отправьте упражнение сообщением или нажмите кнопку._",
+        reply_markup=kb.as_markup(),
+        parse_mode="Markdown",
+    )
+
+    await state.set_state(CreateWorkoutStates.manual_exercise_input)
+    await callback.answer()
 
 
 
