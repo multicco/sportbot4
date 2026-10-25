@@ -107,6 +107,8 @@ async def handle_all_text_messages(message: Message, state: FSMContext):
             CreateWorkoutStates.manual_exercise_input,
             CreateWorkoutStates.waiting_rpe,
             CreateWorkoutStates.configuring_exercise,
+            CreateWorkoutStates.renaming_workout,
+            CreateWorkoutStates.changing_workout_description,
         ]
         if current_state in WORKOUT_TEXT_STATES:
             await workouts.process_workout_text_input(message, state)
