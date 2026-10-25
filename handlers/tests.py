@@ -67,43 +67,125 @@ async def tests_menu(callback: CallbackQuery):
     await callback.answer()
 
 def validate_test_data(test_data, test_type):
-    # ✅ ИСПРАВЛЕНИЕ: Проверяем тип данных
+    """Универсальная валидация данных теста.
+
+    Принимает либо словарь, либо сырую строку ввода пользователя
+    ('90', '1:30', '12.5 30' и т.п.) — строка парсится автоматически
+    в зависимости от типа теста.
+    Возвращает dict: valid, errors, data + поля time/distance/seconds/reps.
+    """
     if isinstance(test_data, str):
-        return {
-            'valid': False,
-            'errors': [f"Получена строка вместо словаря: '{test_data}'"],
-            'data': {}
-        }
-    
+        raw = re.sub(r'(сек|sec|кг|kg|раз|повт)', ' ', test_data.lower())
+        raw = raw.replace(',', '.')
+        numbers = re.findall(r'\d+(?:\.\d+)?', raw)
+        colon_parts = [p.strip() for p in test_data.split(':') if p.strip()]
+
+        if test_type == 'speed':
+            # Формат "время дистанция" (например "12.5 30") или "12.5сек 30м"
+            if len(numbers) >= 2:
+                test_data = {'time': float(numbers[0]), 'distance': float(numbers[1])}
+            elif len(numbers) == 1 and len(colon_parts) != 2:
+                # Только время без дистанции
+                test_data = {'time': float(numbers[0]), 'distance': None}
+            elif len(colon_parts) == 2 and all(p.replace('.', '').isdigit() for p in colon_parts):
+                test_data = {'time': int(colon_parts[0]) * 60 + float(colon_parts[1]), 'distance': None}
+            else:
+                return {'valid': False, 'errors': ["Введите время и дистанцию через пробел. Пример: `12.5 30`"], 'data': {}}
+        elif test_type == 'endurance':
+            if len(colon_parts) == 2 and all(p.replace('.', '').isdigit() for p in colon_parts):
+                test_data = {'seconds': int(colon_parts[0]) * 60 + int(float(colon_parts[1]))}
+            elif len(numbers) >= 1:
+                test_data = {'seconds': float(numbers[0])}
+            else:
+                return {'valid': False, 'errors': ["Введите время в секундах. Пример: `90` или `1:30`"], 'data': {}}
+        elif test_type == 'quantity':
+            if len(numbers) >= 1:
+                test_data = {'reps': int(float(numbers[0]))}
+            else:
+                return {'valid': False, 'errors': ["Введите количество повторений числом. Пример: `25`"], 'data': {}}
+        elif test_type == 'strength':
+            if len(numbers) >= 2:
+                test_data = {'weight': float(numbers[0]), 'reps': int(float(numbers[1]))}
+            else:
+                return {'valid': False, 'errors': ["Введите вес и повторения через пробел. Пример: `80 10`"], 'data': {}}
+        else:
+            return {'valid': False, 'errors': [f"Неизвестный тип теста: {test_type}"], 'data': {}}
+
     if not isinstance(test_data, dict):
         return {
             'valid': False,
             'errors': [f"Неверный тип данных: {type(test_data)}"],
             'data': {}
         }
-    
+
     result = {'valid': True, 'errors': [], 'data': test_data.copy()}
-    
+
     if test_type == 'strength':
         try:
             weight = float(test_data.get('weight', 0))
             reps = int(test_data.get('reps', 0))
-            
+
             if weight <= 0 or weight > 1000:
                 result['errors'].append("Вес должен быть от 0.1 до 1000 кг")
                 result['valid'] = False
-            
+
             if reps <= 0 or reps > 50:
                 result['errors'].append("Повторения должны быть от 1 до 50")
                 result['valid'] = False
-                
+
             result['data']['weight'] = weight
             result['data']['reps'] = reps
-            
+
         except (ValueError, TypeError):
             result['errors'].append("Неверный формат чисел")
             result['valid'] = False
-    
+
+    elif test_type == 'speed':
+        try:
+            time_val = float(test_data.get('time', test_data.get('time_seconds', 0)))
+            distance_val = test_data.get('distance')
+            distance_val = float(distance_val) if distance_val is not None else None
+
+            if time_val <= 0 or time_val > 7200:
+                result['errors'].append("Время должно быть от 0.1 до 7200 секунд")
+                result['valid'] = False
+
+            if distance_val is not None and (distance_val <= 0 or distance_val > 10000):
+                result['errors'].append("Дистанция должна быть от 1 до 10000 метров")
+                result['valid'] = False
+
+            result['time'] = time_val
+            result['distance'] = distance_val
+            result['data']['time'] = time_val
+            result['data']['distance'] = distance_val
+        except (ValueError, TypeError):
+            result['errors'].append("Неверный формат чисел. Пример: `12.5 30`")
+            result['valid'] = False
+
+    elif test_type == 'endurance':
+        try:
+            seconds_val = float(test_data.get('seconds', test_data.get('time_seconds', 0)))
+            if seconds_val <= 0 or seconds_val > 86400:
+                result['errors'].append("Время должно быть от 1 до 86400 секунд")
+                result['valid'] = False
+            result['seconds'] = seconds_val
+            result['data']['seconds'] = seconds_val
+        except (ValueError, TypeError):
+            result['errors'].append("Неверный формат времени")
+            result['valid'] = False
+
+    elif test_type == 'quantity':
+        try:
+            reps_val = int(test_data.get('reps', test_data.get('max_reps', 0)))
+            if reps_val <= 0 or reps_val > 10000:
+                result['errors'].append("Количество повторений должно быть от 1 до 10000")
+                result['valid'] = False
+            result['reps'] = reps_val
+            result['data']['reps'] = reps_val
+        except (ValueError, TypeError):
+            result['errors'].append("Неверный формат числа")
+            result['valid'] = False
+
     return result
 
 def parse_strength_test_input(text: str) -> Dict[str, Any]:
@@ -1020,12 +1102,13 @@ async def process_speed_test_data(message: Message, state: FSMContext):
     
     try:
         async with db_manager.pool.acquire() as conn:
+            distance_val = validation.get('distance')
             await conn.execute("""
-                INSERT INTO test_results
+                INSERT INTO user_tests
                 (user_id, exercise_id, test_type, result_value, result_unit, time_seconds, distance)
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
             """, user['id'], data['exercise_id'], 'speed',
-                validation['time'], 'сек', validation['time'], validation['distance'])
+                validation['time'], 'сек', validation['time'], distance_val)
         
         text = f"✅ **Скоростной тест завершен!**\\n\\n"
         text += f"🏃 **Упражнение:** {exercise['name']}\\n"
@@ -1061,7 +1144,7 @@ async def process_quantity_test_data(message: Message, state: FSMContext):
     try:
         async with db_manager.pool.acquire() as conn:
             await conn.execute("""
-                INSERT INTO test_results
+                INSERT INTO user_tests
                 (user_id, exercise_id, test_type, result_value, result_unit, max_reps)
                 VALUES ($1, $2, $3, $4, $5, $6)
             """, user['id'], data['exercise_id'], 'quantity',
@@ -1095,7 +1178,7 @@ async def my_tests(callback: CallbackQuery):
         async with db_manager.pool.acquire() as conn:
             tests = await conn.fetch("""
                 SELECT tr.*, e.name as exercise_name, e.muscle_group
-                FROM test_results tr
+                FROM user_tests tr
                 JOIN exercises e ON tr.exercise_id = e.id
                 WHERE tr.user_id = $1
                 ORDER BY tr.tested_at DESC
@@ -1319,7 +1402,7 @@ async def get_user_test_result_for_workout(user_id: int, exercise_id: int):
     try:
         async with db_manager.pool.acquire() as conn:
             result = await conn.fetchrow("""
-                SELECT * FROM test_results
+                SELECT * FROM user_tests
                 WHERE user_id = $1 AND exercise_id = $2
                 ORDER BY tested_at DESC LIMIT 1
             """, user_id, exercise_id)
