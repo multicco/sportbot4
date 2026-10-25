@@ -5,6 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 import logging
+import html
 from database import db_manager
 from keyboards.main_keyboards_old import get_coming_soon_keyboard
 from utils.validators import validate_1rm_data, validate_endurance_data, validate_speed_data
@@ -414,16 +415,38 @@ async def process_endurance_data(message: Message, state: FSMContext):
             VALUES ($1, $2, $3, $4, $5, $6, $7)
         """, user["id"], ex_id, sec, results["a"], results["b"], results["c"], results["avg"])
 
+    # предыдущий рекорд (лучшее = максимальное время удержания)
+    prev_best = None
+    try:
+        row = await db_manager.pool.fetchrow("""
+            SELECT MAX(result_seconds) AS best
+            FROM user_endurance_records
+            WHERE user_id = $1 AND exercise_id = $2
+        """, user["id"], ex_id)
+        if row and row["best"] is not None:
+            prev_best = float(row["best"])
+    except Exception as e:
+        logger.error(f"process_endurance_data best lookup: {e}")
+
+    record_line = ""
+    if prev_best is not None:
+        if prev_best <= sec:
+            record_line = f"\n🏆 <b>Новый рекорд!</b> ({sec:.1f} с)"
+        else:
+            record_line = f"\nРекорд: {prev_best:.1f} с (пока не побит)"
+
     kb = (InlineKeyboardBuilder()
           .button(text="➕ Ещё тест", callback_data="new_endurance_test")
           .button(text="📊 Мои рекорды", callback_data="my_endurance_results")
           .button(text="🏠 Главное меню", callback_data="main_menu")
           .adjust(1))
     await message.answer(
-        f"⏱ **Результат выносливости: {name}**\n\n"
-        f"Ваше время: **{sec} с**\n"
-        f"Расчётный максимум ≈ **{results['avg']} с**",
-        reply_markup=kb.as_markup(), parse_mode="Markdown"
+        f"⏱ <b>Результат выносливости: {html.escape(name)}</b>\n\n"
+        f"Ваше время: <b>{sec} с</b>"
+        f"{record_line}\n"
+        f"Расчётный максимум ≈ <b>{results['avg']} с</b>\n"
+        f"<i>(для выносливости больше = лучше)</i>",
+        reply_markup=kb.as_markup(), parse_mode="HTML"
     )
 
     ret = data.get("return_after_test")
@@ -505,16 +528,38 @@ async def process_speed_data(message: Message, state: FSMContext):
             VALUES ($1, $2, $3, $4, $5, $6, $7)
         """, user["id"], ex_id, sec, results["a"], results["b"], results["c"], results["avg"])
 
+    # предыдущий рекорд (лучшее = минимальное время)
+    prev_best = None
+    try:
+        row = await db_manager.pool.fetchrow("""
+            SELECT MIN(result_seconds) AS best
+            FROM user_speed_records
+            WHERE user_id = $1 AND exercise_id = $2
+        """, user["id"], ex_id)
+        if row and row["best"] is not None:
+            prev_best = float(row["best"])
+    except Exception as e:
+        logger.error(f"process_speed_data best lookup: {e}")
+
+    record_line = ""
+    if prev_best is not None:
+        if prev_best >= sec:
+            record_line = f"\n🏆 <b>Новый рекорд!</b> (лучшее время: {sec:.2f} с)"
+        else:
+            record_line = f"\nРекорд: {prev_best:.2f} с (пока не побит)"
+
     kb = (InlineKeyboardBuilder()
           .button(text="➕ Ещё тест", callback_data="new_speed_test")
           .button(text="📊 Мои рекорды", callback_data="my_speed_results")
           .button(text="🏠 Главное меню", callback_data="main_menu")
           .adjust(1))
     await message.answer(
-        f"🏃 **Результат скорости: {name}**\n\n"
-        f"Ваше время: **{sec} с**\n"
-        f"Расчётный максимум ≈ **{results['avg']} с**",
-        reply_markup=kb.as_markup(), parse_mode="Markdown"
+        f"🏃 <b>Результат скорости: {html.escape(name)}</b>\n\n"
+        f"Ваше время: <b>{sec} с</b>"
+        f"{record_line}\n"
+        f"Расчётный максимум ≈ <b>{results['avg']} с</b>\n"
+        f"<i>(для скорости меньше = лучше)</i>",
+        reply_markup=kb.as_markup(), parse_mode="HTML"
     )
 
     ret = data.get("return_after_test")
