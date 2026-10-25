@@ -42,10 +42,6 @@ async def handle_all_text_messages(message: Message, state: FSMContext):
     current_state = await state.get_state()
     logger.info(f"📨 Текст: '{message.text}' | FSM состояние: {current_state}")
 
-    if current_state == "waiting_speed_data":
-        await one_rm.process_speed_data(message, state)
-        return
-
     # --- 1. Без состояния
     if current_state is None:
         await message.answer(
@@ -54,11 +50,7 @@ async def handle_all_text_messages(message: Message, state: FSMContext):
         )
         return
 
-    # --- 2. Тесты
-    if current_state == "waiting_1rm_data":
-        await one_rm.process_1rm_data(message, state)
-        return
-
+    # --- 2. Тесты (универсальные — tests.py)
     if current_state in [
         "waiting_search_for_test",
         "waiting_strength_test_data",
@@ -67,6 +59,23 @@ async def handle_all_text_messages(message: Message, state: FSMContext):
         "waiting_quantity_test_data",
     ]:
         await tests.process_test_text_input(message, state)
+        return
+
+    # --- 2b. Тесты из тренировки (one_rm.py: 1ПМ / выносливость / скорость / количество)
+    if current_state == one_rm.WAITING_1RM_DATA:
+        await one_rm.process_1rm_data(message, state)
+        return
+
+    if current_state == one_rm.WAITING_ENDURANCE_DATA:
+        await one_rm.process_endurance_data(message, state)
+        return
+
+    if current_state == one_rm.WAITING_SPEED_DATA:
+        await one_rm.process_speed_data(message, state)
+        return
+
+    if current_state == "waiting_quantity_data":
+        await one_rm.process_quantity_data(message, state)
         return
 
     # --- 3. Упражнения
