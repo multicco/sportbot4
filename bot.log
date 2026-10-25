@@ -44582,3 +44582,524 @@ ValueError: invalid literal for int() with base 10: 'back'
 2026-10-16 11:10:07,663 - aiogram.event - INFO - Update id=645446116 is handled. Duration 59 ms by bot id=8236074997
 2026-10-16 11:58:32,461 - aiogram.event - INFO - Update id=645446117 is handled. Duration 691 ms by bot id=8236074997
 2026-10-16 11:58:35,122 - aiogram.event - INFO - Update id=645446118 is handled. Duration 78 ms by bot id=8236074997
+2026-10-16 15:59:01,143 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2026-10-16 15:59:01,145 - __main__ - INFO - 📊 Инициализация базы данных...
+2026-10-16 15:59:01,267 - database.database - INFO - ✅ База данных инициализирована
+2026-10-16 15:59:01,267 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2026-10-16 15:59:01,271 - database.database - INFO - 🔗 PostgreSQL: 14.24
+2026-10-16 15:59:01,274 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2026-10-16 15:59:01,274 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2026-10-16 15:59:01,274 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2026-10-16 15:59:01,275 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2026-10-16 15:59:01,275 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x7ff2030923b0>
+2026-10-16 15:59:01,275 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x7ff202d90e00>
+2026-10-16 15:59:01,276 - database.teams_database - INFO - ✅ teams_database инициализирована
+2026-10-16 15:59:01,276 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x7ff202d7f5b0>
+2026-10-16 15:59:01,280 - database.teams_database - INFO - ✅ Teams database tables initialized
+2026-10-16 15:59:01,281 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x7ff202d7f5b0>
+2026-10-16 15:59:01,281 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2026-10-16 15:59:01,281 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2026-10-16 15:59:01,282 - handlers - INFO - ============================================================
+2026-10-16 15:59:01,282 - handlers - INFO - 🔗 Начинаю регистрацию всех роутеров и обработчиков...
+2026-10-16 15:59:01,282 - handlers - INFO - ============================================================
+2026-10-16 15:59:01,283 - handlers - INFO - ✅ start handlers зарегистрированы
+2026-10-16 15:59:01,284 - handlers - INFO - ✅ exercises handlers зарегистрированы
+2026-10-16 15:59:01,285 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2026-10-16 15:59:01,285 - handlers - INFO - ✅ workouts handlers зарегистрированы
+2026-10-16 15:59:01,286 - handlers - INFO - ✅ tests handlers зарегистрированы
+2026-10-16 15:59:01,287 - handlers - INFO - ✅ test_batteries handlers зарегистрированы
+2026-10-16 15:59:01,288 - handlers - INFO - ✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)
+2026-10-16 15:59:01,288 - handlers - INFO - ✅ player_workouts_router зарегистрирован
+2026-10-16 15:59:01,288 - handlers - INFO - ✅ trainees_router зарегистрирован
+2026-10-16 15:59:01,288 - handlers - INFO - ✅ workouts_router зарегистрирован
+2026-10-16 15:59:01,288 - handlers - INFO - ✅ navigation_router зарегистрирован (ПЕРВЫЙ ПРИОРИТЕТ)
+2026-10-16 15:59:01,290 - handlers - INFO - ✅ general_router зарегистрирован (последний приоритет)
+2026-10-16 15:59:01,291 - handlers - INFO - ✅ team_tests handlers зарегистрированы
+2026-10-16 15:59:01,292 - handlers - INFO - ✅ player_tests handlers зарегистрированы
+2026-10-16 15:59:01,292 - handlers - INFO - ============================================================
+2026-10-16 15:59:01,292 - handlers - INFO - 🎉 ВСЕ роутеры и обработчики успешно зарегистрированы!
+2026-10-16 15:59:01,292 - handlers - INFO - ============================================================
+2026-10-16 15:59:01,378 - __main__ - INFO - ✅ Команды бота настроены
+2026-10-16 15:59:01,397 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2026-10-16 15:59:01,397 - __main__ - INFO - 🆔 ID: 8236074997
+2026-10-16 15:59:01,398 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2026-10-16 15:59:01,398 - __main__ - INFO - ✅ Бот успешно запущен!
+2026-10-16 15:59:01,398 - __main__ - INFO - 🔄 Начинаю поллинг...
+2026-10-16 15:59:01,399 - aiogram.dispatcher - INFO - Start polling
+2026-10-16 15:59:01,413 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2026-10-16 15:59:24,440 - aiogram.event - INFO - Update id=645446145 is handled. Duration 357 ms by bot id=8236074997
+2026-10-16 15:59:25,938 - aiogram.event - INFO - Update id=645446146 is handled. Duration 75 ms by bot id=8236074997
+2026-10-16 15:59:28,291 - handlers.trainees_menu - INFO - 🟢 show_trainees_list ВЫЗВАНА! callback.data=my_trainees
+2026-10-16 15:59:28,433 - handlers.trainees_menu - INFO - ✅ Показано 7 подопечных
+2026-10-16 15:59:28,434 - aiogram.event - INFO - Update id=645446147 is handled. Duration 165 ms by bot id=8236074997
+2026-10-16 15:59:29,784 - aiogram.event - INFO - Update id=645446148 is handled. Duration 65 ms by bot id=8236074997
+2026-10-16 15:59:45,209 - aiogram.event - INFO - Update id=645446149 is handled. Duration 114 ms by bot id=8236074997
+2026-10-16 15:59:50,118 - aiogram.event - INFO - Update id=645446150 is handled. Duration 61 ms by bot id=8236074997
+2026-10-16 16:07:32,340 - aiogram.event - INFO - Update id=645446151 is handled. Duration 210 ms by bot id=8236074997
+2026-10-16 16:07:35,746 - aiogram.event - INFO - Update id=645446152 is handled. Duration 147 ms by bot id=8236074997
+2026-10-16 16:07:40,999 - aiogram.event - INFO - Update id=645446153 is handled. Duration 93 ms by bot id=8236074997
+2026-10-16 16:07:42,112 - aiogram.event - INFO - Update id=645446154 is handled. Duration 81 ms by bot id=8236074997
+2026-10-16 16:07:43,141 - handlers.trainees_menu - INFO - 🟢 show_trainees_list ВЫЗВАНА! callback.data=my_trainees
+2026-10-16 16:07:43,289 - handlers.trainees_menu - INFO - ✅ Показано 7 подопечных
+2026-10-16 16:07:43,292 - aiogram.event - INFO - Update id=645446155 is handled. Duration 174 ms by bot id=8236074997
+2026-10-16 16:07:54,730 - handlers.teams - INFO - 🟢 Начало добавления подопечного для 328980170
+2026-10-16 16:07:54,794 - aiogram.event - INFO - Update id=645446156 is handled. Duration 78 ms by bot id=8236074997
+2026-10-16 16:08:03,771 - handlers.trainees_menu - INFO - 🟢 show_trainees_list ВЫЗВАНА! callback.data=my_trainees
+2026-10-16 16:08:03,910 - handlers.trainees_menu - INFO - ✅ Показано 7 подопечных
+2026-10-16 16:08:03,912 - aiogram.event - INFO - Update id=645446157 is handled. Duration 161 ms by bot id=8236074997
+2026-10-16 16:38:33,129 - database.database - INFO - ✅ Создан пользователь 1933337038 (@ilia6678)
+2026-10-16 16:38:33,288 - aiogram.event - INFO - Update id=645446158 is handled. Duration 397 ms by bot id=8236074997
+2026-10-16 22:10:45,419 - aiogram.event - INFO - Update id=645446159 is handled. Duration 289 ms by bot id=8236074997
+2026-10-16 22:10:47,355 - aiogram.event - INFO - Update id=645446160 is handled. Duration 378 ms by bot id=8236074997
+2026-10-16 22:10:49,391 - handlers.workouts - INFO - === show_my_templates START user 328980170 ===
+2026-10-16 22:10:49,548 - handlers.workouts - INFO - === show_my_templates END (SUCCESS) ===
+2026-10-16 22:10:49,551 - aiogram.event - INFO - Update id=645446161 is handled. Duration 580 ms by bot id=8236074997
+2026-10-16 22:10:53,557 - aiogram.event - INFO - Update id=645446162 is handled. Duration 396 ms by bot id=8236074997
+2026-10-17 03:12:25,389 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramRetryAfter: Telegram server says - Flood control exceeded on method 'GetUpdates'. Retry in 5 seconds.
+Original description: Too Many Requests: retry after 5
+(background on this error at: https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this)
+2026-10-17 03:12:25,403 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8236074997)
+2026-10-17 03:12:26,426 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramRetryAfter: Telegram server says - Flood control exceeded on method 'GetUpdates'. Retry in 5 seconds.
+Original description: Too Many Requests: retry after 5
+(background on this error at: https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this)
+2026-10-17 03:12:26,427 - aiogram.dispatcher - WARNING - Sleep for 1.582727 seconds and try again... (tryings = 1, bot id = 8236074997)
+2026-10-17 03:12:28,071 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramRetryAfter: Telegram server says - Flood control exceeded on method 'GetUpdates'. Retry in 5 seconds.
+Original description: Too Many Requests: retry after 5
+(background on this error at: https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this)
+2026-10-17 03:12:28,078 - aiogram.dispatcher - WARNING - Sleep for 2.122997 seconds and try again... (tryings = 2, bot id = 8236074997)
+2026-10-17 03:12:30,241 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramServerError: Telegram server says - Bad Gateway
+2026-10-17 03:12:30,242 - aiogram.dispatcher - WARNING - Sleep for 2.809115 seconds and try again... (tryings = 3, bot id = 8236074997)
+2026-10-17 03:13:01,878 - aiogram.dispatcher - INFO - Connection established (tryings = 4, bot id = 8236074997)
+2026-10-17 21:32:29,668 - aiogram.event - INFO - Update id=645446163 is handled. Duration 469 ms by bot id=8236074997
+2026-10-17 21:33:33,467 - aiogram.event - INFO - Update id=645446164 is handled. Duration 295 ms by bot id=8236074997
+2026-10-17 21:33:36,308 - handlers.workouts - INFO - create_workout_start by 328980170
+2026-10-17 21:33:36,370 - aiogram.event - INFO - Update id=645446165 is handled. Duration 127 ms by bot id=8236074997
+2026-10-17 21:33:40,662 - aiogram.event - INFO - Update id=645446166 is handled. Duration 76 ms by bot id=8236074997
+2026-10-17 21:33:42,327 - aiogram.event - INFO - Update id=645446167 is handled. Duration 148 ms by bot id=8236074997
+2026-10-17 21:33:44,717 - aiogram.event - INFO - Update id=645446168 is handled. Duration 62 ms by bot id=8236074997
+2026-10-17 21:33:47,021 - aiogram.event - INFO - Update id=645446169 is handled. Duration 70 ms by bot id=8236074997
+2026-10-18 02:15:31,624 - aiogram.dispatcher - WARNING - Received SIGTERM signal
+2026-10-18 02:15:32,536 - aiogram.dispatcher - INFO - Polling stopped for bot @sportofpbot id=8236074997 - 'sportbot'
+2026-10-18 02:15:32,611 - aiogram.dispatcher - INFO - Polling stopped
+2026-10-18 02:15:33,239 - __main__ - INFO - 🔄 Завершение работы...
+2026-10-18 02:15:33,272 - database.database - INFO - 📊 Database pool закрыт
+2026-10-18 02:15:33,297 - __main__ - INFO - 📊 Соединения с БД закрыты
+2026-10-18 02:15:33,297 - __main__ - INFO - 🤖 Сессия бота закрыта
+2026-10-18 02:15:33,297 - __main__ - INFO - 👋 Бот остановлен
+2026-10-18 10:09:53,362 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2026-10-18 10:09:53,364 - __main__ - INFO - 📊 Инициализация базы данных...
+2026-10-18 10:09:53,493 - database.database - INFO - ✅ База данных инициализирована
+2026-10-18 10:09:53,493 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2026-10-18 10:09:53,521 - database.database - INFO - 🔗 PostgreSQL: 14.24
+2026-10-18 10:09:53,526 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2026-10-18 10:09:53,526 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2026-10-18 10:09:53,526 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2026-10-18 10:09:53,527 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2026-10-18 10:09:53,527 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x7f0105dea3b0>
+2026-10-18 10:09:53,527 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x7f0105ae4e00>
+2026-10-18 10:09:53,527 - database.teams_database - INFO - ✅ teams_database инициализирована
+2026-10-18 10:09:53,527 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x7f0105ad3490>
+2026-10-18 10:09:53,538 - database.teams_database - INFO - ✅ Teams database tables initialized
+2026-10-18 10:09:53,539 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x7f0105ad3490>
+2026-10-18 10:09:53,539 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2026-10-18 10:09:53,540 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2026-10-18 10:09:53,540 - handlers - INFO - ============================================================
+2026-10-18 10:09:53,540 - handlers - INFO - 🔗 Начинаю регистрацию всех роутеров и обработчиков...
+2026-10-18 10:09:53,540 - handlers - INFO - ============================================================
+2026-10-18 10:09:53,541 - handlers - INFO - ✅ start handlers зарегистрированы
+2026-10-18 10:09:53,542 - handlers - INFO - ✅ exercises handlers зарегистрированы
+2026-10-18 10:09:53,543 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2026-10-18 10:09:53,543 - handlers - INFO - ✅ workouts handlers зарегистрированы
+2026-10-18 10:09:53,544 - handlers - INFO - ✅ tests handlers зарегистрированы
+2026-10-18 10:09:53,546 - handlers - INFO - ✅ test_batteries handlers зарегистрированы
+2026-10-18 10:09:53,546 - handlers - INFO - ✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)
+2026-10-18 10:09:53,546 - handlers - INFO - ✅ player_workouts_router зарегистрирован
+2026-10-18 10:09:53,546 - handlers - INFO - ✅ trainees_router зарегистрирован
+2026-10-18 10:09:53,547 - handlers - INFO - ✅ workouts_router зарегистрирован
+2026-10-18 10:09:53,547 - handlers - INFO - ✅ navigation_router зарегистрирован (ПЕРВЫЙ ПРИОРИТЕТ)
+2026-10-18 10:09:53,548 - handlers - INFO - ✅ general_router зарегистрирован (последний приоритет)
+2026-10-18 10:09:53,549 - handlers - INFO - ✅ team_tests handlers зарегистрированы
+2026-10-18 10:09:53,550 - handlers - INFO - ✅ player_tests handlers зарегистрированы
+2026-10-18 10:09:53,550 - handlers - INFO - ============================================================
+2026-10-18 10:09:53,551 - handlers - INFO - 🎉 ВСЕ роутеры и обработчики успешно зарегистрированы!
+2026-10-18 10:09:53,551 - handlers - INFO - ============================================================
+2026-10-18 10:09:53,845 - __main__ - INFO - ✅ Команды бота настроены
+2026-10-18 10:09:53,876 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2026-10-18 10:09:53,877 - __main__ - INFO - 🆔 ID: 8236074997
+2026-10-18 10:09:53,877 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2026-10-18 10:09:53,877 - __main__ - INFO - ✅ Бот успешно запущен!
+2026-10-18 10:09:53,877 - __main__ - INFO - 🔄 Начинаю поллинг...
+2026-10-18 10:09:53,878 - aiogram.dispatcher - INFO - Start polling
+2026-10-18 10:09:53,899 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2026-10-19 03:12:19,824 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramRetryAfter: Telegram server says - Flood control exceeded on method 'GetUpdates'. Retry in 5 seconds.
+Original description: Too Many Requests: retry after 5
+(background on this error at: https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this)
+2026-10-19 03:12:19,842 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8236074997)
+2026-10-19 03:12:20,864 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramRetryAfter: Telegram server says - Flood control exceeded on method 'GetUpdates'. Retry in 5 seconds.
+Original description: Too Many Requests: retry after 5
+(background on this error at: https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this)
+2026-10-19 03:12:20,865 - aiogram.dispatcher - WARNING - Sleep for 1.177383 seconds and try again... (tryings = 1, bot id = 8236074997)
+2026-10-19 03:12:22,062 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramRetryAfter: Telegram server says - Flood control exceeded on method 'GetUpdates'. Retry in 5 seconds.
+Original description: Too Many Requests: retry after 5
+(background on this error at: https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this)
+2026-10-19 03:12:22,062 - aiogram.dispatcher - WARNING - Sleep for 1.573868 seconds and try again... (tryings = 2, bot id = 8236074997)
+2026-10-19 03:12:25,097 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramServerError: Telegram server says - Bad Gateway
+2026-10-19 03:12:25,101 - aiogram.dispatcher - WARNING - Sleep for 2.054522 seconds and try again... (tryings = 3, bot id = 8236074997)
+2026-10-19 03:12:27,171 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramServerError: Telegram server says - Bad Gateway
+2026-10-19 03:12:27,172 - aiogram.dispatcher - WARNING - Sleep for 2.431168 seconds and try again... (tryings = 4, bot id = 8236074997)
+2026-10-19 03:12:56,867 - aiogram.dispatcher - INFO - Connection established (tryings = 5, bot id = 8236074997)
+2026-10-19 14:33:45,803 - aiogram.dispatcher - WARNING - Received SIGTERM signal
+2026-10-19 14:33:45,939 - aiogram.dispatcher - INFO - Polling stopped for bot @sportofpbot id=8236074997 - 'sportbot'
+2026-10-19 14:33:45,992 - aiogram.dispatcher - INFO - Polling stopped
+2026-10-19 14:33:46,576 - __main__ - INFO - 🔄 Завершение работы...
+2026-10-19 14:33:46,642 - database.database - INFO - 📊 Database pool закрыт
+2026-10-19 14:33:46,642 - __main__ - INFO - 📊 Соединения с БД закрыты
+2026-10-19 14:33:46,642 - __main__ - INFO - 🤖 Сессия бота закрыта
+2026-10-19 14:33:46,642 - __main__ - INFO - 👋 Бот остановлен
+2026-10-19 14:34:23,475 - __main__ - INFO - 🚀 Запуск спортивного бота...
+2026-10-19 14:34:23,476 - __main__ - INFO - 📊 Инициализация базы данных...
+2026-10-19 14:34:23,607 - database.database - INFO - ✅ База данных инициализирована
+2026-10-19 14:34:23,608 - database.database - INFO - 📊 Pool создан: min=2, max=10
+2026-10-19 14:34:23,618 - database.database - INFO - 🔗 PostgreSQL: 14.24
+2026-10-19 14:34:23,624 - __main__ - INFO - ✅ Подключение к базе данных проверено
+2026-10-19 14:34:23,625 - __main__ - INFO - 💪 Регистрация роутера тренировок игроков...
+2026-10-19 14:34:23,625 - __main__ - INFO - 🏆 Инициализация модуля команд...
+2026-10-19 14:34:23,625 - handlers.teams - INFO - 🔧 Начало инициализации модуля команд...
+2026-10-19 14:34:23,625 - handlers.teams - INFO - Проверка init_teams_database: <function init_teams_database at 0x7f26cba4a3b0>
+2026-10-19 14:34:23,625 - handlers.teams - INFO - Проверка db_manager.pool: <asyncpg.pool.Pool object at 0x7f26cb550e00>
+2026-10-19 14:34:23,626 - database.teams_database - INFO - ✅ teams_database инициализирована
+2026-10-19 14:34:23,626 - handlers.teams - INFO - teams_db после init_teams_database: <database.teams_database.TeamsDatabase object at 0x7f26cb53f5b0>
+2026-10-19 14:34:23,648 - database.teams_database - INFO - ✅ Teams database tables initialized
+2026-10-19 14:34:23,650 - handlers.teams - INFO - ✅ Модуль команд успешно инициализирован, teams_db: <database.teams_database.TeamsDatabase object at 0x7f26cb53f5b0>
+2026-10-19 14:34:23,650 - __main__ - INFO - 🏆 Регистрация роутера команд...
+2026-10-19 14:34:23,650 - __main__ - INFO - 🔗 Регистрация основных обработчиков...
+2026-10-19 14:34:23,650 - handlers - INFO - ============================================================
+2026-10-19 14:34:23,650 - handlers - INFO - 🔗 Начинаю регистрацию всех роутеров и обработчиков...
+2026-10-19 14:34:23,650 - handlers - INFO - ============================================================
+2026-10-19 14:34:23,651 - handlers - INFO - ✅ start handlers зарегистрированы
+2026-10-19 14:34:23,655 - handlers - INFO - ✅ exercises handlers зарегистрированы
+2026-10-19 14:34:23,655 - handlers.workouts - INFO - 🏋️ Обработчики тренировок зарегистрированы
+2026-10-19 14:34:23,655 - handlers - INFO - ✅ workouts handlers зарегистрированы
+2026-10-19 14:34:23,657 - handlers - INFO - ✅ tests handlers зарегистрированы
+2026-10-19 14:34:23,659 - handlers - INFO - ✅ test_batteries handlers зарегистрированы
+2026-10-19 14:34:23,659 - handlers - INFO - ✅ teams_router зарегистрирован (ГЛАВНЫЙ ПРИОРИТЕТ)
+2026-10-19 14:34:23,660 - handlers - INFO - ✅ player_workouts_router зарегистрирован
+2026-10-19 14:34:23,660 - handlers - INFO - ✅ trainees_router зарегистрирован
+2026-10-19 14:34:23,660 - handlers - INFO - ✅ workouts_router зарегистрирован
+2026-10-19 14:34:23,661 - handlers - INFO - ✅ navigation_router зарегистрирован (ПЕРВЫЙ ПРИОРИТЕТ)
+2026-10-19 14:34:23,662 - handlers - INFO - ✅ general_router зарегистрирован (последний приоритет)
+2026-10-19 14:34:23,664 - handlers - INFO - ✅ team_tests handlers зарегистрированы
+2026-10-19 14:34:23,665 - handlers - INFO - ✅ player_tests handlers зарегистрированы
+2026-10-19 14:34:23,666 - handlers - INFO - ============================================================
+2026-10-19 14:34:23,666 - handlers - INFO - 🎉 ВСЕ роутеры и обработчики успешно зарегистрированы!
+2026-10-19 14:34:23,666 - handlers - INFO - ============================================================
+2026-10-19 14:34:23,744 - __main__ - INFO - ✅ Команды бота настроены
+2026-10-19 14:34:23,765 - __main__ - INFO - 🤖 Бот: sportbot (@sportofpbot)
+2026-10-19 14:34:23,765 - __main__ - INFO - 🆔 ID: 8236074997
+2026-10-19 14:34:23,765 - __main__ - INFO - 👑 Администраторы: 1 чел.
+2026-10-19 14:34:23,766 - __main__ - INFO - ✅ Бот успешно запущен!
+2026-10-19 14:34:23,766 - __main__ - INFO - 🔄 Начинаю поллинг...
+2026-10-19 14:34:23,767 - aiogram.dispatcher - INFO - Start polling
+2026-10-19 14:34:23,785 - aiogram.dispatcher - INFO - Run polling for bot @sportofpbot id=8236074997 - 'sportbot'
+2026-10-20 03:12:29,285 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramRetryAfter: Telegram server says - Flood control exceeded on method 'GetUpdates'. Retry in 5 seconds.
+Original description: Too Many Requests: retry after 5
+(background on this error at: https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this)
+2026-10-20 03:12:29,314 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8236074997)
+2026-10-20 03:12:32,300 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramServerError: Telegram server says - Bad Gateway
+2026-10-20 03:12:32,301 - aiogram.dispatcher - WARNING - Sleep for 1.288885 seconds and try again... (tryings = 1, bot id = 8236074997)
+2026-10-20 03:12:33,601 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramServerError: Telegram server says - Bad Gateway
+2026-10-20 03:12:33,602 - aiogram.dispatcher - WARNING - Sleep for 1.462643 seconds and try again... (tryings = 2, bot id = 8236074997)
+2026-10-20 03:12:35,075 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramServerError: Telegram server says - Bad Gateway
+2026-10-20 03:12:35,076 - aiogram.dispatcher - WARNING - Sleep for 2.158007 seconds and try again... (tryings = 3, bot id = 8236074997)
+2026-10-20 03:13:05,420 - aiogram.dispatcher - INFO - Connection established (tryings = 4, bot id = 8236074997)
+2026-10-20 17:39:22,951 - database.database - INFO - ✅ Создан пользователь 1062308491 (@elena_ivanovaivanova)
+2026-10-20 17:39:26,283 - aiogram.event - INFO - Update id=645446170 is handled. Duration 3764 ms by bot id=8236074997
+2026-10-20 17:39:28,334 - aiogram.event - INFO - Update id=645446171 is handled. Duration 106 ms by bot id=8236074997
+2026-10-20 17:39:31,096 - handlers.workouts - INFO - find_workout menu для user 1062308491
+2026-10-20 17:39:31,177 - aiogram.event - INFO - Update id=645446172 is handled. Duration 122 ms by bot id=8236074997
+2026-10-20 17:39:36,170 - aiogram.event - INFO - Update id=645446173 is handled. Duration 66 ms by bot id=8236074997
+2026-10-20 17:39:55,169 - handlers - INFO - 📨 Текст: 'Для спины' | FSM состояние: CreateExerciseStates:waiting_search
+2026-10-20 17:39:55,272 - aiogram.event - INFO - Update id=645446174 is handled. Duration 107 ms by bot id=8236074997
+2026-10-20 17:55:41,466 - aiogram.event - INFO - Update id=645446175 is handled. Duration 154 ms by bot id=8236074997
+2026-10-20 17:55:44,391 - aiogram.event - INFO - Update id=645446176 is handled. Duration 232 ms by bot id=8236074997
+2026-10-20 17:55:45,568 - aiogram.event - INFO - Update id=645446177 is handled. Duration 59 ms by bot id=8236074997
+2026-10-20 17:55:46,336 - aiogram.event - INFO - Update id=645446178 is handled. Duration 67 ms by bot id=8236074997
+2026-10-20 17:55:50,475 - handlers.trainees_menu - INFO - 🟢 show_trainees_list ВЫЗВАНА! callback.data=my_trainees
+2026-10-20 17:55:50,629 - handlers.trainees_menu - INFO - ✅ Показано 7 подопечных
+2026-10-20 17:55:50,631 - aiogram.event - INFO - Update id=645446179 is handled. Duration 184 ms by bot id=8236074997
+2026-10-20 17:55:54,480 - handlers.teams - INFO - 🟢 Начало добавления подопечного для 328980170
+2026-10-20 17:55:54,577 - aiogram.event - INFO - Update id=645446180 is handled. Duration 116 ms by bot id=8236074997
+2026-10-20 17:59:11,105 - aiogram.event - INFO - Update id=645446181 is handled. Duration 161 ms by bot id=8236074997
+2026-10-20 17:59:42,786 - aiogram.event - INFO - Update id=645446182 is handled. Duration 88 ms by bot id=8236074997
+2026-10-20 17:59:45,918 - database.teams_database - INFO - ✅ Added individual student: Elena Ivanova to coach 328980170
+2026-10-20 17:59:46,244 - aiogram.event - INFO - Update id=645446183 is handled. Duration 417 ms by bot id=8236074997
+2026-10-20 17:59:49,819 - handlers.trainees_menu - INFO - 🟢 show_trainees_list ВЫЗВАНА! callback.data=my_trainees
+2026-10-20 17:59:50,448 - handlers.trainees_menu - INFO - ✅ Показано 8 подопечных
+2026-10-20 17:59:50,450 - aiogram.event - INFO - Update id=645446184 is handled. Duration 654 ms by bot id=8236074997
+2026-10-20 17:59:53,140 - handlers.trainees_menu - INFO - 🟢 show_trainee_profile: trainee_id=19
+2026-10-20 17:59:53,472 - handlers.trainees_menu - INFO - ✅ Профиль подопечного 19 загружен
+2026-10-20 17:59:53,474 - aiogram.event - INFO - Update id=645446185 is handled. Duration 356 ms by bot id=8236074997
+2026-10-20 17:59:54,758 - handlers.trainees_menu - INFO - 🟢 trainee_start_assign_workout: trainee_id=19
+2026-10-20 17:59:54,933 - handlers.trainees_menu - INFO - ✅ Меню назначения открыто для подопечного 19
+2026-10-20 17:59:55,097 - aiogram.event - INFO - Update id=645446186 is handled. Duration 359 ms by bot id=8236074997
+2026-10-20 17:59:57,878 - handlers.teams - INFO - admin=328980170 inner-id=1 -> ищем created_by=1
+2026-10-20 17:59:57,886 - handlers.teams - INFO - admin=328980170 inner-id=1 -> ищем created_by=1
+2026-10-20 17:59:57,962 - aiogram.event - INFO - Update id=645446187 is handled. Duration 110 ms by bot id=8236074997
+2026-10-20 18:00:00,628 - aiogram.event - INFO - Update id=645446188 is handled. Duration 337 ms by bot id=8236074997
+2026-10-20 18:00:02,179 - handlers.teams - INFO - 🟢 Подтверждение назначения тренировки подопечному
+2026-10-20 18:00:02,186 - handlers.teams - INFO - 🔍 state data: {'trainee_id': 19, 'trainee_name': 'Elena Ivanova', 'assignment_type': 'trainee', 'selected_workout_id': 50}
+2026-10-20 18:00:02,187 - handlers.teams - INFO - 🔍 teams_database = <database.teams_database.TeamsDatabase object at 0x7f26cb53f5b0> (тип <class 'database.teams_database.TeamsDatabase'>)
+2026-10-20 18:00:02,190 - handlers.teams - INFO - 🔍 перед assign: workout_id=50, trainee_id=19
+2026-10-20 18:00:02,308 - database.teams_database - INFO - ✅ Создано новое назначение: workout_id=50, student_id=19
+2026-10-20 18:00:02,717 - handlers.teams - INFO - ✅ Уведомление отправлено подопечному 1062308491
+2026-10-20 18:00:02,718 - aiogram.event - INFO - Update id=645446189 is handled. Duration 576 ms by bot id=8236074997
+2026-10-20 18:00:21,895 - aiogram.event - INFO - Update id=645446190 is not handled. Duration 3 ms by bot id=8236074997
+2026-10-20 18:00:24,572 - database.teams_database - INFO - ✅ Обновлен статус тренировки 50 для 1062308491 (индивидуальная): in_progress
+2026-10-20 18:00:24,867 - aiogram.event - INFO - Update id=645446191 is handled. Duration 337 ms by bot id=8236074997
+2026-10-20 18:00:40,832 - aiogram.event - INFO - Update id=645446192 is handled. Duration 160 ms by bot id=8236074997
+2026-10-20 18:00:42,760 - aiogram.event - INFO - Update id=645446193 is handled. Duration 159 ms by bot id=8236074997
+2026-10-20 18:00:52,665 - aiogram.event - INFO - Update id=645446194 is not handled. Duration 2 ms by bot id=8236074997
+2026-10-20 18:01:09,782 - aiogram.event - INFO - Update id=645446195 is not handled. Duration 5 ms by bot id=8236074997
+2026-10-20 18:01:15,560 - aiogram.event - INFO - Update id=645446196 is handled. Duration 86 ms by bot id=8236074997
+2026-10-20 18:01:25,318 - aiogram.event - INFO - Update id=645446197 is not handled. Duration 3 ms by bot id=8236074997
+2026-10-20 18:59:13,634 - handlers.teams - INFO - 🟢 Просмотр профиля подопечного
+2026-10-20 18:59:13,820 - aiogram.event - INFO - Update id=645446198 is handled. Duration 214 ms by bot id=8236074997
+2026-10-20 18:59:18,031 - handlers.trainees_menu - INFO - 🟢 show_trainee_stats: trainee_id=19
+2026-10-20 18:59:18,219 - aiogram.event - INFO - Update id=645446199 is handled. Duration 216 ms by bot id=8236074997
+2026-10-20 18:59:20,378 - handlers.trainees_menu - INFO - 🟢 show_trainees_list ВЫЗВАНА! callback.data=my_trainees
+2026-10-20 18:59:20,466 - handlers.trainees_menu - INFO - ✅ Показано 8 подопечных
+2026-10-20 18:59:20,467 - aiogram.event - INFO - Update id=645446200 is handled. Duration 107 ms by bot id=8236074997
+2026-10-21 03:12:41,093 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramServerError: Telegram server says - Bad Gateway
+2026-10-21 03:12:41,146 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8236074997)
+2026-10-21 03:12:42,166 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramServerError: Telegram server says - Bad Gateway
+2026-10-21 03:12:42,167 - aiogram.dispatcher - WARNING - Sleep for 1.110319 seconds and try again... (tryings = 1, bot id = 8236074997)
+2026-10-21 03:12:43,294 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramServerError: Telegram server says - Bad Gateway
+2026-10-21 03:12:43,295 - aiogram.dispatcher - WARNING - Sleep for 1.444070 seconds and try again... (tryings = 2, bot id = 8236074997)
+2026-10-21 03:13:13,185 - aiogram.dispatcher - INFO - Connection established (tryings = 3, bot id = 8236074997)
+2026-10-21 04:26:21,504 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ClientOSError: [Errno 104] Connection reset by peer
+2026-10-21 04:26:21,518 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8236074997)
+2026-10-21 04:26:32,659 - aiogram.dispatcher - INFO - Connection established (tryings = 1, bot id = 8236074997)
+2026-10-22 03:12:31,054 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramServerError: Telegram server says - Bad Gateway
+2026-10-22 03:12:31,089 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8236074997)
+2026-10-22 03:12:32,139 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramServerError: Telegram server says - Bad Gateway
+2026-10-22 03:12:32,145 - aiogram.dispatcher - WARNING - Sleep for 1.236663 seconds and try again... (tryings = 1, bot id = 8236074997)
+2026-10-22 03:13:05,782 - aiogram.dispatcher - INFO - Connection established (tryings = 2, bot id = 8236074997)
+2026-10-23 03:12:10,475 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramRetryAfter: Telegram server says - Flood control exceeded on method 'GetUpdates'. Retry in 5 seconds.
+Original description: Too Many Requests: retry after 5
+(background on this error at: https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this)
+2026-10-23 03:12:10,504 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8236074997)
+2026-10-23 03:12:13,406 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramServerError: Telegram server says - Bad Gateway
+2026-10-23 03:12:13,407 - aiogram.dispatcher - WARNING - Sleep for 1.251190 seconds and try again... (tryings = 1, bot id = 8236074997)
+2026-10-23 03:12:14,674 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramServerError: Telegram server says - Bad Gateway
+2026-10-23 03:12:14,675 - aiogram.dispatcher - WARNING - Sleep for 1.614919 seconds and try again... (tryings = 2, bot id = 8236074997)
+2026-10-23 03:12:16,303 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramServerError: Telegram server says - Bad Gateway
+2026-10-23 03:12:16,304 - aiogram.dispatcher - WARNING - Sleep for 2.220771 seconds and try again... (tryings = 3, bot id = 8236074997)
+2026-10-23 03:12:45,467 - aiogram.dispatcher - INFO - Connection established (tryings = 4, bot id = 8236074997)
+2026-10-23 21:22:09,543 - aiogram.event - INFO - Update id=645446201 is handled. Duration 960 ms by bot id=8236074997
+2026-10-23 21:22:14,851 - aiogram.event - INFO - Update id=645446202 is handled. Duration 381 ms by bot id=8236074997
+2026-10-23 21:22:19,565 - aiogram.event - INFO - Update id=645446203 is handled. Duration 369 ms by bot id=8236074997
+2026-10-23 21:22:24,192 - aiogram.event - INFO - Update id=645446204 is handled. Duration 68 ms by bot id=8236074997
+2026-10-23 21:22:27,586 - handlers.tests - ERROR - Ошибка публичных наборов: column tb.exercises_count does not exist
+2026-10-23 21:22:27,677 - aiogram.event - INFO - Update id=645446205 is handled. Duration 160 ms by bot id=8236074997
+2026-10-23 21:22:37,177 - aiogram.event - INFO - Update id=645446206 is handled. Duration 74 ms by bot id=8236074997
+2026-10-23 21:22:39,061 - aiogram.event - INFO - Update id=645446207 is handled. Duration 133 ms by bot id=8236074997
+2026-10-23 21:22:41,988 - aiogram.event - INFO - Update id=645446208 is handled. Duration 145 ms by bot id=8236074997
+2026-10-23 21:22:44,273 - aiogram.event - INFO - Update id=645446209 is handled. Duration 62 ms by bot id=8236074997
+2026-10-23 21:22:52,808 - aiogram.event - INFO - Update id=645446210 is handled. Duration 124 ms by bot id=8236074997
+2026-10-23 21:22:59,534 - aiogram.event - INFO - Update id=645446211 is handled. Duration 113 ms by bot id=8236074997
+2026-10-23 21:23:13,361 - aiogram.event - INFO - Update id=645446212 is handled. Duration 344 ms by bot id=8236074997
+2026-10-23 21:23:28,825 - aiogram.event - INFO - Update id=645446213 is handled. Duration 112 ms by bot id=8236074997
+2026-10-23 21:23:50,458 - aiogram.event - INFO - Update id=645446214 is handled. Duration 112 ms by bot id=8236074997
+2026-10-23 21:23:54,099 - aiogram.event - INFO - Update id=645446215 is handled. Duration 121 ms by bot id=8236074997
+2026-10-23 21:23:56,219 - aiogram.event - INFO - Update id=645446216 is handled. Duration 80 ms by bot id=8236074997
+2026-10-23 21:24:06,387 - aiogram.event - INFO - Update id=645446217 is handled. Duration 164 ms by bot id=8236074997
+2026-10-23 21:24:16,211 - aiogram.event - INFO - Update id=645446218 is handled. Duration 64 ms by bot id=8236074997
+2026-10-23 21:24:18,949 - aiogram.event - INFO - Update id=645446219 is handled. Duration 80 ms by bot id=8236074997
+2026-10-23 21:24:23,377 - aiogram.event - INFO - Update id=645446220 is handled. Duration 77 ms by bot id=8236074997
+2026-10-23 21:24:53,231 - handlers - INFO - 📨 Текст: '/stats' | FSM состояние: waiting_strength_test_data
+2026-10-23 21:24:53,349 - aiogram.event - INFO - Update id=645446221 is handled. Duration 281 ms by bot id=8236074997
+2026-10-23 21:25:04,397 - aiogram.event - INFO - Update id=645446222 is handled. Duration 746 ms by bot id=8236074997
+2026-10-23 21:25:06,350 - aiogram.event - INFO - Update id=645446223 is handled. Duration 65 ms by bot id=8236074997
+2026-10-23 21:25:11,593 - aiogram.event - INFO - Update id=645446224 is handled. Duration 157 ms by bot id=8236074997
+2026-10-23 21:25:14,971 - aiogram.event - INFO - Update id=645446225 is handled. Duration 35 ms by bot id=8236074997
+2026-10-23 21:25:18,734 - aiogram.event - INFO - Update id=645446226 is handled. Duration 65 ms by bot id=8236074997
+2026-10-23 21:25:20,333 - aiogram.event - INFO - Update id=645446227 is handled. Duration 67 ms by bot id=8236074997
+2026-10-23 21:25:22,144 - aiogram.event - INFO - Update id=645446228 is handled. Duration 92 ms by bot id=8236074997
+2026-10-23 21:25:24,295 - aiogram.event - INFO - Update id=645446229 is handled. Duration 131 ms by bot id=8236074997
+2026-10-23 21:25:33,904 - aiogram.event - INFO - Update id=645446230 is handled. Duration 65 ms by bot id=8236074997
+2026-10-23 21:25:54,448 - aiogram.event - INFO - Update id=645446231 is handled. Duration 68 ms by bot id=8236074997
+2026-10-23 21:25:56,159 - aiogram.event - INFO - Update id=645446232 is handled. Duration 89 ms by bot id=8236074997
+2026-10-23 21:25:57,874 - aiogram.event - INFO - Update id=645446233 is handled. Duration 181 ms by bot id=8236074997
+2026-10-23 21:26:09,574 - aiogram.event - INFO - Update id=645446234 is handled. Duration 57 ms by bot id=8236074997
+2026-10-23 21:26:12,263 - aiogram.event - INFO - Update id=645446235 is handled. Duration 83 ms by bot id=8236074997
+2026-10-23 21:26:16,605 - aiogram.event - INFO - Update id=645446236 is handled. Duration 236 ms by bot id=8236074997
+2026-10-23 21:26:23,259 - aiogram.event - INFO - Update id=645446237 is handled. Duration 69 ms by bot id=8236074997
+2026-10-23 21:26:26,717 - aiogram.event - INFO - Update id=645446238 is handled. Duration 81 ms by bot id=8236074997
+2026-10-23 21:28:55,290 - handlers - INFO - 📨 Текст: '21 4' | FSM состояние: waiting_strength_test_data
+2026-10-23 21:28:55,576 - aiogram.event - INFO - Update id=645446239 is handled. Duration 292 ms by bot id=8236074997
+2026-10-23 21:30:13,600 - aiogram.event - INFO - Update id=645446240 is handled. Duration 131 ms by bot id=8236074997
+2026-10-23 21:30:16,047 - aiogram.event - INFO - Update id=645446241 is handled. Duration 152 ms by bot id=8236074997
+2026-10-23 21:30:18,852 - aiogram.event - INFO - Update id=645446242 is handled. Duration 75 ms by bot id=8236074997
+2026-10-23 21:30:20,889 - aiogram.event - INFO - Update id=645446243 is handled. Duration 63 ms by bot id=8236074997
+2026-10-23 21:30:27,487 - aiogram.event - INFO - Update id=645446244 is handled. Duration 64 ms by bot id=8236074997
+2026-10-23 21:30:41,095 - handlers - INFO - 📨 Текст: '10 5' | FSM состояние: waiting_strength_test_data
+2026-10-23 21:30:41,227 - aiogram.event - INFO - Update id=645446245 is handled. Duration 137 ms by bot id=8236074997
+2026-10-23 21:31:37,678 - aiogram.event - INFO - Update id=645446246 is not handled. Duration 5 ms by bot id=8236074997
+2026-10-23 21:31:49,836 - aiogram.event - INFO - Update id=645446247 is not handled. Duration 3 ms by bot id=8236074997
+2026-10-23 21:31:57,410 - aiogram.event - INFO - Update id=645446248 is not handled. Duration 3 ms by bot id=8236074997
+2026-10-23 21:32:21,476 - aiogram.event - INFO - Update id=645446249 is handled. Duration 245 ms by bot id=8236074997
+2026-10-23 21:32:26,474 - aiogram.event - INFO - Update id=645446250 is handled. Duration 95 ms by bot id=8236074997
+2026-10-23 21:32:55,025 - aiogram.event - INFO - Update id=645446251 is handled. Duration 204 ms by bot id=8236074997
+2026-10-23 21:32:59,399 - database.teams_database - INFO - ✅ Обновлен статус тренировки 50 для 1062308491 (индивидуальная): in_progress
+2026-10-23 21:32:59,529 - aiogram.event - INFO - Update id=645446252 is handled. Duration 165 ms by bot id=8236074997
+2026-10-23 21:33:03,023 - aiogram.event - INFO - Update id=645446253 is handled. Duration 79 ms by bot id=8236074997
+2026-10-23 21:33:13,026 - database.teams_database - INFO - ✅ Обновлен статус тренировки 50 для 1062308491 (индивидуальная): archived
+2026-10-23 21:33:13,139 - aiogram.event - INFO - Update id=645446254 is handled. Duration 162 ms by bot id=8236074997
+2026-10-23 21:33:16,841 - aiogram.event - INFO - Update id=645446255 is handled. Duration 128 ms by bot id=8236074997
+2026-10-23 21:33:22,403 - aiogram.event - INFO - Update id=645446256 is handled. Duration 49 ms by bot id=8236074997
+2026-10-23 21:33:31,738 - aiogram.event - INFO - Update id=645446257 is handled. Duration 145 ms by bot id=8236074997
+2026-10-23 21:34:02,979 - aiogram.event - INFO - Update id=645446258 is handled. Duration 120 ms by bot id=8236074997
+2026-10-23 21:34:16,311 - aiogram.event - INFO - Update id=645446259 is handled. Duration 103 ms by bot id=8236074997
+2026-10-23 21:34:19,322 - aiogram.event - INFO - Update id=645446260 is handled. Duration 125 ms by bot id=8236074997
+2026-10-23 22:52:22,680 - handlers.trainees_menu - INFO - 🟢 show_trainee_profile: trainee_id=19
+2026-10-23 22:52:23,688 - handlers.trainees_menu - INFO - ✅ Профиль подопечного 19 загружен
+2026-10-23 22:52:23,695 - aiogram.event - INFO - Update id=645446261 is handled. Duration 1427 ms by bot id=8236074997
+2026-10-23 22:52:28,822 - handlers.trainees_menu - INFO - 🟢 trainee_start_assign_workout: trainee_id=19
+2026-10-23 22:52:28,876 - handlers.trainees_menu - INFO - ✅ Меню назначения открыто для подопечного 19
+2026-10-23 22:52:28,898 - aiogram.event - INFO - Update id=645446262 is handled. Duration 96 ms by bot id=8236074997
+2026-10-23 22:52:31,131 - handlers.teams - INFO - admin=328980170 inner-id=1 -> ищем created_by=1
+2026-10-23 22:52:31,140 - handlers.teams - INFO - admin=328980170 inner-id=1 -> ищем created_by=1
+2026-10-23 22:52:31,307 - aiogram.event - INFO - Update id=645446263 is handled. Duration 229 ms by bot id=8236074997
+2026-10-23 22:52:33,673 - aiogram.event - INFO - Update id=645446264 is handled. Duration 65 ms by bot id=8236074997
+2026-10-23 22:52:35,277 - handlers.teams - INFO - 🟢 Подтверждение назначения тренировки подопечному
+2026-10-23 22:52:35,279 - handlers.teams - INFO - 🔍 state data: {'trainee_id': 19, 'trainee_name': 'Elena Ivanova', 'assignment_type': 'trainee', 'selected_workout_id': 50}
+2026-10-23 22:52:35,279 - handlers.teams - INFO - 🔍 teams_database = <database.teams_database.TeamsDatabase object at 0x7f26cb53f5b0> (тип <class 'database.teams_database.TeamsDatabase'>)
+2026-10-23 22:52:35,281 - handlers.teams - INFO - 🔍 перед assign: workout_id=50, trainee_id=19
+2026-10-23 22:52:35,376 - database.teams_database - INFO - 🔄 Реактивировано назначение: workout_id=50, student_id=19
+2026-10-23 22:52:35,540 - handlers.teams - INFO - ✅ Уведомление отправлено подопечному 1062308491
+2026-10-23 22:52:35,540 - aiogram.event - INFO - Update id=645446265 is handled. Duration 279 ms by bot id=8236074997
+2026-10-23 22:52:46,881 - handlers.trainees_menu - INFO - 🟢 show_trainees_list ВЫЗВАНА! callback.data=my_trainees
+2026-10-23 22:52:46,948 - handlers.trainees_menu - INFO - ✅ Показано 8 подопечных
+2026-10-23 22:52:46,949 - aiogram.event - INFO - Update id=645446266 is handled. Duration 90 ms by bot id=8236074997
+2026-10-23 22:52:48,767 - handlers.trainees_menu - INFO - 🟢 show_trainee_profile: trainee_id=19
+2026-10-23 22:52:48,822 - handlers.trainees_menu - INFO - ✅ Профиль подопечного 19 загружен
+2026-10-23 22:52:48,823 - aiogram.event - INFO - Update id=645446267 is handled. Duration 82 ms by bot id=8236074997
+2026-10-23 22:52:53,857 - handlers.trainees_menu - INFO - 🟢 show_trainee_workouts: trainee_id=19
+2026-10-23 22:52:53,942 - aiogram.event - INFO - Update id=645446268 is handled. Duration 104 ms by bot id=8236074997
+2026-10-23 22:53:02,873 - handlers.trainees_menu - INFO - 🟢 show_trainee_profile: trainee_id=19
+2026-10-23 22:53:02,922 - handlers.trainees_menu - INFO - ✅ Профиль подопечного 19 загружен
+2026-10-23 22:53:02,924 - aiogram.event - INFO - Update id=645446269 is handled. Duration 68 ms by bot id=8236074997
+2026-10-23 22:53:05,080 - handlers.trainees_menu - INFO - 🟢 show_trainee_stats: trainee_id=19
+2026-10-23 22:53:05,162 - aiogram.event - INFO - Update id=645446270 is handled. Duration 106 ms by bot id=8236074997
+2026-10-23 22:53:11,809 - handlers.trainees_menu - INFO - 🟢 show_trainee_profile: trainee_id=19
+2026-10-23 22:53:11,857 - handlers.trainees_menu - INFO - ✅ Профиль подопечного 19 загружен
+2026-10-23 22:53:11,858 - aiogram.event - INFO - Update id=645446271 is handled. Duration 66 ms by bot id=8236074997
+2026-10-23 22:53:13,159 - handlers.trainees_menu - INFO - 🟢 show_trainees_list ВЫЗВАНА! callback.data=my_trainees
+2026-10-23 22:53:13,407 - handlers.trainees_menu - INFO - ✅ Показано 8 подопечных
+2026-10-23 22:53:13,408 - aiogram.event - INFO - Update id=645446272 is handled. Duration 267 ms by bot id=8236074997
+2026-10-23 22:53:18,817 - handlers.trainees_menu - INFO - 🟢 show_trainee_profile: trainee_id=15
+2026-10-23 22:53:18,864 - handlers.trainees_menu - INFO - ✅ Профиль подопечного 15 загружен
+2026-10-23 22:53:18,865 - aiogram.event - INFO - Update id=645446273 is handled. Duration 89 ms by bot id=8236074997
+2026-10-23 22:53:21,938 - handlers.trainees_menu - INFO - 🟢 show_trainees_list ВЫЗВАНА! callback.data=my_trainees
+2026-10-23 22:53:21,993 - handlers.trainees_menu - INFO - ✅ Показано 8 подопечных
+2026-10-23 22:53:21,995 - aiogram.event - INFO - Update id=645446274 is handled. Duration 77 ms by bot id=8236074997
+2026-10-23 22:53:23,297 - aiogram.event - INFO - Update id=645446275 is handled. Duration 66 ms by bot id=8236074997
+2026-10-23 22:53:24,738 - aiogram.event - INFO - Update id=645446276 is handled. Duration 56 ms by bot id=8236074997
+2026-10-23 22:53:37,261 - aiogram.event - INFO - Update id=645446277 is handled. Duration 74 ms by bot id=8236074997
+2026-10-23 22:53:40,980 - aiogram.event - INFO - Update id=645446278 is handled. Duration 82 ms by bot id=8236074997
+2026-10-24 03:12:20,651 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramRetryAfter: Telegram server says - Flood control exceeded on method 'GetUpdates'. Retry in 5 seconds.
+Original description: Too Many Requests: retry after 5
+(background on this error at: https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this)
+2026-10-24 03:12:20,661 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8236074997)
+2026-10-24 03:12:21,674 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramRetryAfter: Telegram server says - Flood control exceeded on method 'GetUpdates'. Retry in 5 seconds.
+Original description: Too Many Requests: retry after 5
+(background on this error at: https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this)
+2026-10-24 03:12:21,678 - aiogram.dispatcher - WARNING - Sleep for 1.303785 seconds and try again... (tryings = 1, bot id = 8236074997)
+2026-10-24 03:12:24,671 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramServerError: Telegram server says - Bad Gateway
+2026-10-24 03:12:24,673 - aiogram.dispatcher - WARNING - Sleep for 1.561916 seconds and try again... (tryings = 2, bot id = 8236074997)
+2026-10-24 03:12:26,246 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramServerError: Telegram server says - Bad Gateway
+2026-10-24 03:12:26,249 - aiogram.dispatcher - WARNING - Sleep for 1.928593 seconds and try again... (tryings = 3, bot id = 8236074997)
+2026-10-24 03:12:59,973 - aiogram.dispatcher - INFO - Connection established (tryings = 4, bot id = 8236074997)
+2026-10-24 19:47:25,716 - aiogram.event - INFO - Update id=645446279 is handled. Duration 531 ms by bot id=8236074997
+2026-10-24 19:47:27,883 - handlers.trainees_menu - INFO - 🟢 show_trainees_list ВЫЗВАНА! callback.data=my_trainees
+2026-10-24 19:47:28,256 - handlers.trainees_menu - INFO - ✅ Показано 8 подопечных
+2026-10-24 19:47:28,258 - aiogram.event - INFO - Update id=645446280 is handled. Duration 432 ms by bot id=8236074997
+2026-10-24 19:47:30,758 - handlers.trainees_menu - INFO - 🟢 show_trainee_profile: trainee_id=19
+2026-10-24 19:47:30,849 - handlers.trainees_menu - INFO - ✅ Профиль подопечного 19 загружен
+2026-10-24 19:47:30,851 - aiogram.event - INFO - Update id=645446281 is handled. Duration 119 ms by bot id=8236074997
+2026-10-24 19:47:47,803 - handlers.trainees_menu - INFO - 🟢 show_trainees_list ВЫЗВАНА! callback.data=my_trainees
+2026-10-24 19:47:47,875 - handlers.trainees_menu - INFO - ✅ Показано 8 подопечных
+2026-10-24 19:47:47,876 - aiogram.event - INFO - Update id=645446282 is handled. Duration 89 ms by bot id=8236074997
+2026-10-24 23:13:33,202 - aiogram.event - INFO - Update id=645446283 is handled. Duration 723 ms by bot id=8236074997
+2026-10-24 23:14:10,729 - aiogram.event - INFO - Update id=645446284 is handled. Duration 114 ms by bot id=8236074997
+2026-10-24 23:14:12,250 - aiogram.event - INFO - Update id=645446285 is handled. Duration 78 ms by bot id=8236074997
+2026-10-24 23:14:13,889 - handlers.workouts - INFO - === show_my_templates START user 328980170 ===
+2026-10-24 23:14:14,128 - handlers.workouts - INFO - === show_my_templates END (SUCCESS) ===
+2026-10-24 23:14:14,129 - aiogram.event - INFO - Update id=645446286 is handled. Duration 284 ms by bot id=8236074997
+2026-10-24 23:14:26,887 - aiogram.event - INFO - Update id=645446287 is handled. Duration 147 ms by bot id=8236074997
+2026-10-24 23:14:34,482 - aiogram.event - INFO - Update id=645446288 is handled. Duration 499 ms by bot id=8236074997
+2026-10-24 23:14:58,262 - aiogram.event - INFO - Update id=645446289 is handled. Duration 491 ms by bot id=8236074997
+2026-10-24 23:22:20,509 - aiogram.event - INFO - Update id=645446290 is handled. Duration 479 ms by bot id=8236074997
+2026-10-24 23:22:36,713 - aiogram.event - INFO - Update id=645446291 is handled. Duration 106 ms by bot id=8236074997
+2026-10-24 23:22:58,771 - aiogram.event - INFO - Update id=645446292 is handled. Duration 199 ms by bot id=8236074997
+2026-10-24 23:23:03,501 - aiogram.event - INFO - Update id=645446293 is handled. Duration 112 ms by bot id=8236074997
+2026-10-24 23:29:54,067 - aiogram.event - INFO - Update id=645446294 is handled. Duration 276 ms by bot id=8236074997
+2026-10-24 23:29:58,830 - aiogram.event - INFO - Update id=645446295 is handled. Duration 94 ms by bot id=8236074997
+2026-10-24 23:33:31,020 - aiogram.event - INFO - Update id=645446296 is handled. Duration 169 ms by bot id=8236074997
+2026-10-24 23:33:34,170 - aiogram.event - INFO - Update id=645446297 is handled. Duration 97 ms by bot id=8236074997
+2026-10-24 23:33:41,446 - aiogram.event - INFO - Update id=645446298 is handled. Duration 120 ms by bot id=8236074997
+2026-10-24 23:33:46,721 - aiogram.event - INFO - Update id=645446299 is handled. Duration 118 ms by bot id=8236074997
+2026-10-24 23:33:50,506 - aiogram.event - INFO - Update id=645446300 is handled. Duration 67 ms by bot id=8236074997
+2026-10-24 23:33:52,602 - aiogram.event - INFO - Update id=645446301 is handled. Duration 77 ms by bot id=8236074997
+2026-10-24 23:33:55,414 - handlers.workouts - INFO - === show_my_templates START user 328980170 ===
+2026-10-24 23:33:55,504 - handlers.workouts - INFO - === show_my_templates END (SUCCESS) ===
+2026-10-24 23:33:55,505 - aiogram.event - INFO - Update id=645446302 is handled. Duration 120 ms by bot id=8236074997
+2026-10-24 23:33:59,314 - aiogram.event - INFO - Update id=645446303 is handled. Duration 339 ms by bot id=8236074997
+2026-10-24 23:34:07,058 - aiogram.event - INFO - Update id=645446304 is handled. Duration 288 ms by bot id=8236074997
+2026-10-24 23:34:10,722 - aiogram.event - INFO - Update id=645446305 is handled. Duration 79 ms by bot id=8236074997
+2026-10-24 23:34:14,879 - aiogram.event - INFO - Update id=645446306 is handled. Duration 105 ms by bot id=8236074997
+2026-10-24 23:34:16,447 - aiogram.event - INFO - Update id=645446307 is handled. Duration 54 ms by bot id=8236074997
+2026-10-24 23:34:17,985 - aiogram.event - INFO - Update id=645446308 is handled. Duration 56 ms by bot id=8236074997
+2026-10-24 23:34:20,412 - handlers.workouts - INFO - === show_my_templates START user 328980170 ===
+2026-10-24 23:34:20,471 - handlers.workouts - INFO - === show_my_templates END (SUCCESS) ===
+2026-10-24 23:34:20,472 - aiogram.event - INFO - Update id=645446309 is handled. Duration 80 ms by bot id=8236074997
+2026-10-24 23:34:26,615 - aiogram.event - INFO - Update id=645446310 is handled. Duration 102 ms by bot id=8236074997
+2026-10-24 23:34:28,441 - aiogram.event - INFO - Update id=645446311 is handled. Duration 127 ms by bot id=8236074997
+2026-10-24 23:34:35,121 - aiogram.event - INFO - Update id=645446312 is handled. Duration 92 ms by bot id=8236074997
+2026-10-24 23:36:02,518 - aiogram.event - INFO - Update id=645446313 is handled. Duration 163 ms by bot id=8236074997
+2026-10-24 23:36:09,148 - aiogram.event - INFO - Update id=645446314 is handled. Duration 98 ms by bot id=8236074997
+2026-10-24 23:38:42,360 - aiogram.event - INFO - Update id=645446315 is handled. Duration 176 ms by bot id=8236074997
+2026-10-24 23:38:54,687 - aiogram.event - INFO - Update id=645446316 is handled. Duration 101 ms by bot id=8236074997
+2026-10-24 23:43:54,149 - aiogram.event - INFO - Update id=645446317 is handled. Duration 219 ms by bot id=8236074997
+2026-10-24 23:43:57,156 - aiogram.event - INFO - Update id=645446318 is handled. Duration 98 ms by bot id=8236074997
+2026-10-24 23:44:09,836 - aiogram.event - INFO - Update id=645446319 is handled. Duration 75 ms by bot id=8236074997
+2026-10-24 23:45:15,274 - handlers - INFO - 📨 Текст: '30' | FSM состояние: waiting_endurance_data
+2026-10-24 23:45:15,278 - handlers - WARNING - ⚠️ Неизвестное FSM состояние: waiting_endurance_data — очищаем
+2026-10-24 23:45:15,279 - aiogram.event - INFO - Update id=645446320 is handled. Duration 29 ms by bot id=8236074997
+2026-10-24 23:45:55,157 - aiogram.event - INFO - Update id=645446321 is not handled. Duration 7 ms by bot id=8236074997
+2026-10-24 23:45:57,174 - aiogram.event - INFO - Update id=645446322 is not handled. Duration 3 ms by bot id=8236074997
+2026-10-24 23:46:16,534 - aiogram.event - INFO - Update id=645446323 is handled. Duration 110 ms by bot id=8236074997
+2026-10-24 23:46:18,839 - aiogram.event - INFO - Update id=645446324 is handled. Duration 54 ms by bot id=8236074997
+2026-10-24 23:46:22,572 - handlers.workouts - INFO - === show_my_templates START user 328980170 ===
+2026-10-24 23:46:22,647 - handlers.workouts - INFO - === show_my_templates END (SUCCESS) ===
+2026-10-24 23:46:22,648 - aiogram.event - INFO - Update id=645446325 is handled. Duration 102 ms by bot id=8236074997
+2026-10-24 23:46:25,691 - aiogram.event - INFO - Update id=645446326 is handled. Duration 85 ms by bot id=8236074997
+2026-10-24 23:46:27,734 - aiogram.event - INFO - Update id=645446327 is handled. Duration 265 ms by bot id=8236074997
+2026-10-24 23:46:30,821 - aiogram.event - INFO - Update id=645446328 is handled. Duration 79 ms by bot id=8236074997
+2026-10-24 23:46:38,618 - aiogram.event - INFO - Update id=645446329 is handled. Duration 86 ms by bot id=8236074997
+2026-10-24 23:46:43,803 - handlers - INFO - 📨 Текст: '30' | FSM состояние: waiting_endurance_data
+2026-10-24 23:46:43,805 - handlers - WARNING - ⚠️ Неизвестное FSM состояние: waiting_endurance_data — очищаем
+2026-10-24 23:46:43,808 - aiogram.event - INFO - Update id=645446330 is handled. Duration 8 ms by bot id=8236074997
+2026-10-25 02:12:32,246 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramRetryAfter: Telegram server says - Flood control exceeded on method 'GetUpdates'. Retry in 5 seconds.
+Original description: Too Many Requests: retry after 5
+(background on this error at: https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this)
+2026-10-25 02:12:32,256 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8236074997)
+2026-10-25 02:12:33,297 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramRetryAfter: Telegram server says - Flood control exceeded on method 'GetUpdates'. Retry in 5 seconds.
+Original description: Too Many Requests: retry after 5
+(background on this error at: https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this)
+2026-10-25 02:12:33,298 - aiogram.dispatcher - WARNING - Sleep for 1.257611 seconds and try again... (tryings = 1, bot id = 8236074997)
+2026-10-25 02:12:36,431 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramServerError: Telegram server says - Bad Gateway
+2026-10-25 02:12:36,434 - aiogram.dispatcher - WARNING - Sleep for 1.650505 seconds and try again... (tryings = 2, bot id = 8236074997)
+2026-10-25 02:12:38,116 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramServerError: Telegram server says - Bad Gateway
+2026-10-25 02:12:38,117 - aiogram.dispatcher - WARNING - Sleep for 2.123852 seconds and try again... (tryings = 3, bot id = 8236074997)
+2026-10-25 02:13:36,176 - aiogram.dispatcher - INFO - Connection established (tryings = 4, bot id = 8236074997)
