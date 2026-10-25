@@ -28,6 +28,33 @@ async def back_to_constructor(callback: CallbackQuery, state: FSMContext):
 
 
 # ----------------- HELPERS -----------------
+async def _get_user_one_rm(telegram_id: int, exercise_id: int) -> Optional[float]:
+    """Получить 1ПМ пользователя по упражнению из последних результатов тестов.
+
+    В таблице exercises нет колонки one_rm_kg — вес берётся из user_tests
+    (последний результат с test_weight для силовых упражнений).
+    """
+    try:
+        user = await db_manager.get_user_by_telegram_id(telegram_id)
+        if not user:
+            return None
+        async with db_manager.pool.acquire() as conn:
+            val = await conn.fetchval(
+                """
+                SELECT test_weight FROM user_tests
+                WHERE user_id = $1 AND exercise_id = $2
+                  AND test_weight IS NOT NULL
+                ORDER BY tested_at DESC
+                LIMIT 1
+                """,
+                user["id"], exercise_id,
+            )
+        return float(val) if val else None
+    except Exception:
+        logging.getLogger(__name__).debug("Не удалось получить 1ПМ", exc_info=True)
+        return None
+
+
 def _parse_int_suffix(callback_data: str) -> Optional[int]:
     """Возвращает целый суффикс после '_' или None."""
     try:
@@ -955,22 +982,25 @@ async def create_add_ex(callback: CallbackQuery, state: FSMContext):
 
     try:
         async with db_manager.pool.acquire() as conn:
+            # В таблице exercises нет колонок default_sets/default_reps/one_rm_kg —
+            # выбираем только существующие поля, дефолты константные.
             row = await conn.fetchrow(
-                "SELECT id, name, muscle_group, category, default_sets, default_reps_min, default_reps_max, one_rm_kg FROM exercises WHERE id = $1",
+                "SELECT id, name, muscle_group, category FROM exercises WHERE id = $1",
                 ex_id
             )
         if not row:
             await callback.answer("Упражнение не найдено", show_alert=True)
             return
+        one_rm_kg = await _get_user_one_rm(callback.from_user.id, ex_id)
 
         # Сохраняем ВСЕ нужные данные
         await state.update_data(
             selected_exercise_id=ex_id,
             selected_exercise_name=row['name'],
-            selected_exercise_1rm=row.get('one_rm_kg'),
+            selected_exercise_1rm=one_rm_kg,
             selected_exercise_defaults={
-                'sets': row.get('default_sets') or 3,
-                'reps': row.get('default_reps_min') or 8,
+                'sets': 3,
+                'reps': 8,
                 'percent': 75,
                 'rest': 120,
             },
@@ -979,11 +1009,11 @@ async def create_add_ex(callback: CallbackQuery, state: FSMContext):
         
         # Показываем информацию об упражнении и запрашиваем параметры
         one_rm_info = ""
-        if row.get('one_rm_kg'):
-            one_rm_info = f"\n\n💡 **1ПМ известен: {row['one_rm_kg']} кг**\nПосле ввода % будет показан точный вес"
+        if one_rm_kg:
+            one_rm_info = f"\n\n💡 **1ПМ известен: {one_rm_kg} кг**\nПосле ввода % будет показан точный вес"
         
-        defaults = row.get('default_sets') or 3
-        default_reps = row.get('default_reps_min') or 8
+        defaults = 3
+        default_reps = 8
         
         text = f"""
 🏋️ **{row['name']}**
@@ -2083,26 +2113,29 @@ async def use_in_workout_with_params(callback: CallbackQuery, state: FSMContext)
     
     try:
         async with db_manager.pool.acquire() as conn:
+            # Колонок default_sets/default_reps_min/one_rm_kg в exercises нет —
+            # берём только существующие поля.
             ex = await conn.fetchrow(
-                "SELECT name, test_type, default_sets, default_reps_min, one_rm_kg FROM exercises WHERE id = $1", 
+                "SELECT name, test_type FROM exercises WHERE id = $1",
                 ex_id
             )
         
         if not ex:
             await callback.answer("Упражнение не найдено.", show_alert=True)
             return
+        one_rm_kg = await _get_user_one_rm(callback.from_user.id, ex_id)
         
         # Сохраняем данные упражнения
         await state.update_data(
             selected_exercise_id=ex_id,
             selected_exercise_name=ex["name"],
-            selected_exercise_1rm=ex.get('one_rm_kg'),
+            selected_exercise_1rm=one_rm_kg,
             current_block=block
         )
         
         # Показываем форму параметров
-        defaults = ex.get('default_sets') or 3
-        default_reps = ex.get('default_reps_min') or 8
+        defaults = 3
+        default_reps = 8
         
         text = f"""
 🏋️ **{ex['name']}**

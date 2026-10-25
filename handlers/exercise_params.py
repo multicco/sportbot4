@@ -115,8 +115,7 @@ async def add_exercise_with_params_start(callback: CallbackQuery, state: FSMCont
                 """
                 SELECT 
                     id, name, muscle_group, category, 
-                    default_sets, default_reps_min, default_reps_max,
-                    one_rm_kg, description
+                    description
                 FROM exercises
                 WHERE id = $1 AND is_active = true
                 """,
@@ -127,26 +126,47 @@ async def add_exercise_with_params_start(callback: CallbackQuery, state: FSMCont
             await callback.answer("❌ Упражнение не найдено", show_alert=True)
             return
         
+        # 1ПМ берём из последних результатов тестов пользователя
+        # (колонки one_rm_kg в таблице exercises нет)
+        one_rm_kg = None
+        try:
+            user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
+            if user:
+                async with db_manager.pool.acquire() as conn:
+                    val = await conn.fetchval(
+                        """
+                        SELECT test_weight FROM user_tests
+                        WHERE user_id = $1 AND exercise_id = $2
+                          AND test_weight IS NOT NULL
+                        ORDER BY tested_at DESC
+                        LIMIT 1
+                        """,
+                        user["id"], exercise_id,
+                    )
+                one_rm_kg = float(val) if val else None
+        except Exception:
+            one_rm_kg = None
+
         # Сохраняем упражнение в state
         await state.update_data(
             selected_exercise_id=exercise_id,
             selected_exercise_name=exercise['name'],
-            selected_exercise_1rm=exercise.get('one_rm_kg'),
+            selected_exercise_1rm=one_rm_kg,
             selected_exercise_defaults={
-                'sets': exercise.get('default_sets') or 3,
-                'reps': exercise.get('default_reps_min') or 8,
+                'sets': 3,
+                'reps': 8,
                 'percent': 75,
                 'rest': 120,
             }
         )
         
         # Формируем подсказку по формату
-        defaults = exercise.get('default_sets') or 3
-        default_reps = exercise.get('default_reps_min') or 8
+        defaults = 3
+        default_reps = 8
         one_rm_info = ""
         
-        if exercise.get('one_rm_kg'):
-            one_rm_info = f"\n\n💡 **1ПМ известен: {exercise['one_rm_kg']} кг**\nПосле ввода % будет показан точный вес"
+        if one_rm_kg:
+            one_rm_info = f"\n\n💡 **1ПМ известен: {one_rm_kg} кг**\nПосле ввода % будет показан точный вес"
         
         text = f"""
 🏋️ **{exercise['name']}**
