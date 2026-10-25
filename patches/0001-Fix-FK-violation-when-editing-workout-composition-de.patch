@@ -1,0 +1,65 @@
+From 914ebefa495c6b57ad77e908c71bf8c65dd4ec6f Mon Sep 17 00:00:00 2001
+From: "qwen.ai[bot]" <qwenlm-intl@service.alibaba.com>
+Date: Sun, 25 Oct 2026 14:30:20 +0000
+Subject: [PATCH] Fix FK violation when editing workout composition: detach
+ workout_session_exercises before deleting workout_exercises, re-fill stale
+ sessions on start
+
+---
+ handlers/player_workouts.py | 13 +++++++++++++
+ handlers/workouts.py        | 15 ++++++++++++++-
+ 2 files changed, 27 insertions(+), 1 deletion(-)
+
+diff --git a/handlers/player_workouts.py b/handlers/player_workouts.py
+index 729c9ed..c5adb4a 100644
+--- a/handlers/player_workouts.py
++++ b/handlers/player_workouts.py
+@@ -625,6 +625,19 @@ async def get_or_create_session(user_id: int, workout_id: int) -> int:
+             SELECT id FROM workout_sessions WHERE user_id = $1 AND workout_id = $2
+         """, user_id, workout_id)
+         if sess:
++            # После редактирования состава тренировки строки прогресса могут
++            # остаться без workout_exercise_id (мы отвязываем их от удалённых
++            # строк workout_exercises). Перепривязываем/дополняем по актуальному составу.
++            stale = await conn.fetchval("""
++                SELECT COUNT(*) FROM workout_session_exercises
++                WHERE session_id = $1 AND workout_exercise_id IS NULL
++            """, sess['id'])
++            if stale:
++                await conn.execute("""
++                    DELETE FROM workout_session_exercises
++                    WHERE session_id = $1 AND workout_exercise_id IS NULL
++                """, sess['id'])
++                await fill_session_exercises_from_blocks(sess['id'], workout_id)
+             return sess['id']
+         
+         new_id = await conn.fetchval("""
+diff --git a/handlers/workouts.py b/handlers/workouts.py
+index de784e9..a236f0a 100644
+--- a/handlers/workouts.py
++++ b/handlers/workouts.py
+@@ -1526,7 +1526,20 @@ async def create_finish(callback: CallbackQuery, state: FSMContext):
+                     (data.get("description") or "").strip(),
+                     wid,
+                 )
+-                # Перезаписываем состав: удаляем старые строки и вставляем новые
++                # Перезаписываем состав: сначала отвязываем строки прогресса
++                # учеников (workout_session_exercises ссылается на workout_exercises FK),
++                # затем удаляем старые строки и вставляем новые.
++                await conn.execute(
++                    """
++                    UPDATE workout_session_exercises wse
++                       SET workout_exercise_id = NULL
++                      FROM workout_sessions ws
++                     WHERE wse.session_id = ws.id
++                       AND ws.workout_id = $1
++                       AND wse.workout_exercise_id IS NOT NULL
++                    """,
++                    wid,
++                )
+                 await conn.execute("DELETE FROM workout_exercises WHERE workout_id = $1", wid)
+             else:
+                 # === РЕЖИМ СОЗДАНИЯ ===
+-- 
+2.39.5
+
