@@ -74,7 +74,7 @@ async def handle_all_text_messages(message: Message, state: FSMContext):
         await one_rm.process_speed_data(message, state)
         return
 
-    if current_state == "waiting_quantity_data":
+    if current_state == one_rm.WAITING_QUANTITY_DATA:
         await one_rm.process_quantity_data(message, state)
         return
 
