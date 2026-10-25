@@ -22,33 +22,32 @@ from handlers.one_rm import handle_test1rm_from_workout
 from database import db_manager
 
 
-# ----------  ПОСЛЕДНИЙ РЕКОРД СКОРОСТИ ----------
+# ----------  РЕКОРД СКОРОСТИ (лучшее = НАИМЕНЬШЕЕ время) ----------
 async def get_user_speed_max(user_id: int, exercise_id: int) -> float | None:
+    """Лучший результат скорости = минимальное время среди всех тестов."""
     try:
         async with db_manager.pool.acquire() as conn:
             row = await conn.fetchrow("""
-                SELECT result_seconds  -- ← теперь raw время
+                SELECT MIN(result_seconds) AS best
                 FROM user_speed_records
                 WHERE user_id = $1 AND exercise_id = $2
-                ORDER BY created_at DESC
-                LIMIT 1
             """, user_id, exercise_id)
-        return float(row["result_seconds"]) if row else None
+        return float(row["best"]) if row and row["best"] is not None else None
     except Exception as e:
         logger.error(f"Ошибка в get_user_speed_max: {e}")
         return None
 
+# ----------  РЕКОРД ВЫНОСЛИВОСТИ (лучшее = НАИБОЛЬШЕЕ время) ----------
 async def get_user_endurance_max(user_id: int, exercise_id: int) -> float | None:
+    """Лучший результат выносливости = максимальное время удержания."""
     try:
         async with db_manager.pool.acquire() as conn:
             row = await conn.fetchrow("""
-                SELECT result_seconds  -- ← raw
+                SELECT MAX(result_seconds) AS best
                 FROM user_endurance_records
                 WHERE user_id = $1 AND exercise_id = $2
-                ORDER BY created_at DESC
-                LIMIT 1
             """, user_id, exercise_id)
-        return float(row["result_seconds"]) if row else None
+        return float(row["best"]) if row and row["best"] is not None else None
     except Exception:
         return None
 
@@ -827,18 +826,10 @@ async def show_workout_overview(
                     percent = float(ex["one_rm_percent"])
 
                     if ex["test_type"] == "speed":
-                        # ← RAW время вместо average
+                        # лучшее = минимальное время среди всех тестов
                         best_raw = None
                         if ex["exercise_id"]:
-                            async with db_manager.pool.acquire() as conn:
-                                row = await conn.fetchrow("""
-                                    SELECT result_seconds
-                                    FROM user_speed_records
-                                    WHERE user_id = $1 AND exercise_id = $2
-                                    ORDER BY created_at DESC
-                                    LIMIT 1
-                                """, user_id, ex["exercise_id"])
-                                best_raw = float(row["result_seconds"]) if row else None
+                            best_raw = await get_user_speed_max(user_id, ex["exercise_id"])
 
                         if best_raw:
                             target = best_raw * (100 / percent)

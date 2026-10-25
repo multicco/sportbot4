@@ -5,6 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 import logging
+import html
 from database import db_manager
 from keyboards.main_keyboards_old import get_coming_soon_keyboard
 from utils.validators import validate_1rm_data, validate_endurance_data, validate_speed_data
@@ -16,6 +17,7 @@ logger = logging.getLogger(__name__)
 WAITING_1RM_DATA       = "waiting_1rm_data"
 WAITING_ENDURANCE_DATA = "waiting_endurance_data"
 WAITING_SPEED_DATA     = "waiting_speed_data"
+WAITING_QUANTITY_DATA  = "waiting_quantity_data"
 from states.workout_states import CreateWorkoutStates
 from aiogram.filters import StateFilter
 # ------------------  РЕГИСТРАЦИЯ  ------------------
@@ -35,6 +37,10 @@ def register_one_rm_handlers(dp):
     # скорость
     dp.callback_query.register(new_speed_test, F.data == "new_speed_test")
     dp.callback_query.register(select_speed_exercise, F.data.startswith("speed_"))
+
+    # мои рекорды скорости / выносливости (кнопки после прохождения теста)
+    dp.callback_query.register(show_my_speed_results, F.data == "my_speed_results")
+    dp.callback_query.register(show_my_endurance_results, F.data == "my_endurance_results")
 
     # универсальный вход
     dp.callback_query.register(start_any_test, F.data.startswith("start_test_"))
@@ -77,6 +83,15 @@ async def process_quantity_data(message: Message, state: FSMContext):
         f"🔢 **Результат:** {reps} повторений\n✅ Сохранено!",
         reply_markup=kb.as_markup(), parse_mode="Markdown"
     )
+
+    ret = data.get("return_after_test")
+    if ret:
+        from handlers.player_workouts import show_workout_overview
+        await message.answer("Рекорд обновлён — возвращаемся в тренировку!")
+        await show_workout_overview(message, state, int(ret))
+        await state.clear()
+        return
+
     await state.clear()
 # ==============================================================================
 #  1ПМ
@@ -400,16 +415,38 @@ async def process_endurance_data(message: Message, state: FSMContext):
             VALUES ($1, $2, $3, $4, $5, $6, $7)
         """, user["id"], ex_id, sec, results["a"], results["b"], results["c"], results["avg"])
 
+    # предыдущий рекорд (лучшее = максимальное время удержания)
+    prev_best = None
+    try:
+        row = await db_manager.pool.fetchrow("""
+            SELECT MAX(result_seconds) AS best
+            FROM user_endurance_records
+            WHERE user_id = $1 AND exercise_id = $2
+        """, user["id"], ex_id)
+        if row and row["best"] is not None:
+            prev_best = float(row["best"])
+    except Exception as e:
+        logger.error(f"process_endurance_data best lookup: {e}")
+
+    record_line = ""
+    if prev_best is not None:
+        if prev_best <= sec:
+            record_line = f"\n🏆 <b>Новый рекорд!</b> ({sec:.1f} с)"
+        else:
+            record_line = f"\nРекорд: {prev_best:.1f} с (пока не побит)"
+
     kb = (InlineKeyboardBuilder()
           .button(text="➕ Ещё тест", callback_data="new_endurance_test")
           .button(text="📊 Мои рекорды", callback_data="my_endurance_results")
           .button(text="🏠 Главное меню", callback_data="main_menu")
           .adjust(1))
     await message.answer(
-        f"⏱ **Результат выносливости: {name}**\n\n"
-        f"Ваше время: **{sec} с**\n"
-        f"Расчётный максимум ≈ **{results['avg']} с**",
-        reply_markup=kb.as_markup(), parse_mode="Markdown"
+        f"⏱ <b>Результат выносливости: {html.escape(name)}</b>\n\n"
+        f"Ваше время: <b>{sec} с</b>"
+        f"{record_line}\n"
+        f"Расчётный максимум ≈ <b>{results['avg']} с</b>\n"
+        f"<i>(для выносливости больше = лучше)</i>",
+        reply_markup=kb.as_markup(), parse_mode="HTML"
     )
 
     ret = data.get("return_after_test")
@@ -491,16 +528,38 @@ async def process_speed_data(message: Message, state: FSMContext):
             VALUES ($1, $2, $3, $4, $5, $6, $7)
         """, user["id"], ex_id, sec, results["a"], results["b"], results["c"], results["avg"])
 
+    # предыдущий рекорд (лучшее = минимальное время)
+    prev_best = None
+    try:
+        row = await db_manager.pool.fetchrow("""
+            SELECT MIN(result_seconds) AS best
+            FROM user_speed_records
+            WHERE user_id = $1 AND exercise_id = $2
+        """, user["id"], ex_id)
+        if row and row["best"] is not None:
+            prev_best = float(row["best"])
+    except Exception as e:
+        logger.error(f"process_speed_data best lookup: {e}")
+
+    record_line = ""
+    if prev_best is not None:
+        if prev_best >= sec:
+            record_line = f"\n🏆 <b>Новый рекорд!</b> (лучшее время: {sec:.2f} с)"
+        else:
+            record_line = f"\nРекорд: {prev_best:.2f} с (пока не побит)"
+
     kb = (InlineKeyboardBuilder()
           .button(text="➕ Ещё тест", callback_data="new_speed_test")
           .button(text="📊 Мои рекорды", callback_data="my_speed_results")
           .button(text="🏠 Главное меню", callback_data="main_menu")
           .adjust(1))
     await message.answer(
-        f"🏃 **Результат скорости: {name}**\n\n"
-        f"Ваше время: **{sec} с**\n"
-        f"Расчётный максимум ≈ **{results['avg']} с**",
-        reply_markup=kb.as_markup(), parse_mode="Markdown"
+        f"🏃 <b>Результат скорости: {html.escape(name)}</b>\n\n"
+        f"Ваше время: <b>{sec} с</b>"
+        f"{record_line}\n"
+        f"Расчётный максимум ≈ <b>{results['avg']} с</b>\n"
+        f"<i>(для скорости меньше = лучше)</i>",
+        reply_markup=kb.as_markup(), parse_mode="HTML"
     )
 
     ret = data.get("return_after_test")
@@ -514,12 +573,18 @@ async def process_speed_data(message: Message, state: FSMContext):
 #  ВОЗВРАТ В ТРЕНИРОВКУ (совместим со старым test1rm_)
 # ==============================================================================
 async def handle_test1rm_from_workout(callback: CallbackQuery, state: FSMContext):
-    """Совместимость со старыми кнопками test1rm_<ex_id>_<workout_id>"""
+    """Кнопки test1rm_<ex_id>_<workout_id> из тренировки.
+
+    Запускает тест по фактическому типу упражнения (strength / endurance /
+    speed / quantity), а не только 1ПМ, и сохраняет возврат в тренировку.
+    """
     try:
         _, ex_id_str, wid_str = callback.data.split("_")
         ex_id, workout_id = int(ex_id_str), int(wid_str)
 
-        ex = await db_manager.pool.fetchrow("SELECT name FROM exercises WHERE id=$1", ex_id)
+        ex = await db_manager.pool.fetchrow(
+            "SELECT name, test_type FROM exercises WHERE id=$1", ex_id
+        )
         if not ex:
             await callback.answer("Упражнение не найдено", show_alert=True)
             return
@@ -529,13 +594,75 @@ async def handle_test1rm_from_workout(callback: CallbackQuery, state: FSMContext
             exercise_name=ex["name"],
             return_after_test=workout_id
         )
-        # переводим в 1ПМ-сценарий
+        # ветвление по типу теста (logically identical to select_1rm_exercise,
+        # но с сохранённым return_after_test в FSM-данных)
         fake = callback.model_copy(update={"data": f"1rm_{ex_id}"})
         await select_1rm_exercise(fake, state)
 
     except Exception as e:
         logger.error(f"handle_test1rm_from_workout: {e}")
-        await callback.answer("Ошибка запуска теста 1ПМ", show_alert=True)
+        await callback.answer("Ошибка запуска теста", show_alert=True)
+
+
+# ------------------  МОИ РЕКОРДЫ СКОРОСТИ / ВЫНОСЛИВОСТИ  ------------------
+async def show_my_speed_results(callback: CallbackQuery):
+    """История скоростных тестов пользователя."""
+    user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
+    try:
+        async with db_manager.pool.acquire() as conn:
+            rows = await conn.fetch("""
+                SELECT e.name, r.result_seconds, r.average, r.created_at
+                FROM user_speed_records r
+                JOIN exercises e ON r.exercise_id = e.id
+                WHERE r.user_id = $1
+                ORDER BY r.created_at DESC
+                LIMIT 10
+            """, user['id'])
+        if rows:
+            text = "🏃 **Ваши результаты скорости:**\n\n"
+            for r in rows:
+                dt = r['created_at'].strftime('%d.%m.%Y') if r['created_at'] else ''
+                text += f"🏃 **{r['name']}** — {float(r['result_seconds']):.2f} с\n📅 {dt}\n\n"
+        else:
+            text = "🏃 У вас пока нет результатов скорости."
+        kb = (InlineKeyboardBuilder()
+              .button(text="➕ Новый тест", callback_data="new_speed_test")
+              .button(text="🔙 К тестам", callback_data="one_rm_menu"))
+        await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="Markdown")
+    except Exception as e:
+        logger.error(f"show_my_speed_results: {e}")
+        await callback.message.edit_text("🏃 У вас пока нет результатов скорости.")
+    await callback.answer()
+
+
+async def show_my_endurance_results(callback: CallbackQuery):
+    """История тестов на выносливость пользователя."""
+    user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
+    try:
+        async with db_manager.pool.acquire() as conn:
+            rows = await conn.fetch("""
+                SELECT e.name, r.result_seconds, r.average, r.created_at
+                FROM user_endurance_records r
+                JOIN exercises e ON r.exercise_id = e.id
+                WHERE r.user_id = $1
+                ORDER BY r.created_at DESC
+                LIMIT 10
+            """, user['id'])
+        if rows:
+            text = "⏱ **Ваши результаты выносливости:**\n\n"
+            for r in rows:
+                dt = r['created_at'].strftime('%d.%m.%Y') if r['created_at'] else ''
+                text += f"⏱ **{r['name']}** — {float(r['result_seconds']):.1f} с\n📅 {dt}\n\n"
+        else:
+            text = "⏱ У вас пока нет результатов выносливости."
+        kb = (InlineKeyboardBuilder()
+              .button(text="➕ Новый тест", callback_data="new_endurance_test")
+              .button(text="🔙 К тестам", callback_data="one_rm_menu"))
+        await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="Markdown")
+    except Exception as e:
+        logger.error(f"show_my_endurance_results: {e}")
+        await callback.message.edit_text("⏱ У вас пока нет результатов выносливости.")
+    await callback.answer()
 
 # ==============================================================================
 #  УТИЛИТЫ
