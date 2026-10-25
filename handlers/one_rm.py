@@ -31,20 +31,20 @@ def register_one_rm_handlers(dp):
     # выносливость
     dp.callback_query.register(new_endurance_test, F.data == "new_endurance_test")
     dp.callback_query.register(select_endurance_exercise, F.data.startswith("endurance_"))
-    dp.callback_query.register(process_endurance_data, F.data == WAITING_ENDURANCE_DATA)
 
     # скорость
     dp.callback_query.register(new_speed_test, F.data == "new_speed_test")
     dp.callback_query.register(select_speed_exercise, F.data.startswith("speed_"))
-    dp.callback_query.register(process_speed_data, F.data == WAITING_SPEED_DATA)
 
     # универсальный вход
     dp.callback_query.register(start_any_test, F.data.startswith("start_test_"))
 
 # ----------  ТЕКСТОВЫЕ ВВОДЫ  ----------
-    dp.message.register(process_endurance_data, StateFilter(CreateWorkoutStates.waiting_endurance_data))
-    dp.message.register(process_speed_data,     StateFilter(CreateWorkoutStates.waiting_speed_data))
-    dp.message.register(process_quantity_data,  StateFilter(CreateWorkoutStates.waiting_quantity_data))
+# ВАЖНО: текстовые вводы этих тестов обрабатывает единый диспетчер
+# handlers.handle_all_text_messages (general_router). Здесь регистрировать
+# message-хендлеры по строковым стейтам нельзя — aiogram требует объект State,
+# а ошибка ImportError/TypeError при регистрации ломала весь модуль one_rm,
+# из-за чего секунды (тест планки) «никуда не уходили».
 
 # ----------  ОБРАБОТКА КОЛИЧЕСТВЕННОГО ТЕСТА  ----------
 async def process_quantity_data(message: Message, state: FSMContext):
@@ -151,7 +151,7 @@ async def select_1rm_exercise(callback: CallbackQuery, state: FSMContext):
             "Введите максимальное количество повторений (например: `45`):",
             parse_mode="Markdown"
         )
-        await state.set_state("waiting_quantity_test_data")
+        await state.set_state("waiting_quantity_data")
         await callback.answer()
         return
 
