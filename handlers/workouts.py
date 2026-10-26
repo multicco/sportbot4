@@ -1143,11 +1143,12 @@ async def handle_create_exercise_params_input(message: Message, state: FSMContex
     
     # Используем значения по умолчанию для пропущенных параметров
     data = await state.get_data()
-    defaults = data.get("selected_exercise_defaults", {})
-    
+    # defaults может быть None (например, после очистки ключа в _finalize_exercise_for_create)
+    defaults = data.get("selected_exercise_defaults") or {}
+
     sets = sets or defaults.get('sets', 3)
     reps = reps or defaults.get('reps', 8)
-    percent = percent if percent is not None else defaults.get('percent', 75)  # ИСПРАВЛЕНИЕ
+    percent = percent if percent is not None else defaults.get('percent', 75)
     rest = rest or defaults.get('rest', 120)
     
     # Финализируем упражнение
@@ -2177,6 +2178,12 @@ async def use_in_workout_with_params(callback: CallbackQuery, state: FSMContext)
             selected_exercise_id=ex_id,
             selected_exercise_name=ex["name"],
             selected_exercise_1rm=one_rm_kg,
+            selected_exercise_defaults={
+                'sets': 3,
+                'reps': 8,
+                'percent': 75,
+                'rest': 120,
+            },
             current_block=block
         )
         

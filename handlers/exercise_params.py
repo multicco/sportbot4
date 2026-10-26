@@ -270,7 +270,8 @@ async def handle_exercise_params_input(message: Message, state: FSMContext):
     
     # Используем значения по умолчанию для пропущенных параметров
     data = await state.get_data()
-    defaults = data.get("selected_exercise_defaults", {})
+    # defaults может быть None (например, после очистки ключа) — защищаемся через `or {}`
+    defaults = data.get("selected_exercise_defaults") or {}
     
     if sets is None:
         await message.answer(
