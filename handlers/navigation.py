@@ -131,8 +131,7 @@ async def _call_screen(target: str, cb: CallbackQuery, state: FSMContext) -> boo
                 import importlib
 
                 handler = getattr(importlib.import_module(module_name), func_name)
-                cb.data = target
-                await _invoke(handler, cb, state)
+                await _invoke(handler, cb, state, data_override=target)
                 return True
             except Exception as e:
                 logger.exception("navigation: не удалось вернуться на '%s': %s", target, e)
@@ -143,8 +142,7 @@ async def _call_screen(target: str, cb: CallbackQuery, state: FSMContext) -> boo
         try:
             from handlers.player_workouts import exercise_detail
 
-            cb.data = target
-            await _invoke(exercise_detail, cb, state)
+            await _invoke(exercise_detail, cb, state, data_override=target)
             return True
         except Exception as e:
             logger.exception("navigation: не удалось вернуться на '%s': %s", target, e)
@@ -165,8 +163,18 @@ async def _call_screen(target: str, cb: CallbackQuery, state: FSMContext) -> boo
     return False
 
 
-async def _invoke(handler, cb: CallbackQuery, state: FSMContext, **extra):
-    """Вызвать обработчик экрана только с теми аргументами, что ему нужны."""
+async def _invoke(handler, cb: CallbackQuery, state: FSMContext, data_override: str | None = None, **extra):
+    """Вызвать обработчик экрана только с теми аргументами, что ему нужны.
+
+    data_override — подменный callback.data для хендлера. Поле data у
+    CallbackQuery в aiogram 3.x frozen (pydantic), поэтому менять его напрямую
+    нельзя — вместо этого передаём хендлеру поверхностную копию модели.
+    """
+    if data_override is not None and getattr(cb, "data", None) != data_override:
+        try:
+            cb = cb.model_copy(update={"data": data_override}, deep=False)
+        except Exception:
+            pass
     sig = inspect.signature(handler)
     kwargs = {}
     accepts_var_kw = any(

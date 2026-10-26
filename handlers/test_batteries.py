@@ -1011,8 +1011,23 @@ async def back_to_add_exercises(callback: CallbackQuery, state: FSMContext):
     """Возврат к добавлению упражнений"""
     data = await state.get_data()
     battery_id = data.get('editing_battery_id')
-    callback.data = f"add_exercises_{battery_id}"
-    await add_exercises_to_battery(callback, state)
+    # callback.data — frozen-поле pydantic-модели aiogram 3.x, менять нельзя.
+    # Рендерим экран напрямую, id батареи берём из FSM.
+    keyboard = InlineKeyboardBuilder()
+    keyboard.button(text="🔍 Поиск по названию", callback_data="search_for_battery")
+    keyboard.button(text="📂 По категориям", callback_data="browse_cat_for_battery")
+    keyboard.button(text="💪 По группам мышц", callback_data="browse_muscle_for_battery")
+    keyboard.button(text="🔙 К батарее", callback_data=f"view_battery_{battery_id}")
+    keyboard.adjust(1)
+
+    text = (f"➕ **Добавление упражнений в батарею**\n\n"
+            f"🎯 **Рекомендации:**\n"
+            f"• Обычно батарея содержит 5-10 упражнений\n"
+            f"• Выбирайте упражнения под конкретную цель\n"
+            f"• Комбинируйте разные типы тестов\n\n"
+            f"**Выберите способ поиска упражнений:**")
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
+    await callback.answer()
 
 # ===== ОБРАБОТКА ТЕКСТОВЫХ СООБЩЕНИЙ =====
 async def process_battery_text_input(message: Message, state: FSMContext):

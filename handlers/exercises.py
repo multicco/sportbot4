@@ -125,15 +125,19 @@ async def universal_back(callback: CallbackQuery, state: FSMContext):
     elif nav_type == "muscle_groups":
         await search_by_muscle_group(callback, state)
     elif nav_type == "category_exercises":
+        # CallbackQuery в aiogram 3.x — frozen-модель pydantic, поле data
+        # менять нельзя. Передаём категорию через отдельный helper.
         category = ctx.get("category")
         if category:
-            callback.data = f"cat_{category}"
-        await show_category_exercises(callback, state)
+            await _render_category_exercises(callback.message, category, state)
+        else:
+            await search_by_category(callback, state)
     elif nav_type == "muscle_exercises":
         muscle_group = ctx.get("muscle_group")
         if muscle_group:
-            callback.data = f"muscle_{muscle_group}"
-        await show_muscle_group_exercises(callback, state)
+            await _render_muscle_group_exercises(callback.message, muscle_group, state)
+        else:
+            await search_by_muscle_group(callback, state)
     elif nav_type == "search_results":
         query = ctx.get("query")
         if query:
@@ -321,10 +325,12 @@ async def search_by_muscle_group(callback: CallbackQuery, state: FSMContext = No
     await callback.answer()
 
 
-async def show_category_exercises(callback: CallbackQuery, state: FSMContext = None):
-    """Показать упражнения категории С КЛИКАБЕЛЬНЫМИ КНОПКАМИ"""
-    category = callback.data[4:]
+async def _render_category_exercises(message: Message, category: str, state: FSMContext = None):
+    """Отрисовать экран упражнений категории (без зависимости от callback.data).
 
+    Используется и обработчиком клика, и кнопкой «Назад» (universal_back),
+    у которой нельзя менять frozen-поле callback.data.
+    """
     try:
         async with db_manager.pool.acquire() as conn:
             exercises = await conn.fetch(
@@ -359,7 +365,7 @@ async def show_category_exercises(callback: CallbackQuery, state: FSMContext = N
             keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
             keyboard.adjust(1)
 
-            await callback.message.edit_text(
+            await message.edit_text(
                 text,
                 reply_markup=keyboard.as_markup(),
                 parse_mode="Markdown"
@@ -373,20 +379,27 @@ async def show_category_exercises(callback: CallbackQuery, state: FSMContext = N
             keyboard = InlineKeyboardBuilder()
             keyboard.button(text="🔙 К категориям", callback_data="search_by_category")
             keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
-            await callback.message.edit_text(
+            await message.edit_text(
                 f"❌ Упражнения в категории '{category}' не найдены",
                 reply_markup=keyboard.as_markup()
             )
 
     except Exception as e:
-        await callback.message.edit_text(f"❌ Ошибка: {e}")
+        try:
+            await message.edit_text(f"❌ Ошибка: {e}")
+        except Exception:
+            pass
+
+
+async def show_category_exercises(callback: CallbackQuery, state: FSMContext = None):
+    """Показать упражнения категории С КЛИКАБЕЛЬНЫМИ КНОПКАМИ"""
+    category = callback.data[4:]
+    await _render_category_exercises(callback.message, category, state)
     await callback.answer()
 
 
-async def show_muscle_group_exercises(callback: CallbackQuery, state: FSMContext = None):
-    """Показать упражнения группы мышц С КЛИКАБЕЛЬНЫМИ КНОПКАМИ"""
-    muscle_group = callback.data[7:]  # Убираем "muscle_"
-
+async def _render_muscle_group_exercises(message: Message, muscle_group: str, state: FSMContext = None):
+    """Отрисовать экран упражнений группы мышц (без зависимости от callback.data)."""
     try:
         async with db_manager.pool.acquire() as conn:
             exercises = await conn.fetch(
@@ -421,7 +434,7 @@ async def show_muscle_group_exercises(callback: CallbackQuery, state: FSMContext
             keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
             keyboard.adjust(1)
 
-            await callback.message.edit_text(
+            await message.edit_text(
                 text,
                 reply_markup=keyboard.as_markup(),
                 parse_mode="Markdown"
@@ -433,13 +446,22 @@ async def show_muscle_group_exercises(callback: CallbackQuery, state: FSMContext
             keyboard = InlineKeyboardBuilder()
             keyboard.button(text="🔙 К группам мышц", callback_data="search_by_muscle")
             keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
-            await callback.message.edit_text(
+            await message.edit_text(
                 f"❌ Упражнения для группы '{muscle_group}' не найдены",
                 reply_markup=keyboard.as_markup()
             )
 
     except Exception as e:
-        await callback.message.edit_text(f"❌ Ошибка: {e}")
+        try:
+            await message.edit_text(f"❌ Ошибка: {e}")
+        except Exception:
+            pass
+
+
+async def show_muscle_group_exercises(callback: CallbackQuery, state: FSMContext = None):
+    """Показать упражнения группы мышц С КЛИКАБЕЛЬНЫМИ КНОПКАМИ"""
+    muscle_group = callback.data[7:]  # Убираем "muscle_"
+    await _render_muscle_group_exercises(callback.message, muscle_group, state)
     await callback.answer()
 
 
