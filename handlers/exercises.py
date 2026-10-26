@@ -60,6 +60,24 @@ async def _get_context(state: FSMContext) -> dict:
     return data.get("exercise_nav_context") or {"type": "search_menu"}
 
 
+async def _back_button_for_state(state: FSMContext = None) -> tuple:
+    """Кнопка «Назад» с учётом контекста.
+
+    Вне конструктора тренировки: 🔙 Назад → exercise_back (универсальный
+    возврат по exercise_nav_context).
+    Внутри создания тренировки: 🔙 К блокам → workout_back_to_block — иначе
+    «Назад» из списка упражнений уводил бы пользователя в меню поиска
+    вместо возврата к структуре тренировки.
+    """
+    try:
+        current = await state.get_state() if state is not None else None
+    except Exception:
+        current = None
+    if current and "CreateWorkoutStates" in str(current):
+        return "🔙 К блокам", "workout_back_to_block"
+    return "🔙 Назад", "exercise_back"
+
+
 def register_exercise_handlers(dp):
     """Регистрация обработчиков упражнений"""
 
@@ -120,6 +138,19 @@ async def universal_back(callback: CallbackQuery, state: FSMContext):
     ctx = await _get_context(state)
     nav_type = ctx.get("type", "search_menu")
 
+    # Внутри создания тренировки «Назад» из меню поиска должен вести
+    # обратно к упражнениям блока, а не по exercise_nav_context.
+    current = await state.get_state()
+    if current and "CreateWorkoutStates" in str(current):
+        from handlers.workouts import _show_exercises_for_block
+
+        try:
+            await _show_exercises_for_block(callback.message, state)
+            await callback.answer()
+            return
+        except Exception:
+            logger.debug("universal_back: не удалось вернуться к блоку", exc_info=True)
+
     if nav_type == "categories":
         await search_by_category(callback, state)
     elif nav_type == "muscle_groups":
@@ -141,7 +172,7 @@ async def universal_back(callback: CallbackQuery, state: FSMContext):
     elif nav_type == "search_results":
         query = ctx.get("query")
         if query:
-            await _show_search_results(callback.message, query)
+            await _show_search_results(callback.message, query, state)
         else:
             await search_exercise_menu(callback, state)
     elif nav_type == "workout_block":
@@ -154,7 +185,7 @@ async def universal_back(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
-async def _show_search_results(message: Message, query: str):
+async def _show_search_results(message: Message, query: str, state: FSMContext = None):
     """Перерисовать результаты поиска по названию (для кнопки «Назад»)."""
     search_term = query.lower()
     try:
@@ -170,7 +201,7 @@ async def _show_search_results(message: Message, query: str):
                 LIMIT 15
             """, f"%{search_term}%")
 
-        back_text, back_data = _back_button()
+        back_text, back_data = await _back_button_for_state(state)
 
         if exercises:
             text = (
@@ -269,7 +300,7 @@ async def search_by_category(callback: CallbackQuery, state: FSMContext = None):
         async with db_manager.pool.acquire() as conn:
             categories = await conn.fetch("SELECT DISTINCT category FROM exercises ORDER BY category")
 
-        back_text, back_data = _back_button()
+        back_text, back_data = await _back_button_for_state(state)
 
         # Пересобираем клавиатуру сами, чтобы гарантированно добавить «Назад»
         keyboard = InlineKeyboardBuilder()
@@ -300,7 +331,7 @@ async def search_by_muscle_group(callback: CallbackQuery, state: FSMContext = No
             muscle_groups = await conn.fetch("SELECT DISTINCT muscle_group FROM exercises ORDER BY muscle_group")
 
         keyboard = InlineKeyboardBuilder()
-        back_text, back_data = _back_button()
+        back_text, back_data = await _back_button_for_state(state)
 
         for mg in muscle_groups:
             keyboard.button(
@@ -338,7 +369,7 @@ async def _render_category_exercises(message: Message, category: str, state: FSM
                 category
             )
 
-        back_text, back_data = _back_button()
+        back_text, back_data = await _back_button_for_state(state)
 
         if exercises:
             text = f"📂 **Категория: {category}**\n\n"
@@ -407,7 +438,7 @@ async def _render_muscle_group_exercises(message: Message, muscle_group: str, st
                 muscle_group
             )
 
-        back_text, back_data = _back_button()
+        back_text, back_data = await _back_button_for_state(state)
 
         if exercises:
             text = f"💪 **Группа мышц: {muscle_group}**\n\n"
@@ -968,7 +999,7 @@ async def handle_exercise_search(message: Message, state: FSMContext):
                 LIMIT 15
             """, f"%{search_term}%")
 
-        back_text, back_data = _back_button()
+        back_text, back_data = await _back_button_for_state(state)
 
         if exercises:
             text = (
