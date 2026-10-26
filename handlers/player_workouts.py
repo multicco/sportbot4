@@ -280,94 +280,6 @@ async def show_my_workouts(update: Message | CallbackQuery, state: FSMContext):
         await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="HTML")
 
 
-@player_workouts_router.callback_query(F.data.startswith("start_workout_"))
-async def start_workout(callback: CallbackQuery, state: FSMContext):
-    try:
-        workout_id = int(callback.data.split("_")[-1])
-        user_tg_id = callback.from_user.id
-
-        user = await db_manager.get_user_by_telegram_id(user_tg_id)
-        if not user:
-            await callback.answer("Пользователь не найден", show_alert=True)
-            return
-
-        is_trainer = user['role'] in ['admin', 'trainer', 'coach']
-
-        # --------------------- ДЛЯ ТРЕНЕРА — ПРОПУСКАЕМ ВСЁ, СРАЗУ ПУСКАЕМ ---------------------
-        if is_trainer:
-            # Тренер может запускать любую тренировку — просто создаём сессию
-            async with db_manager.pool.acquire() as conn:
-                workout = await conn.fetchrow("SELECT name FROM workouts WHERE id = $1", workout_id)
-                if not workout:
-                    await callback.answer("Тренировка не найдена", show_alert=True)
-                    return
-
-                # Создаём сессию для тренера (если ещё нет)
-                session = await conn.fetchrow("""
-                    SELECT id FROM workout_sessions 
-                    WHERE user_id = $1 AND workout_id = $2
-                """, user['id'], workout_id)
-
-                if not session:
-                    await conn.execute("""
-                        INSERT INTO workout_sessions (user_id, workout_id, status, started_at)
-                        VALUES ($1, $2, 'in_progress', NOW())
-                    """, user['id'], workout_id)
-
-            # Сразу открываем новое меню
-            await show_workout_overview(callback, state, workout_id)
-            await callback.answer("Тренировка начата (режим тренера)")
-            return
-
-        # --------------------- ДЛЯ ПОДОПЕЧНОГО — СТАРАЯ ПРОВЕРКА ---------------------
-        async with db_manager.pool.acquire() as conn:
-            assigned = await conn.fetchrow("""
-                SELECT w.name 
-                FROM workout_individual_students wis
-                JOIN workouts w ON w.id = wis.workout_id
-                JOIN individual_students s ON s.id = wis.student_id
-                WHERE wis.workout_id = $1 AND s.telegram_id = $2 AND wis.is_active = TRUE
-            """, workout_id, user_tg_id)
-
-            # 2. Командное назначение (если не нашли индивидуальное)
-            if not assigned:
-                assigned = await conn.fetchrow("""
-                    SELECT w.name
-                    FROM workout_team_player_assignments wpa
-                    JOIN workout_teams wt ON wt.id = wpa.workout_team_id
-                    JOIN team_players tp ON tp.id = wpa.team_player_id
-                    JOIN workouts w ON w.id = wt.workout_id
-                    WHERE wt.workout_id = $1
-                    AND tp.telegram_id = $2
-                    AND wpa.status = 'pending'
-                    AND wt.is_active = TRUE
-                """, workout_id, user_tg_id)
-
-
-              # ❗ Если не найдено НИЧЕГО — выходим
-            if not assigned:
-                await callback.answer("Эта тренировка вам не назначена", show_alert=True)
-                return   
-
-        # Обновляем статус через твой метод (для подопечных)
-        success = await teams.teams_db.update_player_workout_status(
-            telegram_id=user_tg_id,
-            workout_id=workout_id,
-            status='in_progress'
-        )
-
-        if not success:
-            await callback.answer("Не удалось начать тренировку", show_alert=True)
-            return
-
-        await show_workout_overview(callback, state, workout_id)
-        await callback.answer("Тренировка начата!")
-
-    except Exception as e:
-        logger.exception(f"Ошибка в start_workout: {e}")
-        await callback.answer("Ошибка", show_alert=True)
-
-
 @player_workouts_router.callback_query(F.data.startswith("finish_workout_"))
 async def finish_workout(callback: CallbackQuery, state: FSMContext):
     """Завершить тренировку и запросить RPE"""
@@ -904,24 +816,6 @@ async def show_workout_overview(
             "❗ Ошибка загрузки тренировки", show_alert=True
         )
 
-        # ==========  НИЖНИЕ КНОПКИ  ==========
-        kb.button(text="🏁 Завершить", callback_data=f"finish_workout_{workout_id}")
-        kb.button(text="📋 Мои тренировки", callback_data="my_workouts")
-        kb.button(text="🏠 Главное меню", callback_data="main_menu")
-        kb.adjust(1)
-
-        # отправка
-        if isinstance(cb_or_msg, CallbackQuery):
-            await message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="HTML")
-            await cb_or_msg.answer()
-        else:
-            await message.answer(text, reply_markup=kb.as_markup(), parse_mode="HTML")
-
-    except Exception as e:
-        logger.exception("❗ show_workout_overview error: %s", e)
-        await (cb_or_msg.answer if isinstance(cb_or_msg, CallbackQuery) else message.answer)(
-             "❗ Ошибка загрузки тренировки", show_alert=True)
-
 
 @player_workouts_router.callback_query(F.data.regexp(r"^back_\d+$"))
 async def back_to_workout(callback: CallbackQuery, state: FSMContext):
@@ -1068,18 +962,6 @@ async def ignore_block_separator(callback: CallbackQuery):
 #     except Exception as e:
 #         logger.exception("❗ exercise_detail error: %s", e)
 #         await callback.answer("Ошибка при загрузке упражнения", show_alert=True)
-# Отметить выполненным
-@player_workouts_router.callback_query(F.data.startswith("markdone_"))
-async def mark_done(callback: CallbackQuery, state: FSMContext):
-    _, sess_id, block_ex_id, wid = callback.data.split("_")
-    await db_manager.pool.execute("""
-        UPDATE workout_session_exercises SET sets_completed = sets_total, completed_at = NOW(), status = 'completed'
-        WHERE session_id = $1 AND workout_exercise_id = $2
-    """, int(sess_id), int(block_ex_id))
-    await callback.answer("Отмечено!", show_alert=True)
-    await show_workout_overview(callback, state, int(wid))
-
-
 # Назад в тренировку
 @player_workouts_router.callback_query(F.data == "back_from_exercise")
 async def back_from_exercise_details(callback: CallbackQuery, state: FSMContext):
@@ -1474,37 +1356,21 @@ async def mark_undone(callback: CallbackQuery, state: FSMContext):
 # Отметить выполненным
 @player_workouts_router.callback_query(F.data.startswith("markdone_"))
 async def mark_done(callback: CallbackQuery, state: FSMContext):
-    """Отметить упражнение как выполненное."""
+    """Отметить упражнение как выполненное и перерисовать обзор тренировки (обновляет бар прогресса)."""
     try:
         _, sess_id, block_ex_id, wid = callback.data.split("_")
         sess_id = int(sess_id)
         block_ex_id = int(block_ex_id)
         wid = int(wid)
-        
-        # Получаем количество подходов для этого упражнения
-        async with db_manager.pool.acquire() as conn:
-            result = await conn.fetchval("""
-                SELECT we.sets 
-                FROM workout_exercises we
-                WHERE we.id = $1
-            """, block_ex_id)
-        
-        sets_count = result or 1
-        
-        # Обновляем в БД
-        await db_manager.pool.execute("""
-            UPDATE workout_session_exercises 
-            SET sets_completed = $1, 
-                completed_at = NOW(), 
-                status = 'completed'
-            WHERE session_id = $2 AND workout_exercise_id = $3
-        """, sets_count, sess_id, block_ex_id)
-        
+
+        # Отмечаем упражнение выполненным в БД
+        await mark_exercise_completed(sess_id, block_ex_id)
+
         await callback.answer("✅ Упражнение отмечено как выполненное!", show_alert=True)
-        
-        # Возвращаемся к деталям упражнения
-        await exercise_detail(callback, state)
-        
+
+        # Перерисовываем обзор тренировки — кубики прогресса станут зелёными
+        await show_workout_overview(callback, state, wid)
+
     except Exception as e:
         logger.exception("❗ mark_done error: %s", e)
         await callback.answer("Ошибка при отметке", show_alert=True)
@@ -1832,13 +1698,6 @@ async def show_workout_history(update: Message | CallbackQuery, state: FSMContex
         await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="HTML")
 
 
-@player_workouts_router.callback_query(F.data.startswith("markdone_"))
-async def mark_exercise_done_handler(callback: CallbackQuery, state: FSMContext):
-    _, session_id, block_ex_id, workout_id = callback.data.split("_")
-    await mark_exercise_completed(int(session_id), int(block_ex_id))
-    await callback.answer("✅ Выполнено!", show_alert=True)
-    await show_workout_overview(callback, state, int(workout_id))
-    
 def get_player_workouts_router():
     """Экспорт роутера"""
     return player_workouts_router
