@@ -139,6 +139,36 @@ CREATE INDEX IF NOT EXISTS idx_workout_sessions_user_id ON workout_sessions(user
 CREATE INDEX IF NOT EXISTS idx_teams_access_code ON teams(access_code);
 CREATE INDEX IF NOT EXISTS idx_team_members_team_user ON team_members(team_id, user_id);
 
+
+
+-- ===== ИНДИВИДУАЛЬНЫЕ ПОДОПЕЧНЫЕ =====
+CREATE TABLE IF NOT EXISTS individual_students (
+    id SERIAL PRIMARY KEY,
+    coach_telegram_id BIGINT REFERENCES users(telegram_id),
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100),
+    level VARCHAR(20) DEFAULT 'beginner',
+    specialization VARCHAR(100),
+    phone VARCHAR(20),
+    birth_date DATE,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN DEFAULT true
+);
+
+-- ===== ТРЕНИРОВКИ ДЛЯ ПОДОПЕЧНЫХ =====
+CREATE TABLE IF NOT EXISTS workout_individual_students (
+    id SERIAL PRIMARY KEY,
+    workout_id INTEGER REFERENCES workouts(id) ON DELETE CASCADE,
+    student_id INTEGER REFERENCES individual_students(id) ON DELETE CASCADE,
+    assigned_by BIGINT,
+    assigned_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deadline DATE,
+    notes TEXT,
+    is_active BOOLEAN DEFAULT true
+);
+
+
 -- ===== НАЧАЛЬНЫЕ ДАННЫЕ - УПРАЖНЕНИЯ =====
 INSERT INTO exercises (name, category, muscle_group, description, instructions, difficulty_level, equipment) VALUES
 -- СИЛОВЫЕ УПРАЖНЕНИЯ

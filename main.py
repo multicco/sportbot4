@@ -1,10 +1,11 @@
-
+ 
 # ===== ГЛАВНЫЙ ФАЙЛ ЗАПУСКА СПОРТИВНОГО БОТА =====
 from handlers.teams import TeamStates
 import asyncio
 import logging
 import sys
 from pathlib import Path
+from handlers import general_router
 
 # Добавляем текущую директорию в путь для импортов
 sys.path.insert(0, str(Path(__file__).parent))
@@ -21,6 +22,10 @@ from aiogram.enums import ParseMode
 
 # После инициализации основной БД добавь:
 from handlers.teams import get_teams_router, init_teams_module_async
+
+from handlers.player_workouts import get_player_workouts_router
+from handlers.workouts import workouts_router
+
 
 
 
@@ -48,6 +53,14 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+
+# from aiogram.types import Message, CallbackQuery
+# @dp.callback_query()               # самый верхний уровень
+# async def global_debug(callback: CallbackQuery):
+#     logger.critical("GLOBAL raw callback_data = %r", callback.data)
+#     await callback.answer()
+
 
 async def setup_bot_commands():
     """Настройка команд бота"""
@@ -86,67 +99,19 @@ async def check_database_connection():
         logger.error(f"❌ Ошибка подключения к БД: {e}")
         return False
 
-# async def register_team_handlers_integration():
-#     """Интеграция модуля команд (ИСПРАВЛЕННАЯ ФУНКЦИЯ)"""
-#     try:
-#         # ИСПРАВЛЕНИЕ: Правильный импорт из handlers
-#         from handlers import teams
 
-#         # Проверяем, есть ли функция register_team_handlers
-#         if hasattr(teams, 'register_team_handlers'):
-#             teams.register_team_handlers(dp)
-#             logger.info("🏆 Модуль команд зарегистрирован через register_team_handlers")
-
-#         # Если нет старой функции, но есть роутер (для нового модуля)
-#         elif hasattr(teams, 'teams_router'):
-#             dp.include_router(teams.teams_router)
-#             logger.info("🏆 Модуль команд зарегистрирован через teams_router")
-
-#         # Если нет ни того, ни другого - создаем заглушки
-#         else:
-#             logger.warning("⚠️ В handlers/teams.py нет нужных функций")
-
-#             # Создаем простой обработчик команды /teams
-#             from aiogram.types import Message
-#             from aiogram.filters import Command
-
-#             @dp.message(Command("teams"))
-#             async def teams_command(message: Message):
-#                 await message.answer(
-#                     "🏆 <b>Управление командами</b>\n\n"
-#                     "⚠️ Модуль команд в разработке.\n"
-#                     "Скоро здесь будет полноценное управление командами!",
-#                     parse_mode="HTML"
-#                 )
-
-#             logger.info("🏆 Базовый обработчик команды /teams создан")
-
-#     except ImportError as e:
-#         logger.warning(f"⚠️ Модуль handlers.teams не найден: {e}")
-
-#         # Создаем заглушку если модуль teams вообще не найден
-#         from aiogram.types import Message
-#         from aiogram.filters import Command
-
-#         @dp.message(Command("teams"))
-#         async def teams_not_found(message: Message):
-#             await message.answer(
-#                 "❌ <b>Модуль команд не найден</b>\n\n"
-#                 "Создайте файл handlers/teams.py для управления командами.",
-#                 parse_mode="HTML"
-#             )
-
-#         logger.info("🚫 Создана заглушка для /teams (модуль не найден)")
-
-#     except Exception as e:
-#         logger.error(f"❌ Ошибка регистрации модуля команд: {e}")
+# # from handlers.teams import init_teams_database_instance
+# teams_database = init_teams_database_instance(db_manager.pool)
 
 async def main():
     """Главная функция запуска бота"""
+    
     logger.info("🚀 Запуск спортивного бота...")
+   
+
     
     try:
-        # Проверяем конфигурацию
+        # Проверяеё конфигурацию
         if not config.BOT_TOKEN:
             raise ValueError("❌ BOT_TOKEN не задан в переменных окружения")
         
@@ -162,26 +127,39 @@ async def main():
         if not db_ok:
             raise Exception("Не удалось подключиться к базе данных")
         
+
+        # 2. Player workouts router (НОВЫЙ)
+        logger.info("💪 Регистрация роутера тренировок игроков...")
+        player_workouts_router = get_player_workouts_router()
+
         # Инициализация модуля команд
         logger.info("🏆 Инициализация модуля команд...")
         await init_teams_module_async(db_manager)
         
         # ===== ИСПРАВЛЕНИЕ: ПРАВИЛЬНЫЙ ПОРЯДОК РЕГИСТРАЦИИ РОУТЕРОВ =====
         
-        # 1. СНАЧАЛА регистрируем teams_router (специфичные обработчики)
-        logger.info("🏆 Регистрация роутера команд...")
-        teams_router = get_teams_router()
-        dp.include_router(teams_router)
+
         
-        # 2. Регистрация всех остальных обработчиков (НЕ включает general_router)
+        # 1. Teams router
+        logger.info("🏆 Регистрация роутера команд...")
+        # teams_router = get_teams_router()
+        # dp.include_router(teams_router)
+        
+        
+        # dp.include_router(player_workouts_router)
+        
+        #         # 2.1 Основной workouts router
+        # from handlers.workouts import workouts_router
+        # dp.include_router(workouts_router)
+
+        # 3. Остальные обработчики
         logger.info("🔗 Регистрация основных обработчиков...")
         register_all_handlers(dp)
         
-        # 3. В САМОМ КОНЦЕ регистрируем general_router (catch-all обработчик)
-        logger.info("🔗 Регистрация универсального обработчика...")
-        from handlers import general_router
-        dp.include_router(general_router)
+        # dp.include_router(general_router)
         
+
+        #dp.include_router(trainees_router)
         # ===== КОНЕЦ ИСПРАВЛЕНИЙ =====
         
         # Настройка команд бота
@@ -236,6 +214,7 @@ async def main():
 def run_bot():
     """Запуск бота с обработкой исключений"""
     try:
+        
         asyncio.run(main())
     except KeyboardInterrupt:
         print("\n👋 Бот остановлен пользователем")
