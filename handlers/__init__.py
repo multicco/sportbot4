@@ -105,6 +105,8 @@ async def handle_all_text_messages(message: Message, state: FSMContext):
             CreateWorkoutStates.waiting_workout_description,
             CreateWorkoutStates.adding_block_description,
             CreateWorkoutStates.manual_exercise_input,
+            CreateWorkoutStates.adding_exercises,
+            CreateWorkoutStates.selecting_exercises,
             CreateWorkoutStates.waiting_rpe,
             CreateWorkoutStates.configuring_exercise,
             CreateWorkoutStates.renaming_workout,

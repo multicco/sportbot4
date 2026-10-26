@@ -2034,8 +2034,21 @@ async def process_workout_text_input(message: Message, state: FSMContext):
 
  
 
-    if current == CreateWorkoutStates.manual_exercise_input:
-        text = message.text.strip()
+    # -------------------------------------------------
+    # 4b. РУЧНОЙ ВВОД УПРАЖНЕНИЙ (текстом)
+    # Работает и в состоянии manual_exercise_input, и в adding_exercises
+    # (после «Добавить ещё» / возврата к блокам пользователь может просто
+    # писать упражнения текстом — каждое сообщение добавляется в текущий блок).
+    # -------------------------------------------------
+    if current in (CreateWorkoutStates.manual_exercise_input,
+                   CreateWorkoutStates.adding_exercises):
+        text = (message.text or "").strip()
+        if not text:
+            await message.answer(
+                "Пришлите упражнение текстом, например:\n"
+                "«Жим лёжа 4×8-10, 75%, отдых 2 мин»"
+            )
+            return
 
         # текущий блок (если нет — считаем main)
         cur_block = data.get("current_block", "main")
@@ -2054,13 +2067,26 @@ async def process_workout_text_input(message: Message, state: FSMContext):
             "notes": text,             # весь произвольный текст тренера
         })
 
-        await state.update_data(selected_blocks=selected)
+        await state.update_data(selected_blocks=selected, current_block=cur_block)
 
-        await message.answer(f"Добавлено:{text}")
+        block_exs = selected[cur_block]["exercises"]
+        added_count = sum(
+            1 for ex in block_exs
+            if ex.get("id") is None and ex.get("notes")
+        )
+        hint = (
+            "Можно добавить ещё упражнение текстом или выбрать действие кнопкой:"
+            if added_count > 1 else
+            "Так держать! Добавляйте следующее упражнение текстом или выберите действие кнопкой:"
+        )
+        await message.answer(
+            f"✅ Добавлено в блок «{_pretty_block_name(cur_block)}»: {text}\n\n{hint}"
+        )
 
         kb = InlineKeyboardBuilder()
-        kb.button(text="Добавить ещё", callback_data="manual_add_exercise")
-        kb.button(text="Назад", callback_data="back_to_constructor")
+        kb.button(text="📝 Добавить ещё вручную", callback_data="manual_add_exercise")
+        kb.button(text="🔍 Поиск упражнения", callback_data="workout_start_ex_search")
+        kb.button(text="🔙 К блокам", callback_data="create_back_to_blocks")
         kb.adjust(1)
 
         await message.answer("Что дальше?", reply_markup=kb.as_markup())
