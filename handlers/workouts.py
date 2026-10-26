@@ -5,11 +5,14 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 import logging
 logger = logging.getLogger(__name__)
-from aiogram import F, Router
+import asyncio
+
+from aiogram import Bot, F, Router
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.filters import StateFilter
+from aiogram.filters import Command, StateFilter
 from aiogram.enums import ParseMode
 from utils.helpers import _safe_edit_or_send
 from utils.nav import add_nav_buttons
@@ -20,6 +23,311 @@ logger = logging.getLogger(__name__)
 workouts_router = Router()
 #from handlers.exercises import search_exercise_menu
 #........................nazaz.....................
+
+# =====================================================================
+# ✨ ДОЛГОВРЕМЕННОЕ ХРАНИЛИЩЕ ЧЕРНОВИКОВ ТРЕНИРОВКИ (не сгорает при
+# выходе в главное меню, сбросе FSM, неизвестном состоянии и рестарте
+# бота — данные живут в PostgreSQL).
+# =====================================================================
+WORKOUT_DRAFT_KEY = "workout_draft"   # ключ в FSM-данных (активный черновик)
+
+
+async def _ensure_workout_drafts_table() -> None:
+    """Создать таблицу черновиков (идемпотентно)."""
+    async with db_manager.pool.acquire() as conn:
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS workout_drafts (
+                user_id     BIGINT PRIMARY KEY,
+                state       TEXT,
+                data        TEXT,
+                updated_at  TIMESTAMPTZ DEFAULT NOW()
+            )
+        """)
+
+
+async def _save_workout_draft(state: FSMContext, telegram_id: int) -> None:
+    """Сохранить текущий FSM-черновик тренировки в БД."""
+    try:
+        data = await state.get_data()
+        draft = data.get(WORKOUT_DRAFT_KEY)
+        if not isinstance(draft, dict):
+            return
+        current = await state.get_state()
+        import json as _json
+        async with db_manager.pool.acquire() as conn:
+            await _ensure_workout_drafts_table()
+            await conn.execute(
+                """
+                INSERT INTO workout_drafts (user_id, state, data, updated_at)
+                VALUES ($1, $2, $3, NOW())
+                ON CONFLICT (user_id)
+                DO UPDATE SET state = EXCLUDED.state,
+                              data = EXCLUDED.data,
+                              updated_at = NOW()
+                """,
+                telegram_id, current, _json.dumps(draft, ensure_ascii=False, default=str),
+            )
+    except Exception:
+        logger.debug("Не удалось сохранить черновик тренировки", exc_info=True)
+
+
+async def _load_workout_draft(telegram_id: int) -> Optional[Dict[str, Any]]:
+    """Загрузить черновик из БД. Возвращает {'state': str|None, 'draft': dict} или None."""
+    try:
+        import json as _json
+        async with db_manager.pool.acquire() as conn:
+            await _ensure_workout_drafts_table()
+            row = await conn.fetchrow(
+                "SELECT state, data FROM workout_drafts WHERE user_id = $1",
+                telegram_id,
+            )
+        if not row or not row["data"]:
+            return None
+        draft = _json.loads(row["data"])
+        if not isinstance(draft, dict):
+            return None
+        return {"state": row["state"], "draft": draft}
+    except Exception:
+        logger.debug("Не удалось загрузить черновик тренировки", exc_info=True)
+        return None
+
+
+async def _delete_workout_draft(telegram_id: int) -> None:
+    try:
+        async with db_manager.pool.acquire() as conn:
+            await _ensure_workout_drafts_table()
+            await conn.execute("DELETE FROM workout_drafts WHERE user_id = $1", telegram_id)
+    except Exception:
+        logger.debug("Не удалось удалить черновик тренировки", exc_info=True)
+
+
+def _draft_is_active(draft: Dict[str, Any]) -> bool:
+    """Черновик «живой», если есть название и/или упражнения в блоках."""
+    if not isinstance(draft, dict):
+        return False
+    if draft.get("editing_workout_id"):
+        return True
+    if (draft.get("name") or "").strip():
+        return True
+    selected = draft.get("selected_blocks") or {}
+    return any(b.get("exercises") for b in selected.values() if isinstance(b, dict))
+
+
+async def _sync_workout_draft(state: FSMContext, **updates) -> None:
+    """Обновить FSM-данные И зеркало-черновик одним вызовом.
+
+    Все шаги конструктора тренировки должны использовать ЭТУ функцию
+    вместо state.update_data(...) — тогда черновик автоматически
+    сохраняется в БД после каждого шага (значения None тоже попадают в
+    черновик, чтобы очистка временных ключей не «оживляла» их при
+    восстановлении).
+    """
+    await state.update_data(**updates)
+    data = await state.get_data()
+    draft = dict(data.get(WORKOUT_DRAFT_KEY) or {})
+    for key in ("name", "description", "selected_blocks", "current_block",
+                "searching_in_block", "editing_workout_id", "pending_exercise",
+                "config_step", "config_sets", "config_reps_min", "config_reps_max",
+                "config_one_rm_percent", "selected_exercise_id",
+                "selected_exercise_name", "selected_exercise_1rm",
+                "selected_exercise_defaults"):
+        if key in updates:
+            draft[key] = updates[key]
+    await state.update_data({WORKOUT_DRAFT_KEY: draft})
+
+
+async def _sync_and_save_draft(state: FSMContext, message_or_cb, **updates) -> None:
+    """_sync_workout_draft + немедленный снимок в БД (по telegram_id из события)."""
+    await _sync_workout_draft(state, **updates)
+    tg_id = getattr(getattr(message_or_cb, "from_user", None), "id", None)
+    if tg_id is None:
+        tg_id = getattr(message_or_cb, "id", None)  # Message
+    if tg_id:
+        await _save_workout_draft(state, tg_id)
+
+
+async def _restore_workout_draft(message_or_cb, state: FSMContext, telegram_id: int) -> bool:
+    """Восстановить активный черновик (из FSM, иначе из БД) и перерисовать экран.
+
+    Возвращает True, если восстановление выполнено.
+    """
+    data = await state.get_data()
+    draft = data.get(WORKOUT_DRAFT_KEY)
+    current = await state.get_state()
+
+    if not (isinstance(draft, dict) and _draft_is_active(draft)):
+        loaded = await _load_workout_draft(telegram_id)
+        if loaded and _draft_is_active(loaded["draft"]):
+            draft = loaded["draft"]
+            current = loaded["state"]
+            new_data = dict(await state.get_data())
+            new_data[WORKOUT_DRAFT_KEY] = draft
+            new_data.update({k: v for k, v in draft.items() if k != "nav_back"})
+            await state.set_data(new_data)
+            if current:
+                await state.set_state(current)
+        else:
+            return False
+
+    # Если состояние потеряно, но черновик есть — восстановим на самый
+    # логичный экран по содержимому черновика.
+    if not current:
+        if draft.get("selected_blocks") is not None or draft.get("name"):
+            await state.set_state(CreateWorkoutStates.selecting_blocks)
+            current = CreateWorkoutStates.selecting_blocks.state
+        else:
+            await state.set_state(CreateWorkoutStates.waiting_workout_name)
+            current = CreateWorkoutStates.waiting_workout_name.state
+
+    text_obj = getattr(message_or_cb, "text", None)
+    msg = getattr(message_or_cb, "message", message_or_cb)
+
+    # Черновики других модулей (упражнения/тесты), случайно попавшие под
+    # /train — не восстанавливаем здесь.
+    if "CreateWorkoutStates" not in str(current):
+        return False
+
+    if current == CreateWorkoutStates.waiting_workout_name.state:
+        kb = InlineKeyboardBuilder()
+        kb.button(text="❌ Отменить", callback_data="create_cancel")
+        add_nav_buttons(kb, back=False, to_menu=True, adjust_per_row=1)
+        await _safe_edit_or_send(
+            msg,
+            "🏋️ <b>Создание тренировки</b>\n\n"
+            "▶️ Черновик восстановлен. Введите название тренировки:",
+            reply_markup=kb.as_markup(), parse_mode="HTML",
+        )
+    elif current == CreateWorkoutStates.waiting_workout_description.state:
+        kb = InlineKeyboardBuilder()
+        kb.button(text="Пропустить описание", callback_data="create_skip_description")
+        kb.button(text="Отменить", callback_data="create_cancel")
+        add_nav_buttons(kb, back=False, to_menu=True, adjust_per_row=1)
+        await _safe_edit_or_send(
+            msg,
+            f"▶️ Продолжаем: <code>{(draft.get('name') or '').strip()}</code>\n\n"
+            "Введите описание или нажмите «Пропустить»:",
+            reply_markup=kb.as_markup(), parse_mode="HTML",
+        )
+    elif current in (CreateWorkoutStates.selecting_blocks.state,
+                     CreateWorkoutStates.adding_block_description.state):
+        await _show_block_selection(msg, state)
+    elif current in (CreateWorkoutStates.adding_exercises.state,
+                     CreateWorkoutStates.selecting_exercises.state,
+                     CreateWorkoutStates.manual_exercise_input.state):
+        await _show_exercises_for_block(msg, state)
+    elif current == CreateWorkoutStates.configuring_exercise.state:
+        ex_name = draft.get("selected_exercise_name")
+        if ex_name:
+            defaults = draft.get("selected_exercise_defaults") or {}
+            d_sets = defaults.get("sets", 3)
+            d_reps = defaults.get("reps", 8)
+            kb = InlineKeyboardBuilder()
+            kb.button(
+                text=f"✅ {d_sets}x{d_reps} (по умолчанию)",
+                callback_data=f"create_ex_quick_{draft.get('selected_exercise_id')}_{d_sets}_{d_reps}_75_120",
+            )
+            kb.button(text="🔙 Выбрать другое", callback_data="create_search_ex")
+            add_nav_buttons(kb, back=True, to_menu=True, adjust_per_row=1)
+            await _safe_edit_or_send(
+                msg,
+                f"▶️ <b>{ex_name}</b> — введите параметры "
+                "(формат: <code>подходы повторения % отдых</code>, например <code>3 8</code>) "
+                "или используйте кнопку.",
+                reply_markup=kb.as_markup(), parse_mode="HTML",
+            )
+        else:
+            pending = draft.get("pending_exercise")
+            if isinstance(pending, dict) and pending:
+                await _sync_workout_draft(state, pending_exercise=pending, config_step="sets")
+                await _safe_edit_or_send(
+                    msg,
+                    f"▶️ Продолжаем настройку: <b>{pending.get('name', '')}</b>\n\n"
+                    "Введите количество подходов (целое число), или «пропустить»:",
+                    parse_mode="HTML",
+                )
+            else:
+                await _show_block_selection(msg, state)
+    elif current == CreateWorkoutStates.searching_exercise_for_block.state:
+        await _show_exercises_for_block(msg, state)
+    else:
+        # Любой иной экран тренировок → безопасный возврат к блокам
+        await _show_block_selection(msg, state)
+    return True
+
+
+@workouts_router.message(Command("train"))
+async def cmd_train(message: Message, state: FSMContext, bot: Bot):
+    """Универсальная команда: вернуться в раздел тренировок.
+
+    - Активный черновик создания тренировки НЕ сбрасывается: если вы были
+      в конструкторе — вернёмся ровно туда же (даже после перезапуска бота).
+    - Иначе показываем меню тренировок (как по кнопке 🏋️).
+    """
+    restored = False
+    try:
+        restored = await _restore_workout_draft(message, state, message.from_user.id)
+    except Exception:
+        logger.exception("cmd_train: ошибка восстановления черновика")
+
+    if restored:
+        await message.answer("↩️ Вернул вас к незавершённой тренировке. "
+                             "Команда /train делает это в любой момент.")
+        return
+
+    # Сбрасываем только состояние тренировок, не трогая FSM других модулей
+    current = await state.get_state()
+    if current and isinstance(current, str) and current.startswith("CreateWorkoutStates"):
+        await state.set_state(None)
+
+    role = await get_user_role(message.from_user.id)
+    kb = InlineKeyboardBuilder()
+    kb.button(text="🔍 Найти тренировку", callback_data="find_workout")
+    if role in ("admin", "trainer", "coach"):
+        kb.button(text="📁 Мои шаблоны", callback_data="my_templates")
+        kb.button(text="➕ Создать тренировку", callback_data="create_workout")
+        kb.button(text="📊 Статистика", callback_data="workout_statistics")
+    else:
+        kb.button(text="🏋️ Мои тренировки", callback_data="my_workouts")
+        kb.button(text="🏅 Мои достижения", callback_data="my_achievements")
+    kb.button(text="🏠 Главное меню", callback_data="main_menu")
+    kb.adjust(1)
+
+    # Проверить сохранённый черновик в БД — предложить продолжить
+    loaded = await _load_workout_draft(message.from_user.id)
+    if loaded and _draft_is_active(loaded["draft"]):
+        name = (loaded["draft"].get("name") or "без названия").strip()
+        kb2 = InlineKeyboardBuilder()
+        kb2.button(text=f"▶️ Продолжить тренировку «{name[:30]}»", callback_data="resume_workout_draft")
+        for row in kb.as_markup().inline_keyboard:
+            for btn in row:
+                kb2.button(text=btn.text, callback_data=btn.callback_data)
+        kb2.adjust(1)
+        kb = kb2
+
+    await message.answer(
+        "🏋️ <b>Меню тренировок</b>\n\nВыберите действие "
+        "(или напишите /train в любой момент, чтобы вернуться сюда):",
+        reply_markup=kb.as_markup(), parse_mode="HTML",
+    )
+
+
+@workouts_router.callback_query(F.data == "resume_workout_draft")
+async def resume_workout_draft_cb(callback: CallbackQuery, state: FSMContext):
+    """Кнопка «Продолжить тренировку» из меню /train."""
+    loaded = await _load_workout_draft(callback.from_user.id)
+    if not loaded or not _draft_is_active(loaded["draft"]):
+        await callback.answer("Черновик не найден", show_alert=True)
+        return
+    new_data = dict(await state.get_data())
+    new_data[WORKOUT_DRAFT_KEY] = loaded["draft"]
+    new_data.update({k: v for k, v in loaded["draft"].items() if k != "nav_back"})
+    await state.set_data(new_data)
+    if loaded["state"]:
+        await state.set_state(loaded["state"])
+    await callback.answer()
+    ok = await _restore_workout_draft(callback, state, callback.from_user.id)
+    if not ok:
+        await _show_block_selection(callback.message, state)
 
 @workouts_router.callback_query(F.data == "back_to_constructor")
 async def back_to_constructor(callback: CallbackQuery, state: FSMContext):
@@ -135,7 +443,7 @@ async def _add_manual_exercise_to_block(state: FSMContext, text: str) -> str:
         "notes": text,         # произвольный текст тренера
     })
 
-    await state.update_data(selected_blocks=selected)
+    await _sync_workout_draft(state, selected_blocks=selected)
     return cur_block
 
 
@@ -374,12 +682,25 @@ async def create_workout_start(callback: CallbackQuery, state: FSMContext):
     kb.button(text="❌ Отменить", callback_data="create_cancel")
     kb.adjust(1)
     await _safe_edit_or_send(callback.message, "🏋️ **Создание тренировки**\n\nВведите название тренировки:", reply_markup=kb.as_markup(), parse_mode="Markdown")
+    # Начинаем новый черновик (он будет сохраняться в БД на каждом шаге)
+    await state.update_data({WORKOUT_DRAFT_KEY: {}})
+    await _sync_workout_draft(state)
+    await _save_workout_draft(state, callback.from_user.id)
     await state.set_state(CreateWorkoutStates.waiting_workout_name)
     await callback.answer()
 
 @workouts_router.callback_query(F.data == "create_cancel")
 async def create_cancel(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    draft = data.get(WORKOUT_DRAFT_KEY) or {}
+    edit_wid = data.get("editing_workout_id") or draft.get("editing_workout_id")
     await state.clear()
+    # Черновик отменяем явно (только при создании; при редактировании
+    # изменений в БД не было — просто убираем снимок)
+    if not edit_wid and _draft_is_active(draft):
+        await _delete_workout_draft(callback.from_user.id)
+    elif edit_wid:
+        await _delete_workout_draft(callback.from_user.id)
     kb = InlineKeyboardBuilder()
     kb.button(text="🏋️ Мои тренировки", callback_data="my_workouts")
     kb.button(text="🔙 В меню", callback_data="workouts_menu")
@@ -392,6 +713,16 @@ async def _show_block_selection(message, state: FSMContext):
     data = await state.get_data()
     name = data.get('name', 'Без названия')
     selected = data.get('selected_blocks', {})
+    # 🔒 Сохраняем/обновляем долговременный черновик — тренировка не
+    # «сгорит», даже если пользователь уйдёт в главное меню или бот
+    # перезапустится. Вернуться можно кнопкой «Меню тренировки» или /train.
+    try:
+        await _sync_workout_draft(state, name=name, selected_blocks=selected)
+        tg_id = getattr(getattr(message, "from_user", None), "id", None)
+        if tg_id:
+            await _save_workout_draft(state, tg_id)
+    except Exception:
+        logger.debug("Не удалось сохранить черновик (block selection)", exc_info=True)
     edit_mode = bool(data.get('editing_workout_id'))
     header = "🔧 **Редактирование структуры тренировки:**" if edit_mode else "🔧 **Структура тренировки:**"
     text = f"{header} {name}\n\nВыберите блок и добавьте упражнения:\n\n"
@@ -422,7 +753,7 @@ async def create_clear_blocks(callback: CallbackQuery, state: FSMContext):
     if not data.get('editing_workout_id') and not data.get('selected_blocks'):
         await callback.answer("Блоки уже пусты", show_alert=True)
         return
-    await state.update_data(selected_blocks={}, current_block=None)
+    await _sync_workout_draft(state, selected_blocks={}, current_block=None)
     await _show_block_selection(callback.message, state)
     await callback.answer("Все блоки очищены")
 
@@ -780,14 +1111,14 @@ async def create_add_block(callback: CallbackQuery, state: FSMContext):
         await callback.answer()
         return
     
-    await state.update_data(current_block=phase)
+    await _sync_workout_draft(state, current_block=phase)
     
     # Создаём блок с пустым описанием
     data = await state.get_data()
     selected = data.get('selected_blocks', {})
     selected.setdefault(phase, {"description": "", "exercises": []})
     
-    await state.update_data(selected_blocks=selected)
+    await _sync_workout_draft(state, selected_blocks=selected)
     
     # ✅ СРАЗУ К УПРАЖНЕНИЯМ БЕЗ ПРОМЕЖУТОЧНОГО МЕНЮ!
     await _show_exercises_for_block(callback.message, state)
@@ -797,6 +1128,19 @@ async def create_add_block(callback: CallbackQuery, state: FSMContext):
 async def _show_exercises_for_block(message, state: FSMContext):
     data = await state.get_data()
     cur = data.get('current_block', 'main')
+    # 🔒 Долговременный черновик: каждое открытие экрана блока фиксируем в БД
+    try:
+        await _sync_workout_draft(
+            state,
+            current_block=cur,
+            selected_blocks=data.get('selected_blocks', {}),
+            name=data.get('name'),
+        )
+        tg_id = getattr(getattr(message, "from_user", None), "id", None)
+        if tg_id:
+            await _save_workout_draft(state, tg_id)
+    except Exception:
+        logger.debug("Не удалось сохранить черновик (exercises screen)", exc_info=True)
     phase_map = {'warmup': '🔥 Разминка', 'nervousprep': '⚡ Подготовка НС', 'main': '💪 Основная', 'cooldown': '🧘 Заминка'}
     sel = data.get('selected_blocks', {})
     block = sel.get(cur, {"description": "", "exercises": []})
@@ -841,7 +1185,7 @@ async def block_remove_exercise(callback: CallbackQuery, state: FSMContext):
             await _show_exercises_for_block(callback.message, state)
             return
         removed = block["exercises"].pop(idx)
-        await state.update_data(selected_blocks=selected, current_block=phase)
+        await _sync_workout_draft(state, selected_blocks=selected, current_block=phase)
         await _show_exercises_for_block(callback.message, state)
         await callback.answer(f"🗑 Удалено: {removed.get('name', '?')}")
     except Exception as e:
@@ -871,7 +1215,7 @@ async def workout_add_exercise(callback: CallbackQuery, state: FSMContext):
         "sets": None, "reps_min": None, "reps_max": None,
         "one_rm_percent": None, "rest_seconds": None
     })
-    await state.update_data(selected_blocks=selected)
+    await _sync_workout_draft(state, selected_blocks=selected)
 
     # Сразу перерисовываем экран блока (без промежуточного edit_text,
     # который зря «съедал» id сообщения и вызывал message is not modified)
@@ -889,7 +1233,7 @@ async def workout_start_ex_search(callback: CallbackQuery, state: FSMContext):
         return
 
     # Сохраняем, куда добавить
-    await state.update_data(searching_in_block=block)
+    await _sync_workout_draft(state, searching_in_block=block)
     await state.set_state(CreateWorkoutStates.searching_exercise_for_block)
 
     # Открываем ТО ЖЕ МЕНЮ, что и в главном меню
@@ -911,7 +1255,7 @@ async def workout_start_search(callback: CallbackQuery, state: FSMContext):
         await callback.answer("Ошибка: блок не выбран.", show_alert=True)
         return
 
-    await state.update_data(searching_in_block=block)
+    await _sync_workout_draft(state, searching_in_block=block)
     await state.set_state(CreateWorkoutStates.searching_exercise_for_block)
 
     # Показываем ТО ЖЕ МЕНЮ, что и в главном меню!
@@ -930,7 +1274,7 @@ async def workout_start_search(callback: CallbackQuery, state: FSMContext):
 #         await callback.answer("Ошибка: блок не выбран.", show_alert=True)
 #         return
 
-#     await state.update_data(searching_in_block=block)
+#     await _sync_workout_draft(state, searching_in_block=block)
 #     await state.set_state(CreateWorkoutStates.searching_exercise_for_block)
 
 #     # Показываем тот же текст, что и в главном меню
@@ -951,7 +1295,7 @@ async def create_search_ex(callback: CallbackQuery, state: FSMContext):
         return
 
     # сохраняем, в какой блок добавляем
-    await state.update_data(searching_in_block=block)
+    await _sync_workout_draft(state, searching_in_block=block)
     await state.set_state(CreateWorkoutStates.searching_exercise_for_block)
 
     # открываем то же меню поиска, что и из главного меню
@@ -1004,7 +1348,8 @@ async def create_add_ex(callback: CallbackQuery, state: FSMContext):
         one_rm_kg = await _get_user_one_rm(callback.from_user.id, ex_id)
 
         # Сохраняем ВСЕ нужные данные
-        await state.update_data(
+        await _sync_workout_draft(
+            state,
             selected_exercise_id=ex_id,
             selected_exercise_name=row['name'],
             selected_exercise_1rm=one_rm_kg,
@@ -1196,11 +1541,11 @@ async def _finalize_exercise_for_create(message, state: FSMContext, sets: int, r
     selected_blocks.setdefault(current_block, {"description": "", "exercises": []})
     selected_blocks[current_block]["exercises"].append(exercise_entry)
     
-    await state.update_data(selected_blocks=selected_blocks)
+    await _sync_workout_draft(state, selected_blocks=selected_blocks)
     
     # Чистим временные данные
     for key in ["selected_exercise_id", "selected_exercise_name", "selected_exercise_1rm", "selected_exercise_defaults"]:
-        await state.update_data({key: None})
+        await _sync_workout_draft(state, **{key: None})
     
     # Формируем итоговое сообщение
     weight_info = ""
@@ -1230,7 +1575,7 @@ async def _finalize_exercise_for_create(message, state: FSMContext, sets: int, r
     
     
     for key in ["selected_exercise_id", "selected_exercise_name", "selected_exercise_1rm", "selected_exercise_defaults"]:
-        await state.update_data({key: None})
+        await _sync_workout_draft(state, **{key: None})
 
     # Оставляем current_block, selected_blocks и т.д.
     # Переводим FSM в режим добавления/выбора упражнений в блоке
@@ -1246,7 +1591,7 @@ async def create_configure_pending_ex(callback: CallbackQuery, state: FSMContext
         await callback.answer("Контекст потерян", show_alert=True)
         return
     # начинаем диалог: запрос подходов
-    await state.update_data(config_step="sets")
+    await _sync_workout_draft(state, config_step="sets")
     await _safe_edit_or_send(callback.message, "Введите количество подходов (целое число), или 'пропустить' чтобы добавить без параметров:")
     await state.set_state(CreateWorkoutStates.configuring_exercise)
     await callback.answer()
@@ -1272,8 +1617,8 @@ async def create_confirm_add_pending_ex(callback: CallbackQuery, state: FSMConte
         "rest_seconds": None
     })
     # чистим pending
-    await state.update_data(selected_blocks=sel)
-    await state.update_data(pending_exercise=None)
+    await _sync_workout_draft(state, selected_blocks=sel)
+    await _sync_workout_draft(state, pending_exercise=None)
     await _show_block_selection(callback.message, state)
     await callback.answer()
 
@@ -1304,14 +1649,14 @@ async def configuring_pending_ex_input(message: Message, state: FSMContext):
                 "one_rm_percent": None,
                 "rest_seconds": None
             })
-            await state.update_data(selected_blocks=sel)
-            await state.update_data(pending_exercise=None)
+            await _sync_workout_draft(state, selected_blocks=sel)
+            await _sync_workout_draft(state, pending_exercise=None)
             await message.answer("Добавлено без параметров.")
             await _show_block_selection(message, state)
             return
         try:
             sets = int(text)
-            await state.update_data(config_sets=sets, config_step="reps")
+            await _sync_workout_draft(state, config_sets=sets, config_step="reps")
             await message.answer("Введите количество повторов (одиночное число или диапазон через '-': например '8' или '8-12'):")
             return
         except ValueError:
@@ -1333,19 +1678,19 @@ async def configuring_pending_ex_input(message: Message, state: FSMContext):
             except Exception:
                 await message.answer("Введите число повторов или диапазон 8-12.")
                 return
-        await state.update_data(config_reps_min=rmin, config_reps_max=rmax, config_step="percent")
+        await _sync_workout_draft(state, config_reps_min=rmin, config_reps_max=rmax, config_step="percent")
         await message.answer("Укажите % от 1ПМ (например 70) или напишите 'нет' чтобы пропустить:")
         return
     if step == "percent":
         if text in ("нет", "no", "пропустить", "skip", "-"):
-            await state.update_data(config_one_rm_percent=None, config_step="rest")
+            await _sync_workout_draft(state, config_one_rm_percent=None, config_step="rest")
             await message.answer("Укажите отдых между подходами в секундах (например 90) или 'пропустить':")
             return
         try:
             perc = int(text)
             if not (0 < perc <= 200):
                 raise ValueError
-            await state.update_data(config_one_rm_percent=perc, config_step="rest")
+            await _sync_workout_draft(state, config_one_rm_percent=perc, config_step="rest")
             await message.answer("Укажите отдых между подходами в секундах (например 90) или 'пропустить':")
             return
         except Exception:
@@ -1414,8 +1759,8 @@ async def configuring_pending_ex_input(message: Message, state: FSMContext):
 
         # добавляем упражнение в текущий блок
         sel[cur]['exercises'].append(entry)
-        await state.update_data(selected_blocks=sel)
-        await state.update_data(pending_exercise=None)
+        await _sync_workout_draft(state, selected_blocks=sel)
+        await _sync_workout_draft(state, pending_exercise=None)
 
         # чистим временные конфиги
         for k in [
@@ -1425,7 +1770,7 @@ async def configuring_pending_ex_input(message: Message, state: FSMContext):
             "config_reps_max",
             "config_one_rm_percent",
         ]:
-            await state.update_data({k: None})
+            await _sync_workout_draft(state, **{k: None})
 
         await message.answer(f"✅ Упражнение {entry['name']} добавлено в {cur}.")
         await _show_block_selection(message, state)
@@ -1585,6 +1930,8 @@ async def create_finish(callback: CallbackQuery, state: FSMContext):
                 f"📌 Код для подопечных: <code>{unique}</code>",
                 parse_mode="HTML",
             )
+        # Тренировка сохранена в БД — черновик больше не нужен
+        await _delete_workout_draft(callback.from_user.id)
         await state.clear()
 
     except Exception as e:
@@ -1655,7 +2002,7 @@ async def rename_workout(callback: CallbackQuery, state: FSMContext):
     if wid is None:
         await callback.answer("Некорректный ID", show_alert=True)
         return
-    await state.update_data(editing_workout_id=wid)
+    await _sync_workout_draft(state, editing_workout_id=wid)
     kb = InlineKeyboardBuilder()
     kb.button(text="❌ Отменить", callback_data=f"view_workout_{wid}")
     kb.adjust(1)
@@ -1674,7 +2021,7 @@ async def change_desc_workout(callback: CallbackQuery, state: FSMContext):
     if wid is None:
         await callback.answer("Некорректный ID", show_alert=True)
         return
-    await state.update_data(editing_workout_id=wid)
+    await _sync_workout_draft(state, editing_workout_id=wid)
     kb = InlineKeyboardBuilder()
     kb.button(text="❌ Отменить", callback_data=f"view_workout_{wid}")
     kb.adjust(1)
@@ -1739,7 +2086,8 @@ async def edit_composition(callback: CallbackQuery, state: FSMContext):
                 "notes": r['notes'],
             })
 
-        await state.update_data(
+        await _sync_workout_draft(
+            state,
             editing_workout_id=wid,
             name=w['name'],
             description=w['description'] or "",
@@ -1772,7 +2120,7 @@ async def delete_workout(callback: CallbackQuery):
 # Пропустить описание (legacy compatible)
 @workouts_router.callback_query(F.data == "create_skip_description")
 async def create_skip_description(callback: CallbackQuery, state: FSMContext):
-    await state.update_data(description="")
+    await _sync_workout_draft(state, description="")
     await _show_block_selection(callback.message, state)
     await callback.answer()
 
@@ -1796,7 +2144,7 @@ async def process_workout_text_input(message: Message, state: FSMContext):
         if edit_wid:
             async with db_manager.pool.acquire() as conn:
                 await conn.execute("UPDATE workouts SET name = $1 WHERE id = $2", name, edit_wid)
-            await state.update_data(name=name)
+            await _sync_workout_draft(state, name=name)
             kb = InlineKeyboardBuilder()
             kb.button(text="🛠 К редактированию состава", callback_data=f"edit_composition_{edit_wid}")
             kb.button(text="📋 К тренировке", callback_data=f"view_workout_{edit_wid}")
@@ -1808,7 +2156,7 @@ async def process_workout_text_input(message: Message, state: FSMContext):
             )
             await state.clear()
             return
-        await state.update_data(name=name)
+        await _sync_workout_draft(state, name=name)
         kb = InlineKeyboardBuilder()
         kb.button(text="Пропустить описание", callback_data="create_skip_description")
         kb.button(text="Отменить", callback_data="create_cancel")
@@ -1883,7 +2231,7 @@ async def process_workout_text_input(message: Message, state: FSMContext):
     # 2. ОПИСАНИЕ ТРЕНИРОВКИ
     # -------------------------------------------------
     if current == CreateWorkoutStates.waiting_workout_description:
-        await state.update_data(description=message.text.strip())
+        await _sync_workout_draft(state, description=message.text.strip())
         await _show_block_selection(message, state)
         return
 
@@ -1896,7 +2244,7 @@ async def process_workout_text_input(message: Message, state: FSMContext):
         sel = data.get('selected_blocks', {})
         sel.setdefault(cur_block, {"description": "", "exercises": []})
         sel[cur_block]['description'] = desc
-        await state.update_data(selected_blocks=sel)
+        await _sync_workout_draft(state, selected_blocks=sel)
         await message.answer("Описание блока сохранено.")
         await _show_block_selection(message, state)
         return
@@ -1949,7 +2297,7 @@ async def process_workout_text_input(message: Message, state: FSMContext):
                 sets = int(text)
                 if sets <= 0:
                     raise ValueError
-                await state.update_data(config_sets=sets, config_step="reps")
+                await _sync_workout_draft(state, config_sets=sets, config_step="reps")
                 await message.answer("Введите количество повторов (например: 8 или 8-12):")
                 return
             except ValueError:
@@ -1976,21 +2324,21 @@ async def process_workout_text_input(message: Message, state: FSMContext):
                 except Exception:
                     await message.answer("Введите число повторов (например: 10) или диапазон 8-12.")
                     return
-            await state.update_data(config_reps_min=rmin, config_reps_max=rmax, config_step="percent")
+            await _sync_workout_draft(state, config_reps_min=rmin, config_reps_max=rmax, config_step="percent")
             await message.answer("Укажите % от 1ПМ (например: 70) или напишите «нет»:")
             return
 
         # === % ОТ 1ПМ (percent) ===
         if step == "percent":
             if text in ("нет", "no", "пропустить", "skip", "-"):
-                await state.update_data(config_one_rm_percent=None, config_step="rest")
+                await _sync_workout_draft(state, config_one_rm_percent=None, config_step="rest")
                 await message.answer("Отдых между подходами в секундах (например: 90) или «пропустить»:")
                 return
             try:
                 perc = int(text)
                 if not (1 <= perc <= 200):
                     raise ValueError
-                await state.update_data(config_one_rm_percent=perc, config_step="rest")
+                await _sync_workout_draft(state, config_one_rm_percent=perc, config_step="rest")
                 await message.answer("Отдых между подходами в секундах (например: 90) или «пропустить»:")
                 return
             except Exception:
@@ -2069,7 +2417,7 @@ async def process_workout_text_input(message: Message, state: FSMContext):
             "notes": text,             # весь произвольный текст тренера
         })
 
-        await state.update_data(selected_blocks=selected, current_block=cur_block)
+        await _sync_workout_draft(state, selected_blocks=selected, current_block=cur_block)
 
         block_exs = selected[cur_block]["exercises"]
         added_count = sum(
@@ -2141,9 +2489,9 @@ async def _add_exercise_without_params(state: FSMContext, pending: dict, message
         "sets": None, "reps_min": None, "reps_max": None,
         "one_rm_percent": None, "rest_seconds": None
     })
-    await state.update_data(selected_blocks=sel, pending_exercise=None)
+    await _sync_workout_draft(state, selected_blocks=sel, pending_exercise=None)
     for key in ["config_step", "config_sets", "config_reps_min", "config_reps_max", "config_one_rm_percent"]:
-        await state.update_data({key: None})
+        await _sync_workout_draft(state, **{key: None})
     await message.answer(f"Упражнение *{pending['name']}* добавлено без параметров.", parse_mode="Markdown")
     await _show_block_selection(message, state)
 @workouts_router.callback_query(F.data.startswith("use_in_workout_"))
@@ -2175,7 +2523,8 @@ async def use_in_workout_with_params(callback: CallbackQuery, state: FSMContext)
         one_rm_kg = await _get_user_one_rm(callback.from_user.id, ex_id)
         
         # Сохраняем данные упражнения
-        await state.update_data(
+        await _sync_workout_draft(
+            state,
             selected_exercise_id=ex_id,
             selected_exercise_name=ex["name"],
             selected_exercise_1rm=one_rm_kg,
@@ -2278,7 +2627,7 @@ async def handle_cardio_params_input(message: Message, state: FSMContext):
     selected = data.get("selected_blocks", {})
     selected.setdefault(block, {"description": "", "exercises": []})
     selected[block]["exercises"].append(entry)
-    await state.update_data(selected_blocks=selected)
+    await _sync_workout_draft(state, selected_blocks=selected)
 
     # чистим временные ключи
     for k in (
