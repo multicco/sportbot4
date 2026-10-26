@@ -306,6 +306,20 @@ async def handle_universal_back(callback: CallbackQuery, state: FSMContext):
         if await _call_screen(target, callback, state):
             return
 
+    # Цель неизвестна. Если идёт создание/редактирование тренировки —
+    # «Назад» НЕ должен выводить из конструктора: возвращаем к выбору блоков.
+    current = await state.get_state()
+    if current and "CreateWorkoutStates" in str(current):
+        from handlers.workouts import _restore_workout_draft
+
+        try:
+            ok = await _restore_workout_draft(callback, state, callback.from_user.id)
+        except Exception:
+            logger.exception("nav_back: не удалось вернуться в конструктор")
+            ok = False
+        if ok:
+            return
+
     # Нет цели или неизвестная цель → главное меню (с сохранением процесса)
     await save_process_on_exit(callback, state)
 
@@ -318,17 +332,41 @@ async def handle_broken_back(callback: CallbackQuery, state: FSMContext):
     обработчиков у этих callback_data нет, используем ту же логику, что и
     для универсального «Назад».
     """
+    data = callback.data or ""
+    current = await state.get_state()
+    # Внутри создания тренировки «битые» back_to_* не уводят из конструктора:
+    # back_to_blocks / back_to_constructor → экран блоков, остальное — назад.
+    if current and "CreateWorkoutStates" in str(current):
+        await callback.answer()
+        if data in ("back_to_blocks", "back_to_constructor"):
+            from handlers.workouts import _show_block_selection
+
+            try:
+                await _show_block_selection(callback.message, state)
+                return
+            except Exception:
+                logger.exception("back_to_*: не удалось показать блоки")
     await handle_universal_back(callback, state)
 
 
 @navigation_router.callback_query(F.data == "main_menu")
 async def save_process_on_exit(callback: CallbackQuery, state: FSMContext):
-    """Выход в главное меню без потери процесса (снимок + «▶️ Продолжить»)."""
+    """Выход в главное меню без потери процесса (снимок + «▶️ Продолжить»).
+
+    Для конструктора тренировки снимок НЕ делается: черновик и FSM-состояние
+    остаются живыми (долговременный черновик в workout_drafts), а в главном
+    меню показывается кнопка «▶️ Продолжить создание тренировки», которая
+    возвращает ровно на тот же экран.
+    """
     current = await state.get_state()
     data = await state.get_data()
 
+    # Создание/редактирование тренировки: состояние НЕ сбрасываем —
+    # восстановление делает workouts._restore_workout_draft (FSM + БД).
+    is_workout_process = bool(current) and "CreateWorkoutStates" in str(current)
+
     snapshot_raw = None
-    if current:
+    if current and not is_workout_process:
         snapshot = {
             "state": current,
             "data": {k: v for k, v in data.items() if k != SAVED_PROCESS_KEY},
@@ -338,21 +376,32 @@ async def save_process_on_exit(callback: CallbackQuery, state: FSMContext):
         await state.clear()
         await state.set_data(new_data)
         snapshot_raw = new_data[SAVED_PROCESS_KEY]
+    elif is_workout_process:
+        snapshot_raw = json.dumps(
+            {"state": current, "workout": True}, ensure_ascii=False
+        )
     else:
         snapshot_raw = data.get(SAVED_PROCESS_KEY)
 
     from keyboards.main_keyboards_old import get_main_menu_keyboard
 
     kb_builder = InlineKeyboardBuilder()
+    resume_label = None
     if snapshot_raw:
         try:
             snap = json.loads(snapshot_raw)
-            kb_builder.button(
-                text=f"▶️ Продолжить: {_label_for_state(snap['state'])}",
-                callback_data="resume_process",
-            )
+            if snap.get("workout"):
+                draft = (data.get("workout_draft") or {}).get("name") \
+                    if isinstance(data.get("workout_draft"), dict) else None
+                title = f" «{draft.strip()[:30]}»" if draft and draft.strip() else ""
+                resume_label = f"▶️ Продолжить создание тренировки{title}"
+            else:
+                resume_label = f"▶️ Продолжить: {_label_for_state(snap['state'])}"
         except Exception:
             pass
+
+    if resume_label:
+        kb_builder.button(text=resume_label, callback_data="resume_process")
 
     markup = get_main_menu_keyboard()
     for row in markup.inline_keyboard:
@@ -361,7 +410,7 @@ async def save_process_on_exit(callback: CallbackQuery, state: FSMContext):
     kb_builder.adjust(2)
 
     text = f"🏠 <b>Главное меню</b>\n\n{callback.from_user.first_name}, выберите раздел."
-    if snapshot_raw:
+    if resume_label:
         text += "\n\nℹ️ Незавершённое действие сохранено — нажмите «Продолжить»."
     try:
         await callback.message.edit_text(text, reply_markup=kb_builder.as_markup(), parse_mode="HTML")
@@ -372,15 +421,66 @@ async def save_process_on_exit(callback: CallbackQuery, state: FSMContext):
 
 @navigation_router.callback_query(F.data == "resume_process")
 async def resume_process(callback: CallbackQuery, state: FSMContext):
-    """Восстановить сохранённый процесс из главного меню."""
+    """Восстановить сохранённый процесс из главного меню.
+
+    Сначала перерисовываем ЭКРАН процесса (кнопки/шаги), и только потом
+    пишем служебное сообщение — иначе пользователь видел текст
+    «Процесс восстановлен» вместо настоящего экрана.
+    """
     data = await state.get_data()
     snapshot_raw = data.get(SAVED_PROCESS_KEY)
+
+    # Вариант 1: процесс создания/редактирования тренировки (FSM не сбрасывался)
+    snap = None
+    if snapshot_raw:
+        try:
+            snap = json.loads(snapshot_raw)
+        except Exception:
+            snap = None
+
+    if snap and snap.get("workout"):
+        from handlers.workouts import _restore_workout_draft
+
+        # Черновик мог «пережить» выход в меню только в БД (FSM-данные при
+        # этом могли быть очищены) — подстрахуемся загрузкой из workout_drafts.
+        try:
+            if not (data.get("workout_draft") or {}).get("name") \
+                    and not data.get("selected_blocks"):
+                from handlers.workouts import _load_workout_draft, WORKOUT_DRAFT_KEY
+
+                loaded = await _load_workout_draft(callback.from_user.id)
+                if loaded:
+                    new_data = dict(data)
+                    new_data[WORKOUT_DRAFT_KEY] = loaded["draft"]
+                    new_data.update(
+                        {k: v for k, v in loaded["draft"].items() if k != "nav_back"}
+                    )
+                    await state.set_data(new_data)
+                    if loaded["state"]:
+                        await state.set_state(loaded["state"])
+        except Exception:
+            logger.debug("resume_process: догрузка черновика из БД не удалась", exc_info=True)
+
+        ok = False
+        try:
+            ok = await _restore_workout_draft(
+                callback, state, callback.from_user.id
+            )
+        except Exception:
+            logger.exception("resume_process: не удалось восстановить тренировку")
+        await callback.answer()
+        if not ok:
+            await callback.message.answer(
+                "⚠️ Не удалось вернуть вас к тренировке — черновик мог быть "
+                "завершён или удалён. Откройте раздел «Тренировки» заново."
+            )
+        return
+
+    # Вариант 2: обычный снимок FSM другого процесса
     if not snapshot_raw:
         await callback.answer("Нечего продолжать", show_alert=True)
         return
-    try:
-        snap = json.loads(snapshot_raw)
-    except Exception:
+    if not snap:
         await callback.answer("Сохранённый процесс повреждён", show_alert=True)
         return
 
@@ -391,14 +491,28 @@ async def resume_process(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
     label = _label_for_state(snap["state"])
-    try:
-        await callback.message.edit_text(
-            f"▶️ Процесс восстановлен: <b>{label}</b>.\n\n"
-            "Продолжите — отправьте данные или используйте кнопки.",
-            parse_mode="HTML",
-        )
-    except Exception:
-        pass
+
+    # Пытаемся сразу перерисовать экран процесса, чтобы под текстом
+    # были настоящие кнопки этого шага.
+    rendered = False
+    target = restored.get(NAV_BACK_KEY)
+    if target:
+        try:
+            rendered = await _call_screen(target, callback, state)
+        except Exception:
+            logger.debug("resume_process: экран %s не отрисован", target, exc_info=True)
+
+    info_msg = await callback.message.answer(
+        f"▶️ Процесс восстановлен: <b>{label}</b>.\n\n"
+        "Продолжите — отправьте данные или используйте кнопки.",
+        parse_mode="HTML",
+    )
+    if rendered:
+        # Служебное сообщение над лишним сообщением о восстановлении
+        try:
+            await info_msg.delete()
+        except Exception:
+            pass
 
 
 __all__ = ["navigation_router", "NAV_BACK_KEY", "SAVED_PROCESS_KEY"]

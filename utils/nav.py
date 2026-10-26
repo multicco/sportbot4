@@ -42,4 +42,48 @@ def nav_markup(*, back: bool = True, to_menu: bool = False):
     return kb.as_markup()
 
 
-__all__ = ["add_nav_buttons", "nav_markup", "BACK_CB", "TRAININGS_MENU_CB"]
+async def is_in_workout_constructor(state) -> bool:
+    """True, если сейчас идёт создание/редактирование тренировки."""
+    try:
+        current = await state.get_state()
+    except Exception:
+        return False
+    return bool(current) and "CreateWorkoutStates" in str(current)
+
+
+async def add_constructor_nav(
+    builder: InlineKeyboardBuilder,
+    state,
+    *,
+    adjust_per_row: int = 2,
+) -> InlineKeyboardBuilder:
+    """Навигация для ЭКРАНОВ КОНСТРУКТОРА тренировки.
+
+    Пока идёт создание тренировки, кнопка «⬅️ Назад» недопустима — она
+    уводит из конструктора. Вместо неё добавляем только «🔙 К блокам»
+    (callback create_back_to_blocks — возврат к выбору блоков без потери
+    черновика). Если конструктор не активен — обычные кнопки «Назад» и
+    «Меню тренировки».
+
+    Вызывать ПОСЛЕ основных кнопок, ПЕРЕД финальным builder.adjust(...).
+    """
+    if await is_in_workout_constructor(state):
+        builder.button(text="🔙 К блокам", callback_data="create_back_to_blocks")
+    else:
+        builder.button(text="⬅️ Назад", callback_data=BACK_CB)
+        builder.button(text="🏋️ Меню тренировки", callback_data=TRAININGS_MENU_CB)
+    try:
+        builder.adjust(adjust_per_row, repeat=True)
+    except Exception:
+        pass
+    return builder
+
+
+__all__ = [
+    "add_nav_buttons",
+    "add_constructor_nav",
+    "is_in_workout_constructor",
+    "nav_markup",
+    "BACK_CB",
+    "TRAININGS_MENU_CB",
+]
