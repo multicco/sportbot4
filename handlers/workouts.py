@@ -72,12 +72,7 @@ def _parse_id_with_prefix(callback_data: str, prefix: str) -> int:
         return int(tail)
     raise ValueError("no numeric id")
 
-async def _safe_edit_or_send(message, text, reply_markup=None, parse_mode=None):
-    """Пробуем edit_text, если не удалось — answer."""
-    try:
-        await message.edit_text(text, reply_markup=reply_markup, parse_mode=parse_mode)
-    except Exception:
-        await message.answer(text, reply_markup=reply_markup, parse_mode=parse_mode)
+
 
 # ==================== ОПЦИОНАЛЬНО: ДОБАВИТЬ ФИЛЬТР ПО РОЛЯМ В ГЛАВНОЕ МЕНЮ =====
 @workouts_router.callback_query(F.data == "workouts_menu")
@@ -110,7 +105,7 @@ async def workouts_menu(callback: CallbackQuery):
         else:
             text += "Вы — подопечный. Здесь ваши назначенные тренировки."
 
-        await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="HTML")
+        await _safe_edit_or_send(callback.message, text, reply_markup=kb.as_markup(), parse_mode="HTML")
         await callback.answer()
 
     except Exception as e:
@@ -758,7 +753,7 @@ async def show_my_templates(callback: CallbackQuery):
             kb.button(text="🏠 Главное меню", callback_data="main_menu")
             kb.adjust(1)
         
-        await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="HTML")
+        await _safe_edit_or_send(callback.message, text, reply_markup=kb.as_markup(), parse_mode="HTML")
         await callback.answer()
         logger.info("=== show_my_templates END (SUCCESS) ===")
     
@@ -877,7 +872,8 @@ async def workout_add_exercise(callback: CallbackQuery, state: FSMContext):
     })
     await state.update_data(selected_blocks=selected)
 
-    await callback.message.edit_text(f"**{ex['name']}** добавлено в блок.")
+    # Сразу перерисовываем экран блока (без промежуточного edit_text,
+    # который зря «съедал» id сообщения и вызывал message is not modified)
     await _show_exercises_for_block(callback.message, state)
     await callback.answer()
 
@@ -937,7 +933,7 @@ async def workout_start_search(callback: CallbackQuery, state: FSMContext):
 #     await state.set_state(CreateWorkoutStates.searching_exercise_for_block)
 
 #     # Показываем тот же текст, что и в главном меню
-#     await callback.message.edit_text("Введите название упражнения для поиска:")
+#     await _safe_edit_or_send(callback.message, "Введите название упражнения для поиска:")
 #     await callback.answer()
 
 
@@ -976,27 +972,6 @@ def _pretty_block_name(phase: str) -> str:
     }
     return names.get(phase, "Основная")
 
-@workouts_router.callback_query(F.data == "manual_add_exercise")
-
-async def add_exercise_manually(callback: CallbackQuery, state: FSMContext):
-    """Ручное добавление упражнения — кнопка работает!"""
-    
-    # Узнаём, в каком блоке сейчас находимся (это важно!)
-    data = await state.get_data()
-    current_block = data.get("current_block", "main")
-
-    await callback.message.edit_text(
-        "Введите упражнение вручную:\n\n"
-        f"Блок: *{_pretty_block_name(current_block)}*\n\n"
-        "Примеры:\n"
-        "• Жим лёжа 4×8-10, 75%, отдых 2 мин\n"
-        "• Бёрпи 3 круга по 20 сек\n"
-        "• Растяжка спины — 3 минуты\n",
-        parse_mode="Markdown"
-    )
-
-    await state.set_state(CreateWorkoutStates.manual_exercise_input)
-    await callback.answer()
 
 
 # В файле workouts.py замените функцию create_add_ex на эту:
@@ -1080,7 +1055,7 @@ _Или нажмите кнопку для значений по умолчан�
         kb.button(text="🔙 Выбрать другое", callback_data="create_search_ex")
         kb.adjust(1)
         
-        await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="Markdown")
+        await _safe_edit_or_send(callback.message, text, reply_markup=kb.as_markup(), parse_mode="Markdown")
         
         # Устанавливаем состояние для ввода параметров
         await state.set_state(CreateWorkoutStates.configuring_exercise)
@@ -1270,7 +1245,7 @@ async def create_configure_pending_ex(callback: CallbackQuery, state: FSMContext
         return
     # начинаем диалог: запрос подходов
     await state.update_data(config_step="sets")
-    await callback.message.edit_text("Введите количество подходов (целое число), или 'пропустить' чтобы добавить без параметров:")
+    await _safe_edit_or_send(callback.message, "Введите количество подходов (целое число), или 'пропустить' чтобы добавить без параметров:")
     await state.set_state(CreateWorkoutStates.configuring_exercise)
     await callback.answer()
 
@@ -1297,7 +1272,6 @@ async def create_confirm_add_pending_ex(callback: CallbackQuery, state: FSMConte
     # чистим pending
     await state.update_data(selected_blocks=sel)
     await state.update_data(pending_exercise=None)
-    await callback.message.edit_text(f"✅ Упражнение *{pending['name']}* добавлено в блок.", parse_mode="Markdown")
     await _show_block_selection(callback.message, state)
     await callback.answer()
 
@@ -1478,7 +1452,7 @@ async def start_1rm_test_for(callback: CallbackQuery, state: FSMContext):
             return
     except Exception:
         logger.info("Модуль tests не предоставляет start_1rm_test_from_handlers, отправим инструкцию")
-    await callback.message.edit_text("Пожалуйста пройдите тест 1ПМ вручную (/start_1rm_test), затем вернитесь и добавьте упражнение.")
+    await _safe_edit_or_send(callback.message, "Пожалуйста пройдите тест 1ПМ вручную (/start_1rm_test), затем вернитесь и добавьте упражнение.")
     await callback.answer()
 
 
@@ -1594,7 +1568,7 @@ async def create_finish(callback: CallbackQuery, state: FSMContext):
 
         # Красивое завершение
         if edit_wid:
-            await callback.message.edit_text(
+            await _safe_edit_or_send(callback.message, 
                 f"🎉 <b>Тренировка обновлена!</b>\n\n"
                 f"📋 Название: <code>{name}</code>\n"
                 f"🔢 Упражнений: {total_exs}\n"
@@ -1602,7 +1576,7 @@ async def create_finish(callback: CallbackQuery, state: FSMContext):
                 parse_mode="HTML",
             )
         else:
-            await callback.message.edit_text(
+            await _safe_edit_or_send(callback.message, 
                 f"🎉 <b>Тренировка создана!</b>\n\n"
                 f"📋 Название: <code>{name}</code>\n"
                 f"🔢 Упражнений: {total_exs}\n"
@@ -1640,7 +1614,7 @@ async def finish_workout(callback: CallbackQuery, state: FSMContext):
         await callback.answer()
         return
     await state.update_data(finishing_workout_id=wid)
-    await callback.message.edit_text("✅ Оцени тренировку по шкале 1-10 (RPE):")
+    await _safe_edit_or_send(callback.message, "✅ Оцени тренировку по шкале 1-10 (RPE):")
     await state.set_state(CreateWorkoutStates.waiting_rpe)
     await callback.answer()
 
@@ -1786,7 +1760,7 @@ async def delete_workout(callback: CallbackQuery):
     try:
         async with db_manager.pool.acquire() as conn:
             await conn.execute("UPDATE workouts SET is_active = false WHERE id = $1", wid)
-        await callback.message.edit_text("✅ Тренировка удалена.")
+        await _safe_edit_or_send(callback.message, "✅ Тренировка удалена.")
         await callback.answer()
     except Exception as e:
         logger.exception("delete_workout error: %s", e)
@@ -2206,7 +2180,7 @@ _Или нажмите кнопку для значений по умолчан�
         kb.button(text="🔙 Выбрать другое", callback_data="create_search_ex")
         kb.adjust(1)
         
-        await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="Markdown")
+        await _safe_edit_or_send(callback.message, text, reply_markup=kb.as_markup(), parse_mode="Markdown")
         await state.set_state(CreateWorkoutStates.configuring_exercise)
         
     except Exception as e:

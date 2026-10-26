@@ -1,0 +1,208 @@
+From 0b975467d55372172aa39501a25cb4aaf473a3e3 Mon Sep 17 00:00:00 2001
+From: "qwen.ai[bot]" <qwenlm-intl@service.alibaba.com>
+Date: Sun, 25 Oct 2026 20:39:07 +0000
+Subject: [PATCH] Fix frozen CallbackQuery mutation in universal_back: render
+ category/muscle screens via helpers taking message+name instead of rewriting
+ callback.data
+
+---
+ handlers/exercises.py                         | 56 +++++++++++-----
+ ...-when-editing-workout-composition-de.patch | 65 +++++++++++++++++++
+ 2 files changed, 104 insertions(+), 17 deletions(-)
+ create mode 100644 patches/0001-Fix-FK-violation-when-editing-workout-composition-de.patch
+
+diff --git a/handlers/exercises.py b/handlers/exercises.py
+index 1407b6a..dd2fc1a 100644
+--- a/handlers/exercises.py
++++ b/handlers/exercises.py
+@@ -125,15 +125,19 @@ async def universal_back(callback: CallbackQuery, state: FSMContext):
+     elif nav_type == "muscle_groups":
+         await search_by_muscle_group(callback, state)
+     elif nav_type == "category_exercises":
++        # CallbackQuery в aiogram 3.x — frozen-модель pydantic, поле data
++        # менять нельзя. Передаём категорию через отдельный helper.
+         category = ctx.get("category")
+         if category:
+-            callback.data = f"cat_{category}"
+-        await show_category_exercises(callback, state)
++            await _render_category_exercises(callback.message, category, state)
++        else:
++            await search_by_category(callback, state)
+     elif nav_type == "muscle_exercises":
+         muscle_group = ctx.get("muscle_group")
+         if muscle_group:
+-            callback.data = f"muscle_{muscle_group}"
+-        await show_muscle_group_exercises(callback, state)
++            await _render_muscle_group_exercises(callback.message, muscle_group, state)
++        else:
++            await search_by_muscle_group(callback, state)
+     elif nav_type == "search_results":
+         query = ctx.get("query")
+         if query:
+@@ -321,10 +325,12 @@ async def search_by_muscle_group(callback: CallbackQuery, state: FSMContext = No
+     await callback.answer()
+ 
+ 
+-async def show_category_exercises(callback: CallbackQuery, state: FSMContext = None):
+-    """Показать упражнения категории С КЛИКАБЕЛЬНЫМИ КНОПКАМИ"""
+-    category = callback.data[4:]
++async def _render_category_exercises(message: Message, category: str, state: FSMContext = None):
++    """Отрисовать экран упражнений категории (без зависимости от callback.data).
+ 
++    Используется и обработчиком клика, и кнопкой «Назад» (universal_back),
++    у которой нельзя менять frozen-поле callback.data.
++    """
+     try:
+         async with db_manager.pool.acquire() as conn:
+             exercises = await conn.fetch(
+@@ -359,7 +365,7 @@ async def show_category_exercises(callback: CallbackQuery, state: FSMContext = N
+             keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
+             keyboard.adjust(1)
+ 
+-            await callback.message.edit_text(
++            await message.edit_text(
+                 text,
+                 reply_markup=keyboard.as_markup(),
+                 parse_mode="Markdown"
+@@ -373,20 +379,27 @@ async def show_category_exercises(callback: CallbackQuery, state: FSMContext = N
+             keyboard = InlineKeyboardBuilder()
+             keyboard.button(text="🔙 К категориям", callback_data="search_by_category")
+             keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
+-            await callback.message.edit_text(
++            await message.edit_text(
+                 f"❌ Упражнения в категории '{category}' не найдены",
+                 reply_markup=keyboard.as_markup()
+             )
+ 
+     except Exception as e:
+-        await callback.message.edit_text(f"❌ Ошибка: {e}")
+-    await callback.answer()
++        try:
++            await message.edit_text(f"❌ Ошибка: {e}")
++        except Exception:
++            pass
+ 
+ 
+-async def show_muscle_group_exercises(callback: CallbackQuery, state: FSMContext = None):
+-    """Показать упражнения группы мышц С КЛИКАБЕЛЬНЫМИ КНОПКАМИ"""
+-    muscle_group = callback.data[7:]  # Убираем "muscle_"
++async def show_category_exercises(callback: CallbackQuery, state: FSMContext = None):
++    """Показать упражнения категории С КЛИКАБЕЛЬНЫМИ КНОПКАМИ"""
++    category = callback.data[4:]
++    await _render_category_exercises(callback.message, category, state)
++    await callback.answer()
+ 
++
++async def _render_muscle_group_exercises(message: Message, muscle_group: str, state: FSMContext = None):
++    """Отрисовать экран упражнений группы мышц (без зависимости от callback.data)."""
+     try:
+         async with db_manager.pool.acquire() as conn:
+             exercises = await conn.fetch(
+@@ -421,7 +434,7 @@ async def show_muscle_group_exercises(callback: CallbackQuery, state: FSMContext
+             keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
+             keyboard.adjust(1)
+ 
+-            await callback.message.edit_text(
++            await message.edit_text(
+                 text,
+                 reply_markup=keyboard.as_markup(),
+                 parse_mode="Markdown"
+@@ -433,13 +446,22 @@ async def show_muscle_group_exercises(callback: CallbackQuery, state: FSMContext
+             keyboard = InlineKeyboardBuilder()
+             keyboard.button(text="🔙 К группам мышц", callback_data="search_by_muscle")
+             keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
+-            await callback.message.edit_text(
++            await message.edit_text(
+                 f"❌ Упражнения для группы '{muscle_group}' не найдены",
+                 reply_markup=keyboard.as_markup()
+             )
+ 
+     except Exception as e:
+-        await callback.message.edit_text(f"❌ Ошибка: {e}")
++        try:
++            await message.edit_text(f"❌ Ошибка: {e}")
++        except Exception:
++            pass
++
++
++async def show_muscle_group_exercises(callback: CallbackQuery, state: FSMContext = None):
++    """Показать упражнения группы мышц С КЛИКАБЕЛЬНЫМИ КНОПКАМИ"""
++    muscle_group = callback.data[7:]  # Убираем "muscle_"
++    await _render_muscle_group_exercises(callback.message, muscle_group, state)
+     await callback.answer()
+ 
+ 
+diff --git a/patches/0001-Fix-FK-violation-when-editing-workout-composition-de.patch b/patches/0001-Fix-FK-violation-when-editing-workout-composition-de.patch
+new file mode 100644
+index 0000000..5b4cf8e
+--- /dev/null
++++ b/patches/0001-Fix-FK-violation-when-editing-workout-composition-de.patch
+@@ -0,0 +1,65 @@
++From 914ebefa495c6b57ad77e908c71bf8c65dd4ec6f Mon Sep 17 00:00:00 2001
++From: "qwen.ai[bot]" <qwenlm-intl@service.alibaba.com>
++Date: Sun, 25 Oct 2026 14:30:20 +0000
++Subject: [PATCH] Fix FK violation when editing workout composition: detach
++ workout_session_exercises before deleting workout_exercises, re-fill stale
++ sessions on start
++
++---
++ handlers/player_workouts.py | 13 +++++++++++++
++ handlers/workouts.py        | 15 ++++++++++++++-
++ 2 files changed, 27 insertions(+), 1 deletion(-)
++
++diff --git a/handlers/player_workouts.py b/handlers/player_workouts.py
++index 729c9ed..c5adb4a 100644
++--- a/handlers/player_workouts.py
+++++ b/handlers/player_workouts.py
++@@ -625,6 +625,19 @@ async def get_or_create_session(user_id: int, workout_id: int) -> int:
++             SELECT id FROM workout_sessions WHERE user_id = $1 AND workout_id = $2
++         """, user_id, workout_id)
++         if sess:
+++            # После редактирования состава тренировки строки прогресса могут
+++            # остаться без workout_exercise_id (мы отвязываем их от удалённых
+++            # строк workout_exercises). Перепривязываем/дополняем по актуальному составу.
+++            stale = await conn.fetchval("""
+++                SELECT COUNT(*) FROM workout_session_exercises
+++                WHERE session_id = $1 AND workout_exercise_id IS NULL
+++            """, sess['id'])
+++            if stale:
+++                await conn.execute("""
+++                    DELETE FROM workout_session_exercises
+++                    WHERE session_id = $1 AND workout_exercise_id IS NULL
+++                """, sess['id'])
+++                await fill_session_exercises_from_blocks(sess['id'], workout_id)
++             return sess['id']
++         
++         new_id = await conn.fetchval("""
++diff --git a/handlers/workouts.py b/handlers/workouts.py
++index de784e9..a236f0a 100644
++--- a/handlers/workouts.py
+++++ b/handlers/workouts.py
++@@ -1526,7 +1526,20 @@ async def create_finish(callback: CallbackQuery, state: FSMContext):
++                     (data.get("description") or "").strip(),
++                     wid,
++                 )
++-                # Перезаписываем состав: удаляем старые строки и вставляем новые
+++                # Перезаписываем состав: сначала отвязываем строки прогресса
+++                # учеников (workout_session_exercises ссылается на workout_exercises FK),
+++                # затем удаляем старые строки и вставляем новые.
+++                await conn.execute(
+++                    """
+++                    UPDATE workout_session_exercises wse
+++                       SET workout_exercise_id = NULL
+++                      FROM workout_sessions ws
+++                     WHERE wse.session_id = ws.id
+++                       AND ws.workout_id = $1
+++                       AND wse.workout_exercise_id IS NOT NULL
+++                    """,
+++                    wid,
+++                )
++                 await conn.execute("DELETE FROM workout_exercises WHERE workout_id = $1", wid)
++             else:
++                 # === РЕЖИМ СОЗДАНИЯ ===
++-- 
++2.39.5
++
+-- 
+2.39.5
+
