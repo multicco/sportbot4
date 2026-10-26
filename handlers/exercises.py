@@ -192,18 +192,18 @@ async def _show_search_results(message: Message, query: str):
             keyboard.button(text="🔍 Новый поиск", callback_data="search_by_name")
             keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
             keyboard.adjust(1)
-            await message.edit_text(text, reply_markup=keyboard.as_markup(),
+            await _safe_edit_or_send(message, text, reply_markup=keyboard.as_markup(),
                                     parse_mode="Markdown")
         else:
             keyboard = InlineKeyboardBuilder()
             keyboard.button(text="🔙 К поиску", callback_data="search_exercise")
             keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
-            await message.edit_text(
+            await _safe_edit_or_send(message,
                 f"❌ Упражнения по запросу «{query}» не найдены",
                 reply_markup=keyboard.as_markup()
             )
     except Exception as e:
-        await message.edit_text(f"❌ Ошибка: {e}")
+        await _safe_edit_or_send(message, f"❌ Ошибка: {e}")
 
 
 # ===== ПОИСК УПРАЖНЕНИЙ =====
@@ -228,7 +228,7 @@ async def search_exercise_menu(callback: CallbackQuery, state: FSMContext = None
 
     full_text = base_text + trainer_text + "Выберите способ поиска:"
 
-    await callback.message.edit_text(
+    await _safe_edit_or_send(callback.message, 
         full_text,
         reply_markup=keyboard,
         parse_mode="Markdown"
@@ -254,7 +254,7 @@ async def search_exercise_by_name(callback: CallbackQuery, state: FSMContext):
     # Помним, что пришли из меню поиска
     await _remember_context(state, {"type": "search_menu"})
 
-    await callback.message.edit_text(
+    await _safe_edit_or_send(callback.message, 
         "🔍 **Поиск упражнений по названию**\n\n"
         "Введите название упражнения для поиска:\n"
         "Например: `жим`, `приседания`, `планка`\n\n"
@@ -280,7 +280,7 @@ async def search_by_category(callback: CallbackQuery, state: FSMContext = None):
         keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
         keyboard.adjust(2)
 
-        await callback.message.edit_text(
+        await _safe_edit_or_send(callback.message, 
             "📂 **Выберите категорию:**\n\n"
             "💡 **Упражнения будут кликабельными для детального просмотра**",
             reply_markup=keyboard.as_markup(),
@@ -289,7 +289,7 @@ async def search_by_category(callback: CallbackQuery, state: FSMContext = None):
         if state:
             await _remember_context(state, {"type": "categories"})
     except Exception as e:
-        await callback.message.edit_text(f"❌ Ошибка: {e}")
+        await _safe_edit_or_send(callback.message, f"❌ Ошибка: {e}")
     await callback.answer()
 
 
@@ -312,7 +312,7 @@ async def search_by_muscle_group(callback: CallbackQuery, state: FSMContext = No
         keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
         keyboard.adjust(2)
 
-        await callback.message.edit_text(
+        await _safe_edit_or_send(callback.message, 
             "💪 **Выберите группу мышц:**\n\n"
             "💡 **Упражнения будут кликабельными для детального просмотра**",
             reply_markup=keyboard.as_markup(),
@@ -321,7 +321,7 @@ async def search_by_muscle_group(callback: CallbackQuery, state: FSMContext = No
         if state:
             await _remember_context(state, {"type": "muscle_groups"})
     except Exception as e:
-        await callback.message.edit_text(f"❌ Ошибка: {e}")
+        await _safe_edit_or_send(callback.message, f"❌ Ошибка: {e}")
     await callback.answer()
 
 
@@ -365,7 +365,7 @@ async def _render_category_exercises(message: Message, category: str, state: FSM
             keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
             keyboard.adjust(1)
 
-            await message.edit_text(
+            await _safe_edit_or_send(message,
                 text,
                 reply_markup=keyboard.as_markup(),
                 parse_mode="Markdown"
@@ -379,14 +379,14 @@ async def _render_category_exercises(message: Message, category: str, state: FSM
             keyboard = InlineKeyboardBuilder()
             keyboard.button(text="🔙 К категориям", callback_data="search_by_category")
             keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
-            await message.edit_text(
+            await _safe_edit_or_send(message,
                 f"❌ Упражнения в категории '{category}' не найдены",
                 reply_markup=keyboard.as_markup()
             )
 
     except Exception as e:
         try:
-            await message.edit_text(f"❌ Ошибка: {e}")
+            await _safe_edit_or_send(message, f"❌ Ошибка: {e}")
         except Exception:
             pass
 
@@ -434,7 +434,7 @@ async def _render_muscle_group_exercises(message: Message, muscle_group: str, st
             keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
             keyboard.adjust(1)
 
-            await message.edit_text(
+            await _safe_edit_or_send(message,
                 text,
                 reply_markup=keyboard.as_markup(),
                 parse_mode="Markdown"
@@ -446,14 +446,14 @@ async def _render_muscle_group_exercises(message: Message, muscle_group: str, st
             keyboard = InlineKeyboardBuilder()
             keyboard.button(text="🔙 К группам мышц", callback_data="search_by_muscle")
             keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
-            await message.edit_text(
+            await _safe_edit_or_send(message,
                 f"❌ Упражнения для группы '{muscle_group}' не найдены",
                 reply_markup=keyboard.as_markup()
             )
 
     except Exception as e:
         try:
-            await message.edit_text(f"❌ Ошибка: {e}")
+            await _safe_edit_or_send(message, f"❌ Ошибка: {e}")
         except Exception:
             pass
 
@@ -482,7 +482,7 @@ async def show_exercise_details(callback: CallbackQuery, state: FSMContext):
         if not exercise:
             keyboard = InlineKeyboardBuilder()
             keyboard.button(text="🔙 Назад", callback_data="exercise_back")
-            await callback.message.edit_text("❌ Упражнение не найдено",
+            await _safe_edit_or_send(callback.message, "❌ Упражнение не найдено",
                                              reply_markup=keyboard.as_markup())
             await callback.answer()
             return
@@ -543,12 +543,12 @@ async def show_exercise_details(callback: CallbackQuery, state: FSMContext):
 
         keyboard.adjust(1)
 
-        await callback.message.edit_text(text,
+        await _safe_edit_or_send(callback.message, text,
                                          reply_markup=keyboard.as_markup(),
                                          parse_mode="Markdown")
 
     except Exception as e:
-        await callback.message.edit_text(f"❌ Ошибка: {e}")
+        await _safe_edit_or_send(callback.message, f"❌ Ошибка: {e}")
 
     await callback.answer()
 
@@ -567,7 +567,7 @@ async def start_add_exercise(callback: CallbackQuery, state: FSMContext):
         await callback.answer("❌ Только тренеры могут добавлять упражнения!")
         return
 
-    await callback.message.edit_text(
+    await _safe_edit_or_send(callback.message, 
         "➕ **Добавление нового упражнения**\n\n"
         "🏋️ **Вы создаете упражнение для всех пользователей системы!**\n\n"
         "Введите **название упражнения**:\n"
@@ -585,7 +585,7 @@ async def cancel_exercise_creation(callback: CallbackQuery, state: FSMContext):
     keyboard.button(text="🔍 К поиску", callback_data="search_exercise")
     keyboard.button(text="🏠 Главное меню", callback_data="main_menu")
     keyboard.adjust(1)
-    await callback.message.edit_text(
+    await _safe_edit_or_send(callback.message, 
         "❌ **Создание упражнения отменено**",
         reply_markup=keyboard.as_markup(),
         parse_mode="Markdown"
@@ -610,13 +610,13 @@ async def select_existing_category(callback: CallbackQuery, state: FSMContext):
         keyboard.button(text="❌ Отменить", callback_data="cancel_exercise_creation")
         keyboard.adjust(2)
 
-        await callback.message.edit_text(
+        await _safe_edit_or_send(callback.message, 
             "📂 **Выберите существующую категорию:**\n\n",
             reply_markup=keyboard.as_markup(),
             parse_mode="Markdown"
         )
     except Exception as e:
-        await callback.message.edit_text(f"❌ Ошибка: {e}")
+        await _safe_edit_or_send(callback.message, f"❌ Ошибка: {e}")
     await callback.answer()
 
 
@@ -628,7 +628,7 @@ async def choose_category(callback: CallbackQuery, state: FSMContext):
 
 
 async def create_new_category(callback: CallbackQuery, state: FSMContext):
-    await callback.message.edit_text(
+    await _safe_edit_or_send(callback.message, 
         "📝 **Создание новой категории**\n\n"
         "Введите название новой категории упражнений:\n"
         "_Например: \"Кроссфит\", \"Реабилитация\", \"Йога\"_\n\n"
@@ -665,7 +665,7 @@ async def ask_muscle_group(message: Message, state: FSMContext, edit: bool = Fal
         text += "_Отправить `/cancel` — отменить создание_\n"
 
         if edit:
-            await message.edit_text(text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
+            await _safe_edit_or_send(message, text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
         else:
             await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="Markdown")
 
@@ -681,7 +681,7 @@ async def choose_muscle_group(callback: CallbackQuery, state: FSMContext):
 
 
 async def create_new_muscle_group(callback: CallbackQuery, state: FSMContext):
-    await callback.message.edit_text(
+    await _safe_edit_or_send(callback.message, 
         "💪 **Создание новой группы мышц**\n\n"
         "Введите название группы мышц:\n"
         "_Например: \"Предплечья\", \"Шея\", \"Стабилизаторы\"_\n\n"
@@ -698,7 +698,7 @@ async def ask_equipment(message: Message, state: FSMContext, edit: bool = False)
             "_Отправить `/cancel` — отменить создание_\n")
 
     if edit:
-        await message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+        await _safe_edit_or_send(message, text, reply_markup=keyboard, parse_mode="Markdown")
     else:
         await message.answer(text, reply_markup=keyboard, parse_mode="Markdown")
 
@@ -707,7 +707,7 @@ async def choose_equipment(callback: CallbackQuery, state: FSMContext):
     equipment = callback.data[10:]  # Убираем "choose_eq_"
 
     if equipment == "Другое":
-        await callback.message.edit_text(
+        await _safe_edit_or_send(callback.message, 
             "🔧 **Укажите оборудование**\n\n"
             "Введите название оборудования:\n"
             "_Например: \"TRX петли\", \"Медицинский мяч\"_\n\n"
@@ -729,7 +729,7 @@ async def ask_difficulty(message: Message, state: FSMContext, edit: bool = False
             "_Отправить `/cancel` — отменить создание_\n")
 
     if edit:
-        await message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+        await _safe_edit_or_send(message, text, reply_markup=keyboard, parse_mode="Markdown")
     else:
         await message.answer(text, reply_markup=keyboard, parse_mode="Markdown")
 
@@ -811,7 +811,7 @@ async def choose_test_type(callback: CallbackQuery, state: FSMContext):
 
     await state.update_data(test_type=test_type)
 
-    await callback.message.edit_text(
+    await _safe_edit_or_send(callback.message, 
         "📝 **Введите описание упражнения**\n\n"
         "Кратко о технике и работающих мышцах (10–500 символов):\n\n"
         "Чтобы отменить — отправьте `/cancel`",
@@ -1155,7 +1155,7 @@ async def ask_exercise_category(message: Message, state: FSMContext, *, edit: bo
     )
     kb = get_exercise_category_keyboard().as_markup()
     if edit:
-        await message.edit_text(text, reply_markup=kb, parse_mode="Markdown")
+        await _safe_edit_or_send(message, text, reply_markup=kb, parse_mode="Markdown")
     else:
         await message.answer(text, reply_markup=kb, parse_mode="Markdown")
 

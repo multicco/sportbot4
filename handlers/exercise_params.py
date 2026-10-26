@@ -36,11 +36,32 @@ def _parse_int_suffix(callback_data: str) -> Optional[int]:
 
 
 async def _safe_edit_or_send(message, text, reply_markup=None, parse_mode=None):
-    """Пробуем edit_text, если не удалось — answer."""
-    try:
-        await message.edit_text(text, reply_markup=reply_markup, parse_mode=parse_mode)
-    except Exception:
-        await message.answer(text, reply_markup=reply_markup, parse_mode=parse_mode)
+    """Пробуем edit_text, если не удалось — answer.
+
+    «message is not modified» (идентичный контент+кнопки) молча пропускается,
+    ошибки разметки приводят к повтору без parse_mode.
+    """
+    from aiogram.exceptions import TelegramBadRequest as _TBB
+    last_err = None
+    for pm in ([parse_mode, "MarkdownV2", None]):
+        try:
+            await message.edit_text(text, reply_markup=reply_markup, parse_mode=pm)
+            return
+        except _TBB as e:
+            msg = str(e).lower()
+            if "not modified" in msg or "same as a current" in msg:
+                return  # ничего менять не нужно
+            last_err = e
+            continue
+        except Exception as e:
+            last_err = e
+            break
+    for pm in ([parse_mode, None]):
+        try:
+            await message.answer(text, reply_markup=reply_markup, parse_mode=pm)
+            return
+        except Exception:
+            continue
 
 
 def parse_exercise_params(text: str) -> Tuple[Optional[int], Optional[int], Optional[int], Optional[int]]:
