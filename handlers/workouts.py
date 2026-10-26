@@ -12,6 +12,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.filters import StateFilter
 from aiogram.enums import ParseMode
 from utils.helpers import _safe_edit_or_send
+from utils.nav import add_nav_buttons
 from database import db_manager
 from states.workout_states import CreateWorkoutStates
 
@@ -98,6 +99,7 @@ async def workouts_menu(callback: CallbackQuery):
 
         kb.button(text="Главное меню", callback_data="main_menu")
         kb.adjust(1)  # или 2, как тебе нравится
+        add_nav_buttons(kb, back=True, to_menu=False, adjust_per_row=1)
 
         text = "<b>Меню тренировок</b>\n\n"
         if role in ['admin', 'trainer', 'coach']:
@@ -149,8 +151,7 @@ async def add_exercise_manually(callback: CallbackQuery, state: FSMContext):
     kb = InlineKeyboardBuilder()
     kb.button(text="🔙 К блокам", callback_data="create_back_to_blocks")
     kb.button(text="❌ Отменить", callback_data="create_cancel")
-    kb.adjust(1)
-
+    add_nav_buttons(kb, back=True, to_menu=True)  # ⬅️ Назад + 🏋️ Меню тренировки
     await _safe_edit_or_send(
         callback.message,
         "Введите упражнение вручную:\n\n"
@@ -409,7 +410,7 @@ async def _show_block_selection(message, state: FSMContext):
     kb.button(text=finish_text, callback_data="create_finish")
     cancel_text = "❌ Отменить редактирование" if edit_mode else "❌ Отменить"
     kb.button(text=cancel_text, callback_data="create_cancel")
-    kb.adjust(2)
+    add_nav_buttons(kb, back=True, to_menu=True)  # ⬅️ Назад + 🏋️ Меню тренировки
     await _safe_edit_or_send(message, text, reply_markup=kb.as_markup(), parse_mode="Markdown")
     await state.set_state(CreateWorkoutStates.selecting_blocks)
 
@@ -816,7 +817,7 @@ async def _show_exercises_for_block(message, state: FSMContext):
             callback_data=f"block_remove_ex_{cur}_{idx}",
         )
     kb.button(text="🔙 К блокам", callback_data="create_back_to_blocks")
-    kb.adjust(1)
+    add_nav_buttons(kb, back=True, to_menu=True)  # ⬅️ Назад + 🏋️ Меню тренировки
     await _safe_edit_or_send(message, text, reply_markup=kb.as_markup(), parse_mode="Markdown")
     await state.set_state(CreateWorkoutStates.adding_exercises)
 
@@ -1223,8 +1224,8 @@ async def _finalize_exercise_for_create(message, state: FSMContext, sets: int, r
     kb.button(text="➕ Добавить ещё упражнение", callback_data="create_search_ex")
     kb.button(text="✅ Завершить блок", callback_data="create_back_to_blocks")
     kb.button(text="🔙 К блокам", callback_data="create_back_to_blocks")
-    kb.adjust(1)
-    
+    add_nav_buttons(kb, back=True, to_menu=True)  # ⬅️ Назад + 🏋️ Меню тренировки
+
     await message.answer(text, reply_markup=kb.as_markup(), parse_mode="Markdown")
     
     
