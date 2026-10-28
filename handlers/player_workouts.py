@@ -2,6 +2,7 @@
 
 import logging
 from aiogram import F, Router
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
@@ -613,13 +614,29 @@ async def is_exercise_completed(session_id: int, block_ex_id: int) -> bool:
 
 async def mark_exercise_completed(session_id: int, block_ex_id: int):
     async with db_manager.pool.acquire() as conn:
-        await conn.execute("""
+        updated = await conn.execute("""
             UPDATE workout_session_exercises
             SET sets_completed = sets_total, 
                 completed_at = NOW(), 
                 status = 'completed'
             WHERE session_id = $1 AND workout_exercise_id = $2
         """, session_id, block_ex_id)
+
+        # Если строки прогресса нет (сессия заполнилась не полностью) —
+        # создаём её, иначе бар прогресса никогда не позеленеет.
+        if updated.endswith("0"):
+            row = await conn.fetchrow("""
+                SELECT COALESCE(sets, 1) AS sets_total, exercise_id
+                FROM workout_exercises WHERE id = $1
+            """, block_ex_id)
+            sets_total = int(row["sets_total"] or 1) if row else 1
+            await conn.execute("""
+                INSERT INTO workout_session_exercises
+                (session_id, workout_exercise_id, exercise_id, sets_total,
+                 sets_completed, status, completed_at)
+                VALUES ($1, $2, $3, $4, $4, 'completed', NOW())
+            """, session_id, block_ex_id,
+               row["exercise_id"] if row else None, sets_total)
 
 async def get_user_quantity_max(user_id: int, exercise_id: int) -> int | None:
     """Возвращает максимальное количество повторений из теста quantity"""
@@ -640,11 +657,14 @@ async def get_user_quantity_max(user_id: int, exercise_id: int) -> int | None:
 async def show_workout_overview(
     cb_or_msg: CallbackQuery | Message,
     state: FSMContext,
-    workout_id: int
+    workout_id: int,
+    target_message: Message | None = None,
 ):
     """Максимально красивая карточка тренировки с разделителями-блоками и персональными расчётами."""
     try:
-        message = cb_or_msg.message if isinstance(cb_or_msg, CallbackQuery) else cb_or_msg
+        message = target_message if target_message is not None else (
+            cb_or_msg.message if isinstance(cb_or_msg, CallbackQuery) else cb_or_msg
+        )
 
         user_tg_id = cb_or_msg.from_user.id
         user       = await db_manager.get_user_by_telegram_id(user_tg_id)
@@ -805,7 +825,12 @@ async def show_workout_overview(
 
         # отправка
         if isinstance(cb_or_msg, CallbackQuery):
-            await message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="HTML")
+            try:
+                await message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="HTML")
+            except TelegramBadRequest as e:
+                # «message is not modified» — контент не изменился, это нормально
+                if "message is not modified" not in str(e):
+                    raise
             await cb_or_msg.answer()
         else:
             await message.answer(text, reply_markup=kb.as_markup(), parse_mode="HTML")
@@ -1366,10 +1391,25 @@ async def mark_done(callback: CallbackQuery, state: FSMContext):
         # Отмечаем упражнение выполненным в БД
         await mark_exercise_completed(sess_id, block_ex_id)
 
-        await callback.answer("✅ Упражнение отмечено как выполненное!", show_alert=True)
+        overview_msg = callback.message
+        try:
+            # Перерисовываем обзор тренировки — кубики прогресса станут зелёными
+            await show_workout_overview(callback, state, wid)
+        except TelegramBadRequest as e:
+            if "message is not modified" not in str(e):
+                raise
+        else:
+            # Если пользователь уже успел уйти на другую страницу (например,
+            # открыл карточку упражнения), сообщение обзора уже недоступно для
+            # редактирования — обновляем его отдельной правкой.
+            try:
+                await show_workout_overview(
+                    callback, state, wid, target_message=overview_msg
+                )
+            except TelegramBadRequest:
+                pass
 
-        # Перерисовываем обзор тренировки — кубики прогресса станут зелёными
-        await show_workout_overview(callback, state, wid)
+        await callback.answer("✅ Упражнение отмечено как выполненное!")
 
     except Exception as e:
         logger.exception("❗ mark_done error: %s", e)
