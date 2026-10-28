@@ -694,7 +694,7 @@ async def show_workout_overview(
             blocks[ex["phase"]].append(ex)
 
         # прогресс
-        done_sets, total_sets, percent = await get_session_progress(session_id)
+        done_sets, total_sets, progress_percent = await get_session_progress(session_id)
 
         # ==========  ШАПКА  ==========
         lines = [f"🏋️‍♂️ <b>{workout['name']}</b>"]
@@ -703,8 +703,8 @@ async def show_workout_overview(
         lines.append(f"👤 Автор: {workout.get('author_name', 'Тренера')}")
 
         if total_sets:
-            bar = "🟩" * (percent // 10) + "⬜" * (10 - percent // 10)
-            lines.append(f"{bar}  <b>{done_sets}/{total_sets}</b> подходов · {percent}%")
+            bar = "🟩" * (progress_percent // 10) + "⬜" * (10 - progress_percent // 10)
+            lines.append(f"{bar}  <b>{done_sets}/{total_sets}</b> подходов · {progress_percent}%")
         if is_trainer:
             lines.append("🔧 <i>Режим тренера</i>")
 
