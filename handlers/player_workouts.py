@@ -998,13 +998,13 @@ async def back_from_exercise_details(callback: CallbackQuery, state: FSMContext)
         await callback.message.edit_text("Ошибка возврата")
     await callback.answer()
 
-@player_workouts_router.callback_query(F.data.startswith("exdet_"))
-async def exercise_detail(callback: CallbackQuery, state: FSMContext):
-    """Полная карточка упражнения с описанием, техникой и заметками тренера."""
-    try:
-        _, ex_id_str, wid_str, sess_id_str, block_ex_id_str = callback.data.split("_")
-        ex_id, wid, sess_id, block_ex_id = map(int, (ex_id_str, wid_str, sess_id_str, block_ex_id_str))
+async def _exercise_detail_render(callback: CallbackQuery, state: FSMContext,
+                                  ex_id: int, wid: int, sess_id: int, block_ex_id: int):
+    """Рендер карточки упражнения на текущем сообщении (без callback.answer).
 
+    TelegramBadRequest ("сообщение не изменилось" и подобное) пропускается наружу.
+    """
+    try:
         user = await db_manager.get_user_by_telegram_id(callback.from_user.id)
         if not user:
             await callback.answer("❗ Пользователь не найден", show_alert=True)
@@ -1163,11 +1163,29 @@ async def exercise_detail(callback: CallbackQuery, state: FSMContext):
         kb.adjust(1)
 
         await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="HTML")
-        await callback.answer()
 
+    except TelegramBadRequest:
+        raise
     except Exception as e:
-        logger.exception("❗ exercise_detail error: %s", e)
-        await callback.answer("Ошибка при загрузке упражнения", show_alert=True)
+        logger.exception("❗ exercise_detail render error: %s", e)
+
+
+@player_workouts_router.callback_query(F.data.startswith("exdet_"))
+async def exercise_detail(callback: CallbackQuery, state: FSMContext):
+    """Полная карточка упражнения с описанием, техникой и заметками тренера."""
+    try:
+        _, ex_id_str, wid_str, sess_id_str, block_ex_id_str = callback.data.split("_")
+        ex_id, wid, sess_id, block_ex_id = map(int, (ex_id_str, wid_str, sess_id_str, block_ex_id_str))
+        await state.update_data(current_ex_id=ex_id)
+        await _exercise_detail_render(callback, state, ex_id, wid, sess_id, block_ex_id)
+    except TelegramBadRequest:
+        pass
+    finally:
+        try:
+            await callback.answer()
+        except Exception:
+            pass
+
 
 # @player_workouts_router.callback_query(F.data.startswith("exdet_"))
 # async def exercise_detail(callback: CallbackQuery, state: FSMContext):
@@ -1391,23 +1409,30 @@ async def mark_done(callback: CallbackQuery, state: FSMContext):
         # Отмечаем упражнение выполненным в БД
         await mark_exercise_completed(sess_id, block_ex_id)
 
-        overview_msg = callback.message
+        pressed_msg = callback.message  # сообщение с нажатой кнопкой
+
+        # 1) Перерисовываем карточку упражнения на месте — она станет
+        #    «🟢 Выполнено». Ошибку «message is not modified» игнорируем.
+        data = await state.get_data()
+        ex_id = int(data.get("current_ex_id", 0))
         try:
-            # Перерисовываем обзор тренировки — кубики прогресса станут зелёными
-            await show_workout_overview(callback, state, wid)
-        except TelegramBadRequest as e:
-            if "message is not modified" not in str(e):
-                raise
-        else:
-            # Если пользователь уже успел уйти на другую страницу (например,
-            # открыл карточку упражнения), сообщение обзора уже недоступно для
-            # редактирования — обновляем его отдельной правкой.
-            try:
-                await show_workout_overview(
-                    callback, state, wid, target_message=overview_msg
-                )
-            except TelegramBadRequest:
-                pass
+            await _exercise_detail_render(callback, state, ex_id, wid, sess_id, block_ex_id)
+        except TelegramBadRequest:
+            pass
+
+        # 2) Обновляем бар прогресса в сообщении обзора тренировки.
+        #    Если обзор — это то же сообщение, что и карточка (или пользователь
+        #    уже ушёл с него), просто пропускаем лишнюю правку.
+        if pressed_msg.message_id != getattr(pressed_msg, "message_id", None) or True:
+            pass
+        try:
+            overview_data = await state.get_data()
+            ov_msg_id = overview_data.get("overview_message_id")
+            if ov_msg_id and ov_msg_id != pressed_msg.message_id:
+                await show_workout_overview(callback, state, wid,
+                                            target_message=None, message_id=ov_msg_id)
+        except TelegramBadRequest:
+            pass
 
         await callback.answer("✅ Упражнение отмечено как выполненное!")
 
