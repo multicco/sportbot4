@@ -1251,8 +1251,8 @@ class TeamsDatabase:
                                 # Обновляем существующую сессию
                                 await conn.execute("""
                                     UPDATE workout_sessions
-                                    SET status = $1, started_at = CASE WHEN status = 'pending' THEN CURRENT_TIMESTAMP ELSE started_at END,
-                                        completed_at = CASE WHEN $1 = 'completed' THEN CURRENT_TIMESTAMP ELSE NULL END
+                                    SET status = $1::varchar, started_at = CASE WHEN status = 'pending' THEN CURRENT_TIMESTAMP ELSE started_at END,
+                                        completed_at = CASE WHEN $1::varchar = 'completed' THEN CURRENT_TIMESTAMP ELSE NULL END
                                     WHERE id = $2
                                 """, status, session['id'])
                                 
